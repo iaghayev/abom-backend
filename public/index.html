@@ -850,12 +850,14 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <button class="as-lnk" onclick="aPanel('regs')"><span class="ico">🎫</span>Qeydiyyatlar <span class="pend-badge" id="pendBadge" style="display:none">0</span></button>
       <button class="as-lnk" onclick="aPanel('results')"><span class="ico">📋</span>Nəticələr</button>
       <button class="as-lnk" onclick="aPanel('icazeler')"><span class="ico">🔑</span>İmtahan İcazələri</button>
+      <button class="as-lnk" onclick="aPanel('revenues')"><span class="ico">💰</span>Gəlir & Statistika</button>
       <button class="as-sec">Məzmun</button>
       <button class="as-lnk" onclick="aPanel('exams')"><span class="ico">📝</span>İmtahanlar</button>
       <button class="as-lnk" onclick="aPanel('questions')"><span class="ico">❓</span>Suallar</button>
       <button class="as-lnk" onclick="aPanel('videos')"><span class="ico">🎬</span>Videolar</button>
       <button class="as-lnk" onclick="aPanel('certs')"><span class="ico">🏅</span>Sertifikatlar</button>
       <div class="as-sec">Sistem</div>
+      <button class="as-lnk" onclick="aPanel('categories')"><span class="ico">🗂️</span>Kateqoriyalar</button>
       <button class="as-lnk" onclick="aPanel('users')"><span class="ico">👥</span>İstifadəçilər</button>
       <button class="as-lnk" onclick="goTo('home')"><span class="ico">🏠</span>Ana Səhifə</button>
       <button class="as-lnk" onclick="logout()"><span class="ico">🚪</span>Çıxış</button>
@@ -915,7 +917,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div class="a-panel" id="ap-icazeler">
         <div class="a-hdr">
           <div><div class="a-title">🔑 İmtahan İcazələri</div><div class="a-sub">Aktiv icazəni silsəniz şagird imtahanı görməz</div></div>
-          <button class="btn btn-outline btn-sm" onclick="loadIcazeler()">↻ Yenilə</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="openAssignExamModal()">+ Manual Assign</button>
+            <button class="btn btn-outline btn-sm" onclick="loadIcazeler()">↻ Yenilə</button>
+          </div>
         </div>
         <div class="filter-bar">
           <div class="search-inp" style="max-width:260px"><span>🔍</span><input type="text" id="icazeSearch" placeholder="Ad, imtahan..." oninput="filterIcazeler()"></div>
@@ -962,9 +967,81 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
       <!-- Users -->
       <div class="a-panel" id="ap-users">
-        <div class="a-hdr"><div><div class="a-title">👥 İstifadəçilər</div></div></div>
+        <div class="a-hdr">
+          <div><div class="a-title">👥 İstifadəçilər</div></div>
+          <div style="display:flex;gap:8px">
+            <input type="text" class="search-box" id="userSearch" placeholder="🔍 Axtar..." oninput="filterAdminUsers()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;width:200px">
+            <button class="btn btn-outline btn-sm" onclick="loadAdminUsers()">↻</button>
+          </div>
+        </div>
         <div class="a-table" id="adminUsersTable"><div class="a-empty">Yüklənir...</div></div>
       </div>
+
+      <!-- Revenues -->
+      <div class="a-panel" id="ap-revenues">
+        <div class="a-hdr">
+          <div><div class="a-title">💰 Gəlir & Statistika</div><div class="a-sub">Bilet satışları və gəlir hesabatı</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="revFrom" class="inp" style="padding:7px 10px;font-size:13px;width:140px">
+            <input type="date" id="revTo" class="inp" style="padding:7px 10px;font-size:13px;width:140px">
+            <select id="revExamFilter" class="flt-sel" style="min-width:140px"><option value="">Bütün imtahanlar</option></select>
+            <button class="btn btn-primary btn-sm" onclick="loadRevenues()">🔍 Filtrlə</button>
+            <button class="btn btn-green btn-sm" onclick="exportRevCsv()">⬇ CSV</button>
+          </div>
+        </div>
+        <!-- KPI bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+          <div class="a-kpi"><div class="a-kpi-lbl">Ümumi Gəlir</div><div class="a-kpi-val" id="revTotal" style="color:var(--green)">—</div></div>
+          <div class="a-kpi"><div class="a-kpi-lbl">Satılmış Bilet</div><div class="a-kpi-val" id="revTickets">—</div></div>
+          <div class="a-kpi"><div class="a-kpi-lbl">Ort. Bilet Qiyməti</div><div class="a-kpi-val" id="revAvg">—</div></div>
+          <div class="a-kpi"><div class="a-kpi-lbl">Bu Ay</div><div class="a-kpi-val" id="revMonth" style="color:var(--blue)">—</div></div>
+        </div>
+        <!-- Per-exam stats -->
+        <div style="margin-bottom:16px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:10px">📊 İmtahana Görə Statistika</div>
+          <div class="a-table" id="revStatsTable"><div class="a-empty">Yüklənir...</div></div>
+        </div>
+        <!-- Transactions -->
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:10px">📋 Əməliyyatlar</div>
+          <div class="a-table" id="revTable"><div class="a-empty">Yüklənir...</div></div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="a-panel" id="ap-categories">
+        <div class="a-hdr">
+          <div><div class="a-title">🗂️ Kateqoriyalar</div><div class="a-sub">Sinif, fənn və bölmə siyahıları</div></div>
+          <button class="btn btn-outline btn-sm" onclick="loadCategories()">↻</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px" id="catPanels">
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:10px">📚 Siniflər</div>
+            <div id="catClass"><div class="a-empty">Yüklənir...</div></div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <input class="inp" id="newClassName" placeholder="Yeni sinif..." style="flex:1;padding:7px 10px">
+              <button class="btn btn-primary btn-sm" onclick="addCategory('class')">+</button>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:10px">🔬 Fənnlər</div>
+            <div id="catSubject"><div class="a-empty">Yüklənir...</div></div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <input class="inp" id="newSubjectName" placeholder="Yeni fənn..." style="flex:1;padding:7px 10px">
+              <button class="btn btn-primary btn-sm" onclick="addCategory('subject')">+</button>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;margin-bottom:10px">🗂️ Bölmələr</div>
+            <div id="catSection"><div class="a-empty">Yüklənir...</div></div>
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <input class="inp" id="newSectionName" placeholder="Yeni bölmə..." style="flex:1;padding:7px 10px">
+              <button class="btn btn-primary btn-sm" onclick="addCategory('section')">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -1362,6 +1439,71 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   </div>
 </div>
 
+<!-- RESULT EDIT MODAL -->
+<div class="overlay" id="resultEditModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('resultEditModal')">✕</button>
+    <div class="m-title">✏️ Nəticəni Redaktə Et</div>
+    <input type="hidden" id="reEditId">
+    <div class="field"><label>Şagird</label><input class="inp" id="reEditStudent" disabled style="opacity:.6"></div>
+    <div class="field"><label>İmtahan</label><input class="inp" id="reEditExam" disabled style="opacity:.6"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="field"><label>Bal (0-100)</label><input class="inp" type="number" id="reEditScore" min="0" max="100" oninput="updateScoreFromParts()"></div>
+      <div class="field"><label>Düzgün</label><input class="inp" type="number" id="reEditCorrect" min="0" oninput="updateScoreFromParts()"></div>
+      <div class="field"><label>Cəmi sual</label><input class="inp" type="number" id="reEditTotal" min="1" oninput="updateScoreFromParts()"></div>
+    </div>
+    <div class="field"><label>Qeyd (ixtiyari)</label><input class="inp" id="reEditNote" placeholder="Admin qeydi..."></div>
+    <div style="background:rgba(19,85,160,.06);border:1px solid rgba(19,85,160,.2);border-radius:8px;padding:10px;font-size:12px;margin-bottom:14px">
+      ⚠️ Bal dəyişdirilərsə, şagirdin sertifikatı yeni bala uyğun yenilənəcək.
+    </div>
+    <button class="form-btn" onclick="saveResultEdit()">Yadda saxla</button>
+  </div>
+</div>
+
+<!-- USER EDIT MODAL -->
+<div class="overlay" id="userEditModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('userEditModal')">✕</button>
+    <div class="m-title">✏️ İstifadəçini Redaktə Et</div>
+    <input type="hidden" id="ueId">
+    <div class="field"><label>Ad Soyad</label><input class="inp" id="ueName"></div>
+    <div class="field"><label>Username</label><input class="inp" id="ueUsername" placeholder="@username"></div>
+    <div class="field"><label>Telefon</label><input class="inp" id="uePhone"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Sinif</label><select class="inp" id="ueClass"><option value="">Seçin</option></select></div>
+      <div class="field"><label>Bölmə</label><select class="inp" id="ueSection"><option value="">Seçin</option></select></div>
+    </div>
+    <button class="form-btn" onclick="saveUserEdit()">Yadda saxla</button>
+  </div>
+</div>
+
+<!-- ASSIGN EXAM MODAL -->
+<div class="overlay" id="assignExamModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('assignExamModal')">✕</button>
+    <div class="m-title">🔑 İmtahan Assign Et</div>
+    <div class="m-sub">Şagird seçin və imtahan təyin edin</div>
+    <div class="field">
+      <label>Şagird</label>
+      <input class="inp" id="assignUserSearch" placeholder="Ad ilə axtar..." oninput="filterAssignUsers()">
+      <div id="assignUserList" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;margin-top:6px"></div>
+      <input type="hidden" id="assignUserId">
+      <div id="assignUserSelected" style="margin-top:6px;font-size:13px;color:var(--green);font-weight:600"></div>
+    </div>
+    <div class="field">
+      <label>İmtahan</label>
+      <select class="inp" id="assignExamId">
+        <option value="">İmtahan seçin</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <input type="checkbox" id="assignActivate" checked style="width:16px;height:16px">
+      <label for="assignActivate" style="font-size:13px;cursor:pointer">Avtomatik aktivləşdir (gəlirə yazılsın)</label>
+    </div>
+    <button class="form-btn" onclick="doAssignExam()">Assign Et</button>
+  </div>
+</div>
+
 <!-- ICAZE EDIT MODAL -->
 <div class="overlay" id="icazeEditModal">
   <div class="modal modal-sm">
@@ -1387,29 +1529,39 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
 <!-- CERT TEMPLATE MODAL -->
 <div class="overlay" id="certTemplateModal">
-  <div class="modal" style="max-width:700px">
+  <div class="modal" style="max-width:900px;width:96vw">
     <button class="m-close" onclick="closeModal('certTemplateModal')">✕</button>
     <div class="m-title" id="certTplTitle">🏅 Sertifikat Şablonu</div>
-    <div class="m-sub" id="certTplSub">Şablonu yükləyin, sahə koordinatlarını təyin edin</div>
+    <div class="m-sub">Şablonu yükləyin, sahələri sürükləyərək və ya X/Y % ilə yerləşdirin</div>
     <input type="hidden" id="certTplCfgId">
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Şablon Şəkil (JPG/PNG)</label>
-      <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
-        <input type="file" id="certTplFile" accept="image/*" style="flex:1;padding:8px;border:1.5px dashed var(--border);border-radius:8px;font-size:13px">
-        <button class="btn btn-primary btn-sm" onclick="uploadCertTemplate()">⬆ Yüklə</button>
+
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start">
+      <!-- Left: controls -->
+      <div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Şablon Şəkil</label>
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <input type="file" id="certTplFile" accept="image/*" style="flex:1;padding:6px;border:1.5px dashed var(--border);border-radius:8px;font-size:12px">
+            <button class="btn btn-primary btn-sm" onclick="uploadCertTemplate()">⬆</button>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">📍 Sahə Mövqeləri</div>
+        <div id="certFieldInputs"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="form-btn" onclick="saveCertTemplateFields()" style="flex:1;padding:11px">💾 Saxla</button>
+          <button class="btn btn-outline" onclick="closeModal('certTemplateModal')" style="min-width:80px">Bağla</button>
+        </div>
       </div>
-      <div id="certTplPreviewWrap" style="margin-top:10px;display:none;position:relative">
-        <img id="certTplPreview" style="width:100%;border-radius:10px;border:1.5px solid var(--border);display:block">
-        <div id="certTplDots"></div>
+      <!-- Right: live preview -->
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">👁 Canlı Önizləmə</div>
+        <div id="certPreviewContainer" style="position:relative;background:var(--soft);border-radius:10px;border:1.5px solid var(--border);min-height:200px;overflow:hidden">
+          <div id="certNoPreview" style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Şablon şəkil yüklənməyib</div>
+          <img id="certTplPreview" style="width:100%;display:none;border-radius:10px" crossorigin="anonymous">
+          <div id="certTplDots"></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Nümunə məlumatlar: Ad: <b>Əli Həsənov</b> · Tarix: <b>2025-03-11</b></div>
       </div>
-    </div>
-    <div style="background:var(--soft);border-radius:10px;padding:14px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">📍 Sahə Koordinatları (% — şəkilin sol-üst küncündən)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="certFieldInputs"></div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="form-btn" onclick="saveCertTemplateFields()" style="flex:1">💾 Saxla</button>
-      <button class="btn btn-outline" onclick="closeModal('certTemplateModal')" style="min-width:90px">Bağla</button>
     </div>
   </div>
 </div>
@@ -2339,9 +2491,28 @@ function showResult(result, level, exam){
 }
 
 function downloadCert(){
-  const r=STATE.currentResult, l=STATE.currentCertLevel, u=STATE.user;
-  const ex=STATE.currentExam;
-  if(!r||!l) return;
+  // Use the new template-based cert system
+  // STATE.currentResult should have the result id
+  const r=STATE.currentResult;
+  const l=STATE.currentCertLevel;
+  if(!r){ toast('Nəticə tapılmadı','err'); return; }
+  // Try template-based first, fall back to HTML print if no template
+  GET('/certs/check/'+r.id).then(certResp=>{
+    if(certResp.hasCert && certResp.data && certResp.data.template_url){
+      const fields = typeof certResp.data.template_fields==='string'
+        ? JSON.parse(certResp.data.template_fields||'{}')
+        : (certResp.data.template_fields||{});
+      generateCertPDF(certResp.data, fields, r);
+    } else {
+      // Fallback: HTML print cert
+      downloadCertHTML(r, l);
+    }
+  }).catch(()=>downloadCertHTML(r,l));
+}
+
+function downloadCertHTML(r, l){
+  const u=STATE.user; const ex=STATE.currentExam;
+  if(!r||!l){ toast('Sertifikat mövcud deyil','err'); return; }
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
@@ -2539,15 +2710,17 @@ function aPanel(p){
   document.getElementById('ap-'+p)?.classList.add('active');
   document.querySelectorAll('.as-lnk').forEach(x=>x.classList.remove('active'));
   event?.currentTarget?.classList.add('active');
-  if(p==='dashboard') loadAdminDashboard();
-  if(p==='regs') loadRegs();
-  if(p==='results') loadAdminResults();
-  if(p==='icazeler') loadIcazeler();
-  if(p==='exams') loadAdminExams();
-  if(p==='questions') loadQExamSelect();
-  if(p==='videos') loadAdminVideos();
-  if(p==='certs') loadCertExamSelect();
-  if(p==='users') loadAdminUsers();
+  if(p==='dashboard')  loadAdminDashboard();
+  if(p==='regs')       loadRegs();
+  if(p==='results')    loadAdminResults();
+  if(p==='icazeler')   loadIcazeler();
+  if(p==='revenues')   loadRevenues();
+  if(p==='categories') loadCategories();
+  if(p==='users')      loadAdminUsers();
+  if(p==='exams')      loadAdminExams();
+  if(p==='questions')  loadQExamSelect();
+  if(p==='videos')     loadAdminVideos();
+  if(p==='certs')      loadCertExamSelect();
 }
 
 async function loadAdminDashboard(){
@@ -2582,8 +2755,8 @@ async function loadRegs(){
 function filterRegs(){
   const s=document.getElementById('regSearch')?.value.toLowerCase()||'';
   const st=document.getElementById('regStatusFilter')?.value||'';
-  let data=STATE.allRegs.filter(r=>(!s||(r.name+r.phone+r.whatsapp).toLowerCase().includes(s))&&(!st||r.status===st));
-  const cols='grid-template-columns:1fr 120px 80px 90px 100px 80px';
+  let data=STATE.allRegs.filter(r=>(!s||(r.name+r.phone+(r.whatsapp||'')).toLowerCase().includes(s))&&(!st||r.status===st));
+  const cols='grid-template-columns:1fr 120px 80px 90px 100px 100px';
   document.getElementById('regsTable').innerHTML=
     `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>Telefon</div><div>Sinif</div><div>Status</div><div>İmtahan</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(r=>`<div class="a-t-row" style="${cols}">
@@ -2592,10 +2765,11 @@ function filterRegs(){
       <div>${r.class}</div>
       <div><span class="tag ${r.status==='active'?'tag-green':r.status==='pending'?'tag-gold':'tag-red'}">${t(r.status)}</span></div>
       <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title||'—'}</div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        ${r.status==='pending'?`<button class="btn btn-green btn-sm" onclick="activateReg('${r.id}','${r.whatsapp}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">✓</button>`:''}
-        <button class="btn btn-outline btn-sm" onclick="openWa('${r.whatsapp}','${r.name}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">💬</button>
-        <button class="btn btn-red btn-sm" onclick="deleteReg('${r.id}')">✗</button>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">
+        ${r.status==='pending'?`<button class="btn btn-green btn-sm" title="Aktivləşdir" onclick="activateReg('${r.id}','${r.whatsapp||r.phone}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">✓</button>`:''}
+        ${r.status==='active'?`<button class="btn btn-red btn-sm" title="Ləğv et (gəliri sil)" onclick="cancelReg('${r.id}')">🗑 Ləğv</button>`:''}
+        <button class="btn btn-outline btn-sm" title="WhatsApp" onclick="openWa('${r.whatsapp||r.phone}','${r.name}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">💬</button>
+        <button class="btn btn-red btn-sm" title="Sil" onclick="deleteReg('${r.id}')">✗</button>
       </div>
     </div>`).join(''):'<div class="a-empty">Qeydiyyat tapılmadı.</div>');
 }
@@ -2603,9 +2777,15 @@ function filterRegs(){
 async function activateReg(id, wa, examTitle, price){
   const r=await PUT('/registrations/'+id+'/activate',{});
   if(!r.success){ toast(r.message,'err'); return; }
-  toast('Aktivləşdirildi!','ok');
+  toast('Aktivləşdirildi! Gəlirə yazıldı ✅','ok');
   loadRegs(); updatePendingBadge();
   openWaModal(wa, examTitle, price, true);
+}
+async function cancelReg(id){
+  if(!confirm('⚠️ Bu icazəni LƏĞV ET?\n\n• Şagirdin imtahan icazəsi silinəcək\n• Gəlirdən ödəniş silinəcək\n\nDavam etmək istəyirsinizmi?')) return;
+  const r = await api('DELETE','/registrations/'+id+'/cancel');
+  toast(r.success ? '🗑 İcazə və ödəniş silindi.' : r.message, r.success?'ok':'err');
+  if(r.success){ loadRegs(); updatePendingBadge(); }
 }
 async function deleteReg(id){
   if(!confirm('Silmək istədiyinizə əminsiniz?')) return;
@@ -2637,7 +2817,7 @@ function filterAdminResults(){
   ));
 }
 function renderAdminResults(data){
-  const cols='grid-template-columns:1fr 1fr 60px 80px 80px 90px';
+  const cols='grid-template-columns:1fr 1fr 60px 80px 80px 110px';
   document.getElementById('resultsTable').innerHTML=
     `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Tarix</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(r=>`<div class="a-t-row" style="${cols}">
@@ -2646,11 +2826,12 @@ function renderAdminResults(data){
       <div><span style="font-weight:700;color:${scoreColor(r.score)}">${r.score}%</span></div>
       <div style="font-size:12px">${r.correct}/${r.total}</div>
       <div style="font-size:12px;color:var(--muted)">${fmtDate(r.created_at)}</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm" title="Cavabları gör" onclick="adminViewResult('${r.id}','${(r.user_name||'').replace(/'/g,"\\'")}')">🔍</button>
-        <button class="btn btn-red btn-sm" title="Sil (şagird yenidən verə bilər)" onclick="adminDeleteResult('${r.id}')">↺</button>
+      <div style="display:flex;gap:3px">
+        <button class="btn btn-outline btn-sm" title="Cavablar" onclick='adminViewResult("${r.id}","${(r.user_name||''  ).replace(/"/g,'&quot;')}")'>🔍</button>
+        <button class="btn btn-outline btn-sm" title="Redaktə" onclick='openResultEdit(${JSON.stringify(r).replace(/'/g,"\\'") })'>✏️</button>
+        <button class="btn btn-red btn-sm" title="Sil" onclick="adminDeleteResult('${r.id}')">↺</button>
       </div>
-    </div>`).join(''):'<div class="a-empty">Nəticə yoxdur.</div>');
+    </div>`).join(''  )  :'<div class="a-empty">Nəticə yoxdur.</div>');
 }
 async function adminDeleteResult(id){
   if(!confirm('Nəticəni silmək istədiyinizə əminsiniz?\n\n✅ Şagird bu imtahanı yenidən verə bilər.')) return;
@@ -3079,51 +3260,102 @@ async function saveCertConfig(examId){
 
 // ═══ CERT TEMPLATE UPLOAD + FIELDS ═══
 const CERT_FIELDS = [
-  {key:'name',  label:'👤 Ad Soyad'},
-  {key:'date',  label:'📅 Tarix'},
-  {key:'exam',  label:'📚 İmtahan adı'},
-  {key:'score', label:'🎯 Bal'},
+  {key:'name',    label:'👤 Ad Soyad',    sample:'Əli Həsənov'},
+  {key:'date',    label:'📅 Tarix',        sample:'11.03.2025'},
+  {key:'exam',    label:'📚 İmtahan adı',  sample:'Riyaziyyat Olimpiadası'},
+  {key:'score',   label:'🎯 Bal',          sample:'92%'},
+  {key:'teacher', label:'🧑‍🏫 Müəllim adı', sample:'Müəllim Adı'},
 ];
+
+function setV(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
+
+function buildCertFieldInputs(){
+  document.getElementById('certFieldInputs').innerHTML = CERT_FIELDS.map(f=>`
+    <div style="background:#fff;border-radius:8px;padding:9px;border:1px solid var(--border);margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">${f.label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 52px 38px;gap:3px;margin-bottom:3px">
+        <div><div style="font-size:9px;color:var(--muted)">X%</div>
+          <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="50"
+            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+        <div><div style="font-size:9px;color:var(--muted)">Y%</div>
+          <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="50"
+            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+        <div><div style="font-size:9px;color:var(--muted)">px</div>
+          <input class="inp" id="cf_${f.key}_size" type="number" min="6" max="200" value="36"
+            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+        <div><div style="font-size:9px;color:var(--muted)">Rəng</div>
+          <input type="color" id="cf_${f.key}_color" value="#0b1f3a"
+            style="width:100%;height:28px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer"
+            oninput="updateCertPreview()"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 76px;gap:3px">
+        <input class="inp" id="cf_${f.key}_font" placeholder="Arial (ixtiyari)"
+          style="padding:3px 7px;font-size:10px" oninput="updateCertPreview()">
+        <select class="inp" id="cf_${f.key}_align" style="padding:3px 7px;font-size:10px" onchange="updateCertPreview()">
+          <option value="center">Mərkəz</option>
+          <option value="left">Sol</option>
+          <option value="right">Sağ</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function updateCertPreview(){
+  const container = document.getElementById('certTplDots');
+  if(!container) return;
+  container.innerHTML = '';
+  const img = document.getElementById('certTplPreview');
+  if(!img || img.style.display==='none' || !img.offsetWidth) return;
+
+  CERT_FIELDS.forEach(f=>{
+    const xEl = document.getElementById('cf_'+f.key+'_x');
+    const yEl = document.getElementById('cf_'+f.key+'_y');
+    if(!xEl||!yEl) return;
+    const x = parseFloat(xEl.value);
+    const y = parseFloat(yEl.value);
+    if(isNaN(x)||isNaN(y)) return;
+
+    const size  = parseInt(document.getElementById('cf_'+f.key+'_size')?.value)||36;
+    const color = document.getElementById('cf_'+f.key+'_color')?.value||'#0b1f3a';
+    const font  = document.getElementById('cf_'+f.key+'_font')?.value||'Arial, sans-serif';
+    const align = document.getElementById('cf_'+f.key+'_align')?.value||'center';
+    const scale = img.offsetWidth / (img.naturalWidth||img.offsetWidth||800);
+    const scaledSize = Math.max(7, Math.round(size*scale));
+
+    const dot = document.createElement('div');
+    dot.style.cssText = `position:absolute;left:${x}%;top:${y}%;transform:translate(${align==='center'?'-50%':align==='right'?'-100%':'0'},-50%);font-size:${scaledSize}px;color:${color};font-family:${font||'Arial,sans-serif'};font-weight:bold;white-space:nowrap;pointer-events:none;user-select:none;text-shadow:0 1px 4px rgba(255,255,255,.9),0 0 2px rgba(255,255,255,.7);`;
+    dot.textContent = f.sample;
+    container.appendChild(dot);
+  });
+}
 
 async function openCertTemplate(cfgId, levelName){
   if(!cfgId){ toast('Əvvəlcə sertifikat konfiqini yadda saxlayın.','err'); return; }
   document.getElementById('certTplCfgId').value = cfgId;
   document.getElementById('certTplTitle').textContent = '🏅 '+levelName+' — Şablon';
-  document.getElementById('certTplSub').textContent = 'Şablon şəkil yükləyin, sahələri X/Y % ilə yerləşdirin';
-  document.getElementById('certTplPreviewWrap').style.display = 'none';
   document.getElementById('certTplFile').value = '';
+  document.getElementById('certTplPreview').style.display = 'none';
+  document.getElementById('certNoPreview').style.display = 'block';
+  document.getElementById('certTplDots').innerHTML = '';
+  buildCertFieldInputs();
 
-  // Build field inputs
-  document.getElementById('certFieldInputs').innerHTML = CERT_FIELDS.map(f=>`
-    <div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border)">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">${f.label}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:4px">
-        <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="X %" style="padding:5px 8px;font-size:12px">
-        <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="Y %" style="padding:5px 8px;font-size:12px">
-        <input class="inp" id="cf_${f.key}_size" type="number" min="8" max="200" value="32" placeholder="px" style="padding:5px 8px;font-size:12px">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 40px;gap:4px">
-        <input class="inp" id="cf_${f.key}_font" placeholder="Font ailəsi (ixtiyari)" style="padding:4px 8px;font-size:11px">
-        <input type="color" id="cf_${f.key}_color" value="#0b1f3a" style="width:100%;height:28px;border:1.5px solid var(--border);border-radius:6px;padding:1px;cursor:pointer">
-      </div>
-    </div>`).join('');
-
-  // Load existing config if any
   const cfgAll = await api('GET', '/certs/by-id/'+cfgId);
-  if(cfgAll?.success && cfgAll.data) {
+  if(cfgAll?.success && cfgAll.data){
     const cfg = cfgAll.data;
     if(cfg.template_url){
-      document.getElementById('certTplPreviewWrap').style.display='block';
-      document.getElementById('certTplPreview').src = cfg.template_url;
+      const img = document.getElementById('certTplPreview');
+      img.onload = () => { img.style.display='block'; document.getElementById('certNoPreview').style.display='none'; updateCertPreview(); };
+      img.src = cfg.template_url+'?t='+Date.now();
     }
-    const fields = typeof cfg.template_fields === 'string' ? JSON.parse(cfg.template_fields||'{}') : (cfg.template_fields||{});
+    const fields = typeof cfg.template_fields==='string' ? JSON.parse(cfg.template_fields||'{}') : (cfg.template_fields||{});
     CERT_FIELDS.forEach(f=>{
       const fd = fields[f.key]||{};
-      if(fd.x!=null) document.getElementById('cf_'+f.key+'_x').value=fd.x;
-      if(fd.y!=null) document.getElementById('cf_'+f.key+'_y').value=fd.y;
-      if(fd.size) document.getElementById('cf_'+f.key+'_size').value=fd.size;
-      if(fd.color) document.getElementById('cf_'+f.key+'_color').value=fd.color;
-      if(fd.font) document.getElementById('cf_'+f.key+'_font').value=fd.font;
+      setV('cf_'+f.key+'_x',     fd.x??'');
+      setV('cf_'+f.key+'_y',     fd.y??'');
+      setV('cf_'+f.key+'_size',  fd.size||36);
+      setV('cf_'+f.key+'_color', fd.color||'#0b1f3a');
+      setV('cf_'+f.key+'_font',  fd.font||'');
+      setV('cf_'+f.key+'_align', fd.align||'center');
     });
   }
   openModal('certTemplateModal');
@@ -3136,10 +3368,11 @@ async function uploadCertTemplate(){
   const fd=new FormData(); fd.append('template',file);
   const res=await fetch(API+'/certs/upload-template/'+cfgId,{method:'POST',headers:{Authorization:'Bearer '+STATE.token},body:fd});
   const r=await res.json();
-  if(!r.success){ toast(r.message,'err'); return; }
+  if(!r.success){ toast(r.message||'Xəta','err'); return; }
   toast('Şablon yükləndi!','ok');
-  document.getElementById('certTplPreview').src=r.url+'?t='+Date.now();
-  document.getElementById('certTplPreviewWrap').style.display='block';
+  const img=document.getElementById('certTplPreview');
+  img.onload=()=>{ img.style.display='block'; document.getElementById('certNoPreview').style.display='none'; updateCertPreview(); };
+  img.src=r.url+'?t='+Date.now();
 }
 
 async function saveCertTemplateFields(){
@@ -3147,98 +3380,305 @@ async function saveCertTemplateFields(){
   const fields={};
   CERT_FIELDS.forEach(f=>{
     fields[f.key]={
-      x:parseFloat(document.getElementById('cf_'+f.key+'_x').value)||0,
-      y:parseFloat(document.getElementById('cf_'+f.key+'_y').value)||0,
-      size:parseInt(document.getElementById('cf_'+f.key+'_size').value)||32,
-      color:document.getElementById('cf_'+f.key+'_color').value||'#0b1f3a',
-      font:document.getElementById('cf_'+f.key+'_font').value||'',
+      x:     parseFloat(document.getElementById('cf_'+f.key+'_x')?.value)||0,
+      y:     parseFloat(document.getElementById('cf_'+f.key+'_y')?.value)||0,
+      size:  parseInt(document.getElementById('cf_'+f.key+'_size')?.value)||36,
+      color: document.getElementById('cf_'+f.key+'_color')?.value||'#0b1f3a',
+      font:  document.getElementById('cf_'+f.key+'_font')?.value||'',
+      align: document.getElementById('cf_'+f.key+'_align')?.value||'center',
     };
   });
   const r=await PUT('/certs/fields/'+cfgId,{fields});
-  toast(r.success?'Sahələr saxlandı!':r.message,r.success?'ok':'err');
+  toast(r.success?'Sahələr saxlandı!':r.message, r.success?'ok':'err');
   if(r.success){ closeModal('certTemplateModal'); loadCertConfig(); }
 }
 
-// ═══ CERT PDF GENERATION (CLIENT-SIDE) ═══
-async function downloadCert(){
-  const result = STATE.currentResult;
-  if(!result){ toast('Nəticə tapılmadı','err'); return; }
-  const r = await GET('/certs/check/'+result.id);
-  if(!r.hasCert || !r.data){ toast('Bu nəticə üçün sertifikat yoxdur','err'); return; }
+// ═══ CERT PDF GENERATION ═══
+async function downloadCert(resultId){
+  const rid = resultId || STATE.currentResult?.id;
+  if(!rid){ toast('Nəticə tapılmadı','err'); return; }
+  const r = await GET('/certs/check/'+rid);
+  if(!r.hasCert || !r.data){ toast('Bu bal üçün sertifikat yoxdur','err'); return; }
   const cert = r.data;
   const fields = typeof cert.template_fields==='string' ? JSON.parse(cert.template_fields||'{}') : (cert.template_fields||{});
   if(!cert.template_url){ toast('Sertifikat şablonu hələ yüklənməyib','err'); return; }
-  await generateCertPDF(cert, fields, result);
+  await generateCertPDF(cert, fields, {score:cert.score, created_at:cert.date, user_name:cert.user_name, exam_title:cert.exam_title});
 }
 
 async function generateCertPDF(cert, fields, result){
   try {
-    const canvas = document.createElement('canvas');
+    toast('Sertifikat hazırlanır...','ok');
     const img = new Image(); img.crossOrigin='anonymous';
-    img.src = cert.template_url+'?t='+Date.now();
+    const url = cert.template_url.startsWith('http') ? cert.template_url : window.location.origin+cert.template_url;
+    img.src = url+'?t='+Date.now();
     await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
-    canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
-    const ctx=canvas.getContext('2d');
-    ctx.drawImage(img,0,0);
+    const canvas=document.createElement('canvas');
+    canvas.width=img.naturalWidth||1200; canvas.height=img.naturalHeight||850;
+    const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0);
 
+    const dateStr = (result?.created_at||cert.date||new Date().toISOString()).split('T')[0].split('-').reverse().join('.');
     const fieldData = {
-      name:  cert.user_name || result?.user_name || '—',
-      date:  (result?.created_at||cert.date||'').split('T')[0],
-      exam:  cert.exam_title || '—',
-      score: (result?.score??cert.score) + '%',
+      name:    cert.user_name || result?.user_name || '—',
+      date:    dateStr,
+      exam:    cert.exam_title || result?.exam_title || '—',
+      score:   String(result?.score ?? cert.score ?? '') + (String(result?.score ?? '').includes('%')?'':'%'),
+      teacher: result?.teacher_name || cert.teacher_name || 'ABOM',
     };
 
     Object.entries(fieldData).forEach(([key,value])=>{
-      const fd=fields[key]; if(!fd||fd.x==null) return;
+      const fd=fields[key]; if(!fd||(!fd.x&&!fd.y)) return;
       const x=(fd.x/100)*canvas.width;
       const y=(fd.y/100)*canvas.height;
-      const size=Math.round((fd.size||32)*(canvas.width/800));
-      ctx.font=`bold ${size}px ${fd.font||'Arial, sans-serif'}`;
+      const size=Math.round((fd.size||36)*(canvas.width/800));
+      ctx.font=`bold ${size}px ${fd.font||'Arial,sans-serif'}`;
       ctx.fillStyle=fd.color||'#0b1f3a';
-      ctx.textAlign='center';
+      ctx.textAlign=fd.align||'center';
+      ctx.textBaseline='middle';
       ctx.fillText(value,x,y);
     });
 
-    // Convert to PDF via jsPDF if available, else download as image
     if(window.jspdf?.jsPDF){
       const {jsPDF}=window.jspdf;
       const pdf=new jsPDF({orientation:canvas.width>canvas.height?'landscape':'portrait',unit:'px',format:[canvas.width,canvas.height]});
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,canvas.width,canvas.height);
-      pdf.save(`ABOM_Sertifikat_${cert.user_name||'student'}.pdf`);
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',0,0,canvas.width,canvas.height);
+      pdf.save('ABOM_Sertifikat_'+(cert.user_name||'student').replace(/\s+/g,'_')+'.pdf');
     } else {
-      // Fallback: download as image
       const a=document.createElement('a');
       a.href=canvas.toDataURL('image/jpeg',0.95);
-      a.download=`ABOM_Sertifikat_${cert.user_name||'student'}.jpg`;
+      a.download='ABOM_Sertifikat_'+(cert.user_name||'student').replace(/\s+/g,'_')+'.jpg';
       a.click();
     }
-    toast('Sertifikat yükləndi!','ok');
-  } catch(e){
-    console.error(e);
-    toast('Sertifikat yaradılarkən xəta baş verdi','err');
-  }
+    toast('✅ Sertifikat yükləndi!','ok');
+  } catch(e){ console.error(e); toast('Xəta: '+e.message,'err'); }
 }
 
+let allAdminUsers = [];
 async function loadAdminUsers(){
   const r=await GET('/admin/users');
-  const data=r.data||[];
-  const cols='grid-template-columns:1fr 100px 80px 60px 60px 40px';
+  allAdminUsers = r.data||[];
+  filterAdminUsers();
+}
+function filterAdminUsers(){
+  const s=(document.getElementById('userSearch')?.value||'').toLowerCase();
+  renderAdminUsers(s ? allAdminUsers.filter(u=>(u.name+u.username+u.phone).toLowerCase().includes(s)) : allAdminUsers);
+}
+function renderAdminUsers(data){
+  const cols='grid-template-columns:1fr 100px 110px 60px 60px 80px';
   document.getElementById('adminUsersTable').innerHTML=
-    `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>Username</div><div>Telefon</div><div>Sinif</div><div>Bilet</div><div>Sil</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>Username</div><div>Telefon</div><div>Sinif</div><div>Bilet</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(u=>`<div class="a-t-row" style="${cols}">
       <div style="font-weight:600">${u.name}</div>
       <div style="font-size:12px;color:var(--muted)">@${u.username||'—'}</div>
       <div style="font-size:12px">${u.phone}</div>
       <div>${u.class||'—'}</div>
       <div>${u.reg_count||0}</div>
-      <div><button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">✗</button></div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-sm" onclick="openUserEdit(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">✗</button>
+      </div>
     </div>`).join(''):'<div class="a-empty">İstifadəçi yoxdur.</div>');
+}
+async function openUserEdit(u){
+  document.getElementById('ueId').value=u.id;
+  document.getElementById('ueName').value=u.name||'';
+  document.getElementById('ueUsername').value=u.username||'';
+  document.getElementById('uePhone').value=u.phone||'';
+  // Load categories for class/section selects
+  await populateCatSelect('ueClass','class',u.class||'');
+  await populateCatSelect('ueSection','section',u.section||'');
+  openModal('userEditModal');
+}
+async function populateCatSelect(selId, type, selected){
+  const sel=document.getElementById(selId); if(!sel) return;
+  const r=await GET('/categories?type='+type);
+  sel.innerHTML='<option value="">Seçin</option>'+(r.data||[]).map(c=>`<option value="${c.name}" ${c.name===selected?'selected':''}>${c.name}</option>`).join('');
+}
+async function saveUserEdit(){
+  const id=document.getElementById('ueId').value;
+  const body={
+    name:document.getElementById('ueName').value,
+    username:document.getElementById('ueUsername').value,
+    phone:document.getElementById('uePhone').value,
+    class:document.getElementById('ueClass').value,
+    section:document.getElementById('ueSection').value,
+  };
+  const r=await PUT('/admin/users/'+id, body);
+  toast(r.success?'Yeniləndi!':r.message, r.success?'ok':'err');
+  if(r.success){ closeModal('userEditModal'); loadAdminUsers(); }
 }
 async function deleteUser(id){
   if(!confirm('Bu istifadəçini silmək istədiyinizə əminsiniz?')) return;
   const r=await DEL('/admin/users/'+id);
   toast(r.success?'Silindi.':r.message, r.success?'ok':'err');
   loadAdminUsers();
+}
+
+// ═══ RESULT EDIT ═══
+async function openResultEdit(r){
+  document.getElementById('reEditId').value=r.id;
+  document.getElementById('reEditStudent').value=r.user_name||'—';
+  document.getElementById('reEditExam').value=r.exam_title||'—';
+  document.getElementById('reEditScore').value=r.score||0;
+  document.getElementById('reEditCorrect').value=r.correct||0;
+  document.getElementById('reEditTotal').value=r.total||0;
+  document.getElementById('reEditNote').value=r.note||'';
+  openModal('resultEditModal');
+}
+function updateScoreFromParts(){
+  const c=parseInt(document.getElementById('reEditCorrect').value)||0;
+  const t=parseInt(document.getElementById('reEditTotal').value)||1;
+  const computed=Math.round((c/t)*100);
+  document.getElementById('reEditScore').value=computed;
+}
+async function saveResultEdit(){
+  const id=document.getElementById('reEditId').value;
+  const score=parseInt(document.getElementById('reEditScore').value);
+  const correct=parseInt(document.getElementById('reEditCorrect').value);
+  const total=parseInt(document.getElementById('reEditTotal').value);
+  const note=document.getElementById('reEditNote').value;
+  const r=await PUT('/results/'+id, {score,correct,total,note});
+  toast(r.success?'Nəticə yeniləndi!':r.message, r.success?'ok':'err');
+  if(r.success){ closeModal('resultEditModal'); loadAdminResults(); }
+}
+
+// ═══ ASSIGN EXAM ═══
+let allUsersForAssign=[];
+async function openAssignExamModal(){
+  // Load users
+  const ur=await GET('/admin/users');
+  allUsersForAssign=ur.data||[];
+  document.getElementById('assignUserId').value='';
+  document.getElementById('assignUserSelected').textContent='';
+  document.getElementById('assignUserSearch').value='';
+  renderAssignUserList(allUsersForAssign.slice(0,20));
+  // Load exams
+  const er=await GET('/exams');
+  const sel=document.getElementById('assignExamId');
+  sel.innerHTML='<option value="">İmtahan seçin</option>'+(er.data||[]).map(e=>`<option value="${e.id}">${e.title}</option>`).join('');
+  openModal('assignExamModal');
+}
+function filterAssignUsers(){
+  const s=(document.getElementById('assignUserSearch').value||'').toLowerCase();
+  renderAssignUserList(s ? allUsersForAssign.filter(u=>(u.name+u.phone).toLowerCase().includes(s)).slice(0,20) : allUsersForAssign.slice(0,20));
+}
+function renderAssignUserList(users){
+  document.getElementById('assignUserList').innerHTML=users.map(u=>`
+    <div onclick="selectAssignUser('${u.id}','${u.name.replace(/'/g,"\\'")}')"
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;transition:background .15s"
+      onmouseover="this.style.background='var(--soft)'" onmouseout="this.style.background=''">
+      <span style="font-weight:600">${u.name}</span>
+      <span style="color:var(--muted);margin-left:8px;font-size:11px">${u.phone} · ${u.class||'?'} sinif</span>
+    </div>`).join('')||'<div style="padding:10px;text-align:center;color:var(--muted);font-size:13px">Tapılmadı</div>';
+}
+function selectAssignUser(id,name){
+  document.getElementById('assignUserId').value=id;
+  document.getElementById('assignUserSelected').textContent='✓ '+name+' seçildi';
+  document.getElementById('assignUserList').innerHTML='';
+  document.getElementById('assignUserSearch').value=name;
+}
+async function doAssignExam(){
+  const user_id=document.getElementById('assignUserId').value;
+  const exam_id=document.getElementById('assignExamId').value;
+  const activate=document.getElementById('assignActivate').checked;
+  if(!user_id){ toast('Şagird seçin','err'); return; }
+  if(!exam_id){ toast('İmtahan seçin','err'); return; }
+  const r=await POST('/registrations/admin/assign',{user_id,exam_id,activate});
+  toast(r.success?'Assign edildi!':r.message, r.success?'ok':'err');
+  if(r.success){ closeModal('assignExamModal'); loadIcazeler(); if(activate) loadRevenues(); }
+}
+
+// ═══ REVENUES ═══
+async function loadRevenues(){
+  const from=document.getElementById('revFrom')?.value||'';
+  const to=document.getElementById('revTo')?.value||'';
+  const exam_id=document.getElementById('revExamFilter')?.value||'';
+  let url='/revenues?'; if(from) url+='from='+from+'&'; if(to) url+='to='+to+'&'; if(exam_id) url+='exam_id='+exam_id;
+  const [rev, stats] = await Promise.all([GET(url), GET('/revenues/stats?'+(from?'from='+from+'&':'')+(to?'to='+to:''))]);
+  const rows=rev.data||[];
+  // KPIs
+  const total=rev.total||0;
+  document.getElementById('revTotal').textContent=total.toFixed(2)+' ₼';
+  document.getElementById('revTickets').textContent=rows.length;
+  document.getElementById('revAvg').textContent=rows.length?(total/rows.length).toFixed(2)+' ₼':'—';
+  // This month
+  const now=new Date(), monthStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const monthTotal=rows.filter(r=>r.created_at?.startsWith(monthStr)).reduce((s,r)=>s+(r.amount||0),0);
+  document.getElementById('revMonth').textContent=monthTotal.toFixed(2)+' ₼';
+  // Stats table
+  const stData=stats.data||[];
+  const stCols='grid-template-columns:1fr 80px 90px 100px 100px';
+  document.getElementById('revStatsTable').innerHTML=
+    `<div class="a-t-hdr" style="${stCols}"><div>İmtahan</div><div>Bilet</div><div>Gəlir</div><div>İlk satış</div><div>Son satış</div></div>`+
+    (stData.length?stData.map(s=>`<div class="a-t-row" style="${stCols}">
+      <div style="font-weight:600;font-size:13px">${s.exam_title}</div>
+      <div><span class="tag tag-blue">${s.ticket_count}</span></div>
+      <div style="font-weight:700;color:var(--green)">${(s.total_revenue||0).toFixed(2)} ₼</div>
+      <div style="font-size:11px;color:var(--muted)">${fmtDate(s.first_sale)}</div>
+      <div style="font-size:11px;color:var(--muted)">${fmtDate(s.last_sale)}</div>
+    </div>`).join(''):'<div class="a-empty">Gəlir yoxdur.</div>');
+  // Fill exam filter
+  const sel=document.getElementById('revExamFilter');
+  if(sel && sel.options.length===1){
+    const titles=[...new Set(rows.map(r=>r.exam_title).filter(Boolean))];
+    titles.forEach(t=>{ const o=document.createElement('option'); o.value=rows.find(r=>r.exam_title===t)?.exam_id||''; o.textContent=t; sel.appendChild(o); });
+  }
+  // Transactions table
+  const cols='grid-template-columns:1fr 1fr 80px 80px 90px';
+  document.getElementById('revTable').innerHTML=
+    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>İmtahan</div><div>Məbləğ</div><div>Status</div><div>Tarix</div></div>`+
+    (rows.length?rows.map(r=>`<div class="a-t-row" style="${cols}">
+      <div style="font-weight:600;font-size:13px">${r.student_name}</div>
+      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title}</div>
+      <div style="font-weight:700;color:var(--green)">${(r.amount||0).toFixed(2)} ₼</div>
+      <div><span class="tag tag-green">✓</span></div>
+      <div style="font-size:11px;color:var(--muted)">${fmtDate(r.created_at)}</div>
+    </div>`).join(''):'<div class="a-empty">Gəlir tapılmadı.</div>');
+}
+function exportRevCsv(){
+  const from=document.getElementById('revFrom')?.value||'';
+  const to=document.getElementById('revTo')?.value||'';
+  window.open(API+'/revenues?format=csv'+(from?'&from='+from:'')+(to?'&to='+to:''),'_blank');
+}
+
+// ═══ CATEGORIES ═══
+async function loadCategories(){
+  const r=await GET('/categories');
+  const all=r.data||[];
+  renderCatList('catClass',  all.filter(c=>c.type==='class'),   'class');
+  renderCatList('catSubject',all.filter(c=>c.type==='subject'), 'subject');
+  renderCatList('catSection',all.filter(c=>c.type==='section'), 'section');
+}
+function renderCatList(elId, items, type){
+  const el=document.getElementById(elId); if(!el) return;
+  el.innerHTML=items.length?items.map(c=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px">${c.name}</span>
+      <button class="btn btn-outline btn-sm" onclick="editCategory('${c.id}','${c.name.replace(/'/g,"\\'")}')">✏️</button>
+      <button class="btn btn-red btn-sm" onclick="deleteCategory('${c.id}','${type}')">✗</button>
+    </div>`).join(''):'<div style="font-size:13px;color:var(--muted);padding:8px 0">Boşdur</div>';
+}
+async function addCategory(type){
+  const inputMap={class:'newClassName',subject:'newSubjectName',section:'newSectionName'};
+  const inp=document.getElementById(inputMap[type]);
+  const name=(inp?.value||'').trim();
+  if(!name){ toast('Ad daxil edin','err'); return; }
+  const r=await POST('/categories',{type,name});
+  if(!r.success){ toast(r.message,'err'); return; }
+  inp.value=''; toast('Əlavə edildi!','ok'); loadCategories();
+}
+function editCategory(id,name){
+  const newName=prompt('Adı dəyişin:',name);
+  if(!newName||newName.trim()===name) return;
+  PUT('/categories/'+id,{name:newName.trim()}).then(r=>{
+    toast(r.success?'Yeniləndi!':r.message,r.success?'ok':'err');
+    if(r.success) loadCategories();
+  });
+}
+async function deleteCategory(id,type){
+  if(!confirm('Silinsin?')) return;
+  const r=await DEL('/categories/'+id);
+  toast(r.success?'Silindi.':r.message,r.success?'ok':'err');
+  if(r.success) loadCategories();
 }
 
 async function updatePendingBadge(){

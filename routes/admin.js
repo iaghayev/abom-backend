@@ -76,3 +76,24 @@ router.get('/activity', adminMiddleware, (req, res) => {
 });
 
 module.exports = router;
+
+// PUT /api/admin/users/:id — edit user
+router.put('/users/:id', adminMiddleware, (req, res) => {
+  const { name, phone, class: cls, section, username } = req.body;
+  const user = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
+  if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+  const updates = [], params = [];
+  if (name     !== undefined) { updates.push('name=?');     params.push(name.trim()); }
+  if (phone    !== undefined) { updates.push('phone=?');    params.push(phone); }
+  if (cls      !== undefined) { updates.push('class=?');    params.push(cls); }
+  if (section  !== undefined) { updates.push('section=?');  params.push(section); }
+  if (username !== undefined) { updates.push('username=?'); params.push(username.trim()); }
+  if (!updates.length) return res.json({ success: true });
+  params.push(req.params.id);
+  try {
+    db.prepare(`UPDATE users SET ${updates.join(',')} WHERE id=?`).run(...params);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(400).json({ success: false, message: 'Username artıq mövcuddur.' });
+  }
+});

@@ -115,6 +115,25 @@ db.exec(`
     color        TEXT DEFAULT '#1355a0',
     FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS categories (
+    id         TEXT PRIMARY KEY,
+    type       TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS revenues (
+    id              TEXT PRIMARY KEY,
+    registration_id TEXT NOT NULL UNIQUE,
+    exam_id         TEXT NOT NULL,
+    user_id         TEXT NOT NULL,
+    student_name    TEXT NOT NULL,
+    exam_title      TEXT NOT NULL,
+    amount          REAL NOT NULL DEFAULT 0,
+    status          TEXT DEFAULT 'confirmed',
+    created_at      TEXT NOT NULL
+  );
 `);
 
 // ── Migration: add missing columns to existing DBs ──────────
@@ -130,7 +149,16 @@ tryAddCol('questions', 'option_c', "TEXT DEFAULT ''");
 tryAddCol('questions', 'option_d', "TEXT DEFAULT ''");
 tryAddCol('cert_configs', 'template_url', "TEXT DEFAULT ''");
 tryAddCol('cert_configs', 'template_fields', "TEXT DEFAULT '{}'");
-tryAddCol('registrations', 'activated_at', "TEXT DEFAULT ''");;
+tryAddCol('registrations', 'activated_at', "TEXT DEFAULT ''");
+tryAddCol('results', 'note', "TEXT DEFAULT ''");
+// Seed default categories if empty
+if (!db.prepare("SELECT COUNT(*) as c FROM categories").get().c) {
+  const insC = db.prepare("INSERT OR IGNORE INTO categories (id,type,name,created_at) VALUES (?,?,?,?)");
+  const now = new Date().toISOString();
+  ['1','2','3','4','5','6','7','8','9','10','11'].forEach((g,i) => insC.run('cls_'+i, 'class', g+'. sinif', now));
+  ['Riyaziyyat','Azərbaycan dili','İngilis dili','Fizika','Kimya','Biologiya','Tarix','Coğrafiya','İnformatika'].forEach((s,i) => insC.run('sub_'+i, 'subject', s, now));
+  ['AZ','RU','EN'].forEach((sec,i) => insC.run('sec_'+i, 'section', sec, now));
+};;
 
 // ── Username generator ───────────────────────────────────────
 function generateUsername(name) {

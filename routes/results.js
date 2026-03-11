@@ -180,3 +180,19 @@ router.get('/export/csv', adminMiddleware, (req, res) => {
 });
 
 module.exports = router;
+
+// PUT /api/results/:id — admin edits result (score recalculated if answers provided)
+router.put('/:id', adminMiddleware, (req, res) => {
+  const { score, correct, total, note } = req.body;
+  const result = db.prepare('SELECT * FROM results WHERE id=?').get(req.params.id);
+  if (!result) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
+  const updates = [], params = [];
+  if (score   !== undefined) { updates.push('score=?');   params.push(parseInt(score)); }
+  if (correct !== undefined) { updates.push('correct=?'); params.push(parseInt(correct)); }
+  if (total   !== undefined) { updates.push('total=?');   params.push(parseInt(total)); }
+  if (note    !== undefined) { updates.push('note=?');    params.push(note); }
+  if (!updates.length) return res.json({ success: true });
+  params.push(req.params.id);
+  db.prepare(`UPDATE results SET ${updates.join(',')} WHERE id=?`).run(...params);
+  res.json({ success: true, data: db.prepare('SELECT * FROM results WHERE id=?').get(req.params.id) });
+});
