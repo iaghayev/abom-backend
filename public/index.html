@@ -3595,7 +3595,7 @@ async function loadAdminExams(){
     EN:{ label:'İngilis',    flag:'🇬🇧', accent:'#b45000' },
   };
 
-  function langBlock(lang){
+  function langBlock(lang, rootTitle){
     const grades = (childMap[lang.id]||[]).slice().sort((a,b)=>parseInt(a.class)-parseInt(b.class));
     const key    = lang.section||lang.title||'';
     const meta   = LANG[key] || { label:key||lang.title, flag:'📂', accent:'#7c3aed' };
@@ -3604,6 +3604,11 @@ async function loadAdminExams(){
     const dot    = lang.is_active
       ? '<span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;margin-right:4px"></span>'
       : '<span style="width:7px;height:7px;border-radius:50%;background:#dc2626;display:inline-block;margin-right:4px"></span>';
+
+    // Store rootTitle in registry for grade modal
+    if(window._examReg && window._examReg[lang.id])
+      window._examReg[lang.id]._rootTitle = rootTitle;
+
     return `
       <div class="lang-block" style="--lang-accent:${meta.accent}">
         <div class="lang-block-hdr">
@@ -3612,7 +3617,7 @@ async function loadAdminExams(){
           ${dot}<span style="font-size:11px;color:var(--muted)">${active}/${grades.length} aktiv</span>
           <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
             ${toggle(lang,'sm')}
-            <button onclick="openAddSubExam('${lang.id}','${lang.title.replace(/'/g,"\\'")} — Sinif')" class="xbtn xbtn-outline xbtn-xs">+ Sinif</button>
+            <button onclick="openAddGradeModal('${lang.id}')" class="xbtn xbtn-outline xbtn-xs">+ Sinif</button>
             <button onclick="editExam(${ej})" class="xbtn xbtn-ghost xbtn-xs">✏</button>
             <button onclick="deleteExam('${lang.id}')" class="xbtn xbtn-red xbtn-xs">✕</button>
           </div>
@@ -3632,6 +3637,14 @@ async function loadAdminExams(){
     const has3       = firstChild && (childMap[firstChild.id]||[]).length > 0;
     const totalLeafs = has3 ? langs.reduce((a,l)=>a+(childMap[l.id]||[]).length,0) : langs.length;
     const ej         = JSON.stringify(e).replace(/"/g,'&quot;');
+
+    // Store exam data in global registry to avoid HTML escaping issues
+    window._examReg = window._examReg || {};
+    window._examReg[e.id] = e;
+    langs.forEach(l => {
+      window._examReg[l.id] = l;
+      (childMap[l.id]||[]).forEach(g => { window._examReg[g.id] = g; });
+    });
 
     return `
       <div class="exam-admin-card ${e.is_active?'':'exam-admin-card-off'}" id="erow_${e.id}">
@@ -3653,7 +3666,7 @@ async function loadAdminExams(){
             ${toggle(e)}
             <div class="eac-actions">
               <button onclick="editExam(${ej})" class="xbtn xbtn-outline xbtn-sm">✏</button>
-              <button onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}');" class="xbtn xbtn-purple xbtn-sm">+ Bölmə</button>
+              <button onclick="openAddLangModal('${e.id}')" class="xbtn xbtn-purple xbtn-sm">+ Bölmə</button>
               <button onclick="deleteExam('${e.id}')" class="xbtn xbtn-red xbtn-sm">✕</button>
             </div>
           </div>
@@ -3662,7 +3675,7 @@ async function loadAdminExams(){
           <div class="eac-body">
             <div class="eac-body-label">Təhsil Bölmələri</div>
             ${has3
-              ? langs.map(l=>langBlock(l)).join('')
+              ? langs.map(l=>langBlock(l, e.title)).join('')
               : `<div class="grade-chips-wrap">${langs.map(s=>gradeChip(s)).join('')}</div>`}
           </div>` : ''}
       </div>`;
@@ -3722,7 +3735,11 @@ async function openAddSubExam(parentId, parentTitle){
   else       openAddGradeModal(parentId, parent);
 }
 
-function openAddLangModal(parentId, parent){
+function openAddLangModal(parentId, parentOrStr){
+  const parent = parentOrStr
+    ? (typeof parentOrStr === 'string' ? JSON.parse(parentOrStr) : parentOrStr)
+    : (window._examReg||{})[parentId];
+  if(!parent){ toast('Məlumat tapılmadı.','err'); return; }
   const html = `
     <div class="overlay active" id="subLangModal" onclick="if(event.target===this)closeSubModal()">
       <div class="modal modal-sm" onclick="event.stopPropagation()">
@@ -3794,8 +3811,12 @@ async function saveSubLang(){
   toast(`✅ "${title}" bölməsi əlavə edildi!`, 'ok');
 }
 
-/* ── ADD GRADE (under language section) ── */
-function openAddGradeModal(parentId, parent){
+function openAddGradeModal(parentId, parentOrStr){
+  const parent = parentOrStr
+    ? (typeof parentOrStr === 'string' ? JSON.parse(parentOrStr) : parentOrStr)
+    : (window._examReg||{})[parentId];
+  if(!parent){ toast('Məlumat tapılmadı.','err'); return; }
+  const rootTitle = parent._rootTitle || parent.title || '';
   const gradeButtons = Array.from({length:11},(_,i)=>i+1).map(g=>`
     <button type="button" class="grade-pick-btn xbtn-outline" data-grade="${g}"
       onclick="toggleGradePick(this)">${g}</button>`).join('');
@@ -3832,6 +3853,8 @@ function openAddGradeModal(parentId, parent){
           data-cat="${parent.category||'olimpiada'}"
           data-subj="${parent.subject||'riyaziyyat'}"
           data-price="${parent.price||0}"
+          data-section="${parent.section||''}"
+          data-basetitle="${rootTitle}"
           onclick="saveSubGrades()">Sinifləri Əlavə Et</button>
       </div>
     </div>`;
@@ -3849,6 +3872,8 @@ async function saveSubGrades(){
   const category = btn.dataset.cat;
   const subject  = btn.dataset.subj;
   const price    = parseFloat(btn.dataset.price)||0;
+  const section  = btn.dataset.section||'';
+  const baseTitle= btn.dataset.basetitle||'';
 
   const selected = [...document.querySelectorAll('#sgGradeBtns .xbtn-primary')].map(b=>b.dataset.grade);
   if(!selected.length){ showMsg('sgMsg','Ən azı bir sinif seçin.','err'); return; }
@@ -3856,13 +3881,6 @@ async function saveSubGrades(){
   const active = parseInt(document.getElementById('sgActive').value);
 
   btn.disabled = true; btn.textContent = 'Əlavə edilir...';
-
-  // Get parent's section (language key)
-  const parentData = await GET('/exams/'+parentId+'?admin=1');
-  const section = parentData?.data?.section || '';
-  const grandId = parentData?.data?.parent_exam_id;
-  const grandData = grandId ? await GET('/exams/'+grandId+'?admin=1') : null;
-  const baseTitle = grandData?.data?.title || parentData?.data?.title || '';
 
   let errors = 0;
   for(const cls of selected){
