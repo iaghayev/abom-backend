@@ -936,6 +936,11 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         <div class="filter-bar">
           <div class="search-inp" style="max-width:260px"><span>🔍</span><input type="text" id="icazeSearch" placeholder="Ad, imtahan..." oninput="filterIcazeler()"></div>
           <select class="flt-sel" id="icazeExamFilter" onchange="filterIcazeler()"><option value="">Bütün imtahanlar</option></select>
+          <select class="flt-sel" id="icazeStatusFilter" onchange="filterIcazeler()">
+            <option value="">Bütün statuslar</option>
+            <option value="active">✅ Aktiv</option>
+            <option value="cancelled">🚫 Ləğv</option>
+          </select>
         </div>
         <div class="a-table" id="icazelerTable"><div class="a-empty">Yüklənir...</div></div>
       </div>
@@ -1631,9 +1636,25 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         <option value="">İmtahan seçin</option>
       </select>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <input type="checkbox" id="assignActivate" checked style="width:16px;height:16px">
-      <label for="assignActivate" style="font-size:13px;cursor:pointer">Avtomatik aktivləşdir (gəlirə yazılsın)</label>
+    <!-- Activate toggle -->
+    <div style="background:var(--soft);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="assignActivate" checked onchange="toggleAssignPaid()" style="width:16px;height:16px">
+        <label for="assignActivate" style="font-size:13px;cursor:pointer;font-weight:600">Avtomatik aktivləşdir</label>
+      </div>
+      <!-- Paid/free — only shown when activate is checked -->
+      <div id="assignPaidWrap" style="margin-left:26px">
+        <div style="display:flex;gap:12px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="assignPayment" id="assignPaid" value="paid" checked style="cursor:pointer">
+            <span>💰 Ödənişli <span style="font-size:11px;color:var(--muted)">(gəlirə yazılsın)</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+            <input type="radio" name="assignPayment" id="assignFree" value="free" style="cursor:pointer">
+            <span>🎁 Ödənişsiz <span style="font-size:11px;color:var(--muted)">(gəlirə yazılmasın)</span></span>
+          </label>
+        </div>
+      </div>
     </div>
     <button class="form-btn" onclick="doAssignExam()">Assign Et</button>
   </div>
@@ -2905,22 +2926,76 @@ function filterRegs(){
   const s=document.getElementById('regSearch')?.value.toLowerCase()||'';
   const st=document.getElementById('regStatusFilter')?.value||'';
   let data=STATE.allRegs.filter(r=>(!s||(r.name+r.phone+(r.whatsapp||'')).toLowerCase().includes(s))&&(!st||r.status===st));
-  const cols='grid-template-columns:1fr 120px 80px 90px 100px 100px';
+  const cols='grid-template-columns:1fr 110px 60px 130px 1fr 90px';
   document.getElementById('regsTable').innerHTML=
     `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>Telefon</div><div>Sinif</div><div>Status</div><div>İmtahan</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(r=>`<div class="a-t-row" style="${cols}">
       <div style="font-weight:600">${r.name}</div>
       <div style="font-size:12px;color:var(--muted)">${r.phone}</div>
-      <div>${r.class}</div>
-      <div><span class="tag ${r.status==='active'?'tag-green':r.status==='pending'?'tag-gold':'tag-red'}">${t(r.status)}</span></div>
-      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title||'—'}</div>
-      <div style="display:flex;gap:3px;flex-wrap:wrap">
-        ${r.status==='pending'?`<button class="btn btn-green btn-sm" title="Aktivləşdir" onclick="activateReg('${r.id}','${r.whatsapp||r.phone}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">✓</button>`:''}
-        ${r.status==='active'?`<button class="btn btn-red btn-sm" title="Ləğv et (gəliri sil)" onclick="cancelReg('${r.id}')">🗑 Ləğv</button>`:''}
+      <div>${r.class||'—'}</div>
+      <div>
+        <select class="inp" style="padding:3px 6px;font-size:11px;border-radius:6px;
+          border:1.5px solid ${r.status==='active'?'rgba(5,150,105,.4)':r.status==='pending'?'rgba(245,158,11,.4)':'rgba(220,38,38,.4)'};
+          background:${r.status==='active'?'rgba(5,150,105,.06)':r.status==='pending'?'rgba(245,158,11,.06)':'rgba(220,38,38,.06)'};
+          color:${r.status==='active'?'var(--green)':r.status==='pending'?'var(--gold)':'var(--red)'};font-weight:700"
+          onchange="changeRegStatus('${r.id}',this.value,this,${r.exam_price||0})">
+          <option value="pending"  ${r.status==='pending'  ?'selected':''}>⏳ Gözləyən</option>
+          <option value="active"   ${r.status==='active'   ?'selected':''}>✅ Aktiv</option>
+          <option value="cancelled"${r.status==='cancelled'?'selected':''}>🚫 Ləğv</option>
+        </select>
+      </div>
+      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.exam_title||'—'}">${r.exam_title||'—'}</div>
+      <div style="display:flex;gap:3px">
         <button class="btn btn-outline btn-sm" title="WhatsApp" onclick="openWa('${r.whatsapp||r.phone}','${r.name}','${(r.exam_title||'').replace(/'/g,"\\'")}','${r.exam_price||0}')">💬</button>
-        <button class="btn btn-red btn-sm" title="Sil" onclick="deleteReg('${r.id}')">✗</button>
+        <button class="btn btn-red btn-sm" title="Tamamilə sil" onclick="deleteReg('${r.id}')">✗</button>
       </div>
     </div>`).join(''):'<div class="a-empty">Qeydiyyat tapılmadı.</div>');
+}
+
+async function changeRegStatus(id, newStatus, selectEl, price){
+  const old = STATE.allRegs.find(r=>r.id===id)?.status;
+  if(old === newStatus) return;
+
+  if(newStatus === 'cancelled'){
+    if(!confirm('⚠️ Bu icazəni LƏĞV ET?\n\n• Status "Ləğv" olacaq\n• Gəlirdən ödəniş silinəcək\n• Qeydiyyat saxlanılacaq (yenidən aktivləşdirmək mümkün)\n\nDavam?')) {
+      selectEl.value = old; return;
+    }
+    const r = await api('PUT', '/registrations/'+id+'/cancel', {});
+    toast(r.success ? '🚫 Ləğv edildi. Qeydiyyat saxlanıldı.' : r.message, r.success?'ok':'err');
+    if(r.success){ loadRegs(); updatePendingBadge(); loadRevenues(); }
+
+  } else if(newStatus === 'active'){
+    if(old === 'pending'){
+      // normal activate — add to revenues
+      const r = await api('PUT', '/registrations/'+id+'/activate', {});
+      toast(r.success ? '✅ Aktivləşdirildi!' : r.message, r.success?'ok':'err');
+      if(r.success){ loadRegs(); updatePendingBadge(); loadRevenues(); }
+    } else if(old === 'cancelled'){
+      // re-activate — ask about payment
+      openReactivateModal(id, price);
+    } else {
+      selectEl.value = old;
+    }
+
+  } else if(newStatus === 'pending'){
+    if(!confirm('Statusu "Gözləyən"-ə qaytarmaq istəyirsiniz?')){ selectEl.value = old; return; }
+    const r = await api('PUT', '/registrations/'+id+'/status', {status:'pending'});
+    toast(r.success ? 'Status dəyişdirildi.' : r.message, r.success?'ok':'err');
+    if(r.success){ loadRegs(); }
+  }
+}
+
+function openReactivateModal(regId, price){
+  // Simple inline confirm with paid/free choice
+  const paid = confirm(
+    `💰 Yenidən AKTİVLƏŞDİR\n\nBu şagirdin ödənişini qeydə almaq istəyirsiniz?\n\n` +
+    `OK → Ödənişli (${price} AZN gəlirə yazılacaq)\n` +
+    `Ləğv et → Ödənişsiz (gəlirə yazılmayacaq)`
+  );
+  api('PUT', '/registrations/'+regId+'/reactivate', {is_paid: paid}).then(r=>{
+    toast(r.success ? `✅ Yenidən aktivləşdirildi${paid?' (gəlirə yazıldı)':' (ödənişsiz)'}` : r.message, r.success?'ok':'err');
+    if(r.success){ loadRegs(); updatePendingBadge(); if(paid) loadRevenues(); }
+  });
 }
 
 async function activateReg(id, wa, examTitle, price){
@@ -2929,12 +3004,6 @@ async function activateReg(id, wa, examTitle, price){
   toast('Aktivləşdirildi! Gəlirə yazıldı ✅','ok');
   loadRegs(); updatePendingBadge();
   openWaModal(wa, examTitle, price, true);
-}
-async function cancelReg(id){
-  if(!confirm('⚠️ Bu icazəni LƏĞV ET?\n\n• Şagirdin imtahan icazəsi silinəcək\n• Gəlirdən ödəniş silinəcək\n\nDavam etmək istəyirsinizmi?')) return;
-  const r = await api('DELETE','/registrations/'+id+'/cancel');
-  toast(r.success ? '🗑 İcazə və ödəniş silindi.' : r.message, r.success?'ok':'err');
-  if(r.success){ loadRegs(); updatePendingBadge(); }
 }
 async function deleteReg(id){
   if(!confirm('Silmək istədiyinizə əminsiniz?')) return;
@@ -3030,7 +3099,8 @@ async function adminViewResult(id, name){
 let allIcazeler = [];
 async function loadIcazeler(){
   const r = await GET('/registrations/admin/all');
-  allIcazeler = (r.data||[]).filter(reg => reg.status === 'active');
+  // Show active + cancelled (not pending — those are in registrations tab)
+  allIcazeler = (r.data||[]).filter(reg => reg.status === 'active' || reg.status === 'cancelled');
   // Fill exam filter
   const sel = document.getElementById('icazeExamFilter');
   if(sel){
@@ -3041,27 +3111,40 @@ async function loadIcazeler(){
   renderIcazeler(allIcazeler);
 }
 function filterIcazeler(){
-  const s = document.getElementById('icazeSearch')?.value.toLowerCase()||'';
+  const s  = document.getElementById('icazeSearch')?.value.toLowerCase()||'';
   const ex = document.getElementById('icazeExamFilter')?.value||'';
+  const st = document.getElementById('icazeStatusFilter')?.value||'';
   renderIcazeler(allIcazeler.filter(r=>
-    (!s || (r.name+r.phone).toLowerCase().includes(s)) &&
-    (!ex || r.exam_title === ex)
+    (!s  || (r.name+r.phone).toLowerCase().includes(s)) &&
+    (!ex || r.exam_title === ex) &&
+    (!st || r.status === st)
   ));
 }
 function renderIcazeler(data){
-  const cols = 'grid-template-columns:1fr 120px 1fr 90px 110px';
+  const cols = 'grid-template-columns:1fr 110px 1fr 80px 130px';
   document.getElementById('icazelerTable').innerHTML =
-    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Aktivləşmə</div><div>Əməliyyat</div></div>`+
-    (data.length ? data.map(reg=>`<div class="a-t-row" style="${cols}">
-      <div style="font-weight:600">${reg.name}</div>
-      <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
-      <div style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${reg.exam_title||'—'}</div>
-      <div style="font-size:11.5px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm" onclick='editIcaze(${JSON.stringify(reg).replace(/'/g,"\\'")})'  >✏️</button>
-        <button class="btn btn-red btn-sm" onclick="deleteIcaze('${reg.id}')">🚫</button>
+    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Tarix</div><div>Əməliyyat</div></div>`+
+    (data.length ? data.map(reg=>`<div class="a-t-row" style="${cols};${reg.status==='cancelled'?'opacity:.7;background:rgba(220,38,38,.02)':''}">
+      <div>
+        <div style="font-weight:600">${reg.name}</div>
+        <div style="font-size:10px;margin-top:1px">
+          <span class="tag ${reg.status==='active'?'tag-green':'tag-red'}" style="font-size:9px;padding:1px 6px">
+            ${reg.status==='active'?'✅ Aktiv':'🚫 Ləğv'}
+          </span>
+        </div>
       </div>
-    </div>`).join('') : '<div class="a-empty"><span class="ico">🔑</span>Aktiv icazə yoxdur.</div>');
+      <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
+      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${reg.exam_title||'—'}">${reg.exam_title||'—'}</div>
+      <div style="font-size:11px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
+      <div style="display:flex;gap:4px">
+        ${reg.status==='active'
+          ? `<button class="btn btn-red btn-sm" style="font-size:10px" onclick="softCancelIcaze('${reg.id}')">🚫 Ləğv</button>`
+          : `<button class="btn btn-green btn-sm" style="font-size:10px" onclick="reactivateIcaze('${reg.id}',${reg.exam_price||0})">🔄 Bərpa</button>`
+        }
+        <button class="btn btn-outline btn-sm" onclick='editIcaze(${JSON.stringify(reg).replace(/'/g,"\\'")})'  >✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteIcaze('${reg.id}')">✗</button>
+      </div>
+    </div>`).join('') : '<div class="a-empty"><span class="ico">🔑</span>İcazə yoxdur.</div>');
 }
 function editIcaze(reg){
   document.getElementById('icazeEditId').value = reg.id;
@@ -3085,10 +3168,24 @@ async function saveIcazeEdit(){
   toast(r.success?'Yeniləndi!':r.message, r.success?'ok':'err');
   if(r.success){ closeModal('icazeEditModal'); loadIcazeler(); }
 }
+async function softCancelIcaze(id){
+  if(!confirm('Bu icazəni LƏĞV ET?\n\n• Status "Ləğv" olacaq\n• Gəlirdən silinəcək\n• Qeydiyyat saxlanılacaq (bərpa mümkündür)')) return;
+  const r = await api('PUT', '/registrations/'+id+'/cancel', {});
+  toast(r.success ? '🚫 Ləğv edildi. Qeydiyyat saxlanıldı.' : r.message, r.success?'ok':'err');
+  if(r.success){ loadIcazeler(); updatePendingBadge(); loadRevenues(); }
+}
+async function reactivateIcaze(id, price){
+  const paid = confirm(
+    `🔄 Yenidən AKTİVLƏŞDİR\n\nÖdənişi qeydə almaq istəyirsiniz?\n\nOK → Ödənişli (gəlirə yazılsın)\nLəğv et → Ödənişsiz`
+  );
+  const r = await api('PUT', '/registrations/'+id+'/reactivate', {is_paid: paid});
+  toast(r.success ? `✅ Bərpa edildi${paid?' (gəlirə yazıldı)':' (ödənişsiz)'}` : r.message, r.success?'ok':'err');
+  if(r.success){ loadIcazeler(); updatePendingBadge(); if(paid) loadRevenues(); }
+}
 async function deleteIcaze(id){
-  if(!confirm('Bu icazəni silmək istədiyinizə əminsiniz?\n\n🚫 Şagird bu imtahanı artıq görməyəcək.')) return;
+  if(!confirm('Bu qeydiyyatı tamamilə silmək istəyirsiniz?\n(Geri qaytarıla bilməz)')) return;
   const r = await DEL('/registrations/'+id);
-  toast(r.success ? '🚫 İcazə silindi.' : r.message, r.success?'ok':'err');
+  toast(r.success ? 'Silindi.' : r.message, r.success?'ok':'err');
   loadIcazeler(); updatePendingBadge();
 }
 
@@ -4066,18 +4163,39 @@ async function saveResultEdit(){
 
 // ═══ ASSIGN EXAM ═══
 let allUsersForAssign=[];
+function toggleAssignPaid(){
+  const active = document.getElementById('assignActivate').checked;
+  document.getElementById('assignPaidWrap').style.display = active ? 'block' : 'none';
+}
+
 async function openAssignExamModal(){
-  // Load users
   const ur=await GET('/admin/users');
   allUsersForAssign=ur.data||[];
   document.getElementById('assignUserId').value='';
   document.getElementById('assignUserSelected').textContent='';
   document.getElementById('assignUserSearch').value='';
   renderAssignUserList(allUsersForAssign.slice(0,20));
-  // Load exams
-  const er=await GET('/exams');
+  // Load ALL exams for admin assign (both parent & sub)
+  const er=await GET('/exams?admin=1');
   const sel=document.getElementById('assignExamId');
-  sel.innerHTML='<option value="">İmtahan seçin</option>'+(er.data||[]).map(e=>`<option value="${e.id}">${e.title}</option>`).join('');
+  const all=er.data||[];
+  const parents=all.filter(e=>!e.parent_exam_id);
+  const subs=all.filter(e=>!!e.parent_exam_id);
+  sel.innerHTML='<option value="">İmtahan seçin</option>';
+  if(parents.length){
+    const og=document.createElement('optgroup'); og.label='📋 Əsas İmtahanlar';
+    parents.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title+(e.class?` (${e.class}${e.section?' '+e.section:''})`:'')+` — ${e.price}₼`; og.appendChild(o); });
+    sel.appendChild(og);
+  }
+  if(subs.length){
+    const og=document.createElement('optgroup'); og.label='↳ Alt İmtahanlar';
+    subs.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent='↳ '+e.title+(e.class?` (${e.class}${e.section?' '+e.section:''})`:'')+` — ${e.price}₼`; og.appendChild(o); });
+    sel.appendChild(og);
+  }
+  // Reset paid/free
+  document.getElementById('assignPaid').checked=true;
+  document.getElementById('assignActivate').checked=true;
+  toggleAssignPaid();
   openModal('assignExamModal');
 }
 function filterAssignUsers(){
@@ -4090,7 +4208,7 @@ function renderAssignUserList(users){
       style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;transition:background .15s"
       onmouseover="this.style.background='var(--soft)'" onmouseout="this.style.background=''">
       <span style="font-weight:600">${u.name}</span>
-      <span style="color:var(--muted);margin-left:8px;font-size:11px">${u.phone} · ${u.class||'?'} sinif</span>
+      <span style="color:var(--muted);margin-left:8px;font-size:11px">${u.phone} · ${u.class||'?'} sinif ${u.section||''}</span>
     </div>`).join('')||'<div style="padding:10px;text-align:center;color:var(--muted);font-size:13px">Tapılmadı</div>';
 }
 function selectAssignUser(id,name){
@@ -4103,11 +4221,16 @@ async function doAssignExam(){
   const user_id=document.getElementById('assignUserId').value;
   const exam_id=document.getElementById('assignExamId').value;
   const activate=document.getElementById('assignActivate').checked;
+  const is_paid = !activate ? false : document.getElementById('assignPaid').checked;
   if(!user_id){ toast('Şagird seçin','err'); return; }
   if(!exam_id){ toast('İmtahan seçin','err'); return; }
-  const r=await POST('/registrations/admin/assign',{user_id,exam_id,activate});
-  toast(r.success?'Assign edildi!':r.message, r.success?'ok':'err');
-  if(r.success){ closeModal('assignExamModal'); loadIcazeler(); if(activate) loadRevenues(); }
+  const r=await POST('/registrations/admin/assign',{user_id,exam_id,activate,is_paid});
+  if(!r.success){ toast(r.message,'err'); return; }
+  const msg = r.reactivated ? '🔄 Şagirdin icazəsi bərpa edildi!' : `✅ Assign edildi!${activate?(is_paid?' (gəlirə yazıldı)':' (ödənişsiz)'):''}`;
+  toast(msg,'ok');
+  closeModal('assignExamModal');
+  loadIcazeler();
+  if(activate && is_paid) loadRevenues();
 }
 
 // ═══ REVENUES ═══

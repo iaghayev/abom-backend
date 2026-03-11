@@ -29,7 +29,7 @@ router.get('/', optionalAuth, (req, res) => {
     FROM exams e WHERE e.is_active = 1`;
   const params = [];
 
-  // Non-admin: filter by date
+  // Non-admin: filter by date AND hide sub-exams
   if (!admin) {
     const now = new Date().toISOString().slice(0, 10);
     sql += ` AND (e.is_unlimited = 1 OR (
@@ -38,6 +38,8 @@ router.get('/', optionalAuth, (req, res) => {
       (e.end_date = '' OR e.end_date IS NULL OR e.end_date >= ?)
     ))`;
     params.push(now, now);
+    // Only show top-level (parent) exams to students — sub-exams are auto-assigned
+    sql += " AND (e.parent_exam_id = '' OR e.parent_exam_id IS NULL)";
   }
 
   if (category)    { sql += ' AND e.category = ?';   params.push(category); }
