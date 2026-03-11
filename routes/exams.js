@@ -167,10 +167,35 @@ router.put('/:id', adminMiddleware, (req, res) => {
 
 // ── DELETE /:id ───────────────────────────────────────────
 router.delete('/:id', adminMiddleware, (req, res) => {
-  if (!db.prepare('SELECT id FROM exams WHERE id=?').get(req.params.id))
+  const id = req.params.id;
+  if (!db.prepare('SELECT id FROM exams WHERE id=?').get(id))
     return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
-  db.prepare('DELETE FROM exams WHERE id=?').run(req.params.id);
-  res.json({ success:true });
+
+  // Recursive cascade delete: collect all descendant exam ids
+  function collectIds(examId) {
+    const ids = [examId];
+    const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(examId);
+    children.forEach(c => ids.push(...collectIds(c.id)));
+    return ids;
+  }
+  const allIds = collectIds(id);
+
+  // Delete in dependency order for all collected ids
+  const del = db.transaction(() => {
+    allIds.forEach(eid => {
+      db.prepare('DELETE FROM results        WHERE exam_id=?').run(eid);
+      db.prepare('DELETE FROM registrations  WHERE exam_id=?').run(eid);
+      db.prepare('DELETE FROM questions      WHERE exam_id=?').run(eid);
+      db.prepare('DELETE FROM cert_configs   WHERE exam_id=?').run(eid);
+    });
+    // Delete from leaf to root so FK on parent_exam_id is satisfied
+    allIds.reverse().forEach(eid => {
+      db.prepare('DELETE FROM exams WHERE id=?').run(eid);
+    });
+  });
+  del();
+
+  res.json({ success:true, deleted: allIds.length });
 });
 
 module.exports = router;

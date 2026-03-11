@@ -408,14 +408,14 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .lang-stat{font-size:11px;color:var(--muted);background:var(--off);padding:2px 8px;border-radius:20px}
 /* Grade chips */
 .grade-chips-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
-.grade-chip{background:var(--off);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;min-width:90px;transition:all .18s;position:relative}
-.grade-chip-on{border-color:rgba(19,85,160,.2)}
-.grade-chip-off{opacity:.55}
-.grade-chip-top{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
-.grade-num{font-size:20px;font-weight:800;color:var(--navy);line-height:1}
-.grade-sinif{font-size:11px;color:var(--muted)}
-.grade-chip-mid{margin-bottom:8px}
-.grade-chip-actions{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.grade-chip{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;min-width:100px;transition:all .18s;position:relative}
+.grade-chip-on{border-color:rgba(19,85,160,.22);background:#fff}
+.grade-chip-on::after{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,var(--blue),var(--sky));border-radius:12px 12px 0 0}
+.grade-chip-off{opacity:.5;background:var(--off)}
+.grade-chip-label{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:2px}
+.grade-chip-sinif{font-size:11px;font-weight:500;color:var(--muted);margin-left:1px}
+.grade-chip-q{font-size:11px;color:var(--muted);margin-bottom:9px}
+.grade-chip-actions{display:flex;align-items:center;gap:4px}
 .gca-btn{border:none;border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.4}
 .gca-blue{background:rgba(19,85,160,.1);color:var(--blue)}
 .gca-blue:hover{background:var(--blue);color:#fff}
@@ -3572,18 +3572,14 @@ async function loadAdminExams(){
   /* ── GRADE CHIP ── */
   function gradeChip(g){
     const ej = JSON.stringify(g).replace(/"/g,'&quot;');
+    const cls = g.class||'?';
     return `
       <div id="erow_${g.id}" class="grade-chip ${g.is_active?'grade-chip-on':'grade-chip-off'}">
-        <div class="grade-chip-top">
-          <span class="grade-num">${g.class||'?'}</span>
-          <span class="grade-sinif">sinif</span>
-        </div>
-        <div class="grade-chip-mid">
-          <span style="font-size:10px;color:var(--muted)">${g.question_count||0} sual</span>
-        </div>
+        <div class="grade-chip-label">${cls}<span class="grade-chip-sinif">-ci sinif</span></div>
+        <div class="grade-chip-q">${g.question_count||0} sual</div>
         <div class="grade-chip-actions">
           ${toggle(g,'xs')}
-          <button onclick="openQuestionsFor('${g.id}','${(g.class||'?')}-ci sinif')" title="Suallar" class="gca-btn gca-blue">📝</button>
+          <button onclick="openQuestionsFor('${g.id}','${cls}-ci sinif')" title="Suallar" class="gca-btn gca-blue">📝</button>
           <button onclick="editExam(${ej})" title="Redaktə" class="gca-btn gca-gray">✏</button>
           <button onclick="deleteExam('${g.id}')" title="Sil" class="gca-btn gca-red">✕</button>
         </div>
@@ -3603,12 +3599,15 @@ async function loadAdminExams(){
     const meta   = LANG[key] || { label:key||lang.title, flag:'📂', accent:'#7c3aed' };
     const ej     = JSON.stringify(lang).replace(/"/g,'&quot;');
     const active = grades.filter(g=>g.is_active).length;
+    const dot    = lang.is_active
+      ? '<span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;margin-right:4px"></span>'
+      : '<span style="width:7px;height:7px;border-radius:50%;background:#dc2626;display:inline-block;margin-right:4px"></span>';
     return `
       <div class="lang-block" style="--lang-accent:${meta.accent}">
         <div class="lang-block-hdr">
-          <span class="lang-flag">${meta.flag}</span>
-          <span class="lang-name">${meta.label}</span>
-          <span class="lang-stat">${active}/${grades.length} aktiv</span>
+          <span style="font-size:20px;line-height:1">${meta.flag}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--navy)">${meta.label}</span>
+          ${dot}<span style="font-size:11px;color:var(--muted)">${active}/${grades.length} aktiv</span>
           <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
             ${toggle(lang,'sm')}
             <button onclick="openAddSubExam('${lang.id}','${lang.title.replace(/'/g,"\\'")} — Sinif')" class="xbtn xbtn-outline xbtn-xs">+ Sinif</button>
@@ -3619,7 +3618,7 @@ async function loadAdminExams(){
         <div class="grade-chips-wrap">
           ${grades.length
             ? grades.map(g=>gradeChip(g)).join('')
-            : '<span style="font-size:12px;color:var(--muted);padding:6px 2px">Hələ sinif əlavə edilməyib</span>'}
+            : '<span style="font-size:12px;color:var(--muted);padding:4px 0">Hələ sinif əlavə edilməyib</span>'}
         </div>
       </div>`;
   }
@@ -3634,7 +3633,6 @@ async function loadAdminExams(){
 
     return `
       <div class="exam-admin-card ${e.is_active?'':'exam-admin-card-off'}" id="erow_${e.id}">
-        <!-- Card header -->
         <div class="eac-header">
           <div class="eac-left">
             <div class="eac-title">${e.title}</div>
@@ -3644,24 +3642,23 @@ async function loadAdminExams(){
                 : '<span class="xbadge xbadge-red">● Satışda deyil</span>'}
               ${dateTag(e)}
               <span class="xbadge xbadge-blue">${e.category||'—'}</span>
-              ${has3   ? `<span class="xbadge xbadge-purple">${langs.length} dil · ${totalLeafs} sinif</span>` : ''}
+              ${has3 ? `<span class="xbadge xbadge-purple">${langs.length} dil · ${totalLeafs} sinif</span>` : ''}
               ${langs.length && !has3 ? `<span class="xbadge xbadge-purple">${langs.length} bölmə</span>` : ''}
             </div>
           </div>
           <div class="eac-right">
-            <div class="eac-price">${e.price > 0 ? e.price+' ₼' : 'Pulsuz'}</div>
+            <span class="eac-price">${e.price > 0 ? e.price+' ₼' : 'Pulsuz'}</span>
             ${toggle(e)}
             <div class="eac-actions">
-              <button onclick="editExam(${ej})" class="xbtn xbtn-outline xbtn-sm" title="Redaktə">✏ Redaktə</button>
-              <button onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}');" class="xbtn xbtn-purple xbtn-sm" title="Dil bölməsi əlavə et">+ Bölmə</button>
-              <button onclick="deleteExam('${e.id}')" class="xbtn xbtn-red xbtn-sm" title="Sil">✕</button>
+              <button onclick="editExam(${ej})" class="xbtn xbtn-outline xbtn-sm">✏</button>
+              <button onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}');" class="xbtn xbtn-purple xbtn-sm">+ Bölmə</button>
+              <button onclick="deleteExam('${e.id}')" class="xbtn xbtn-red xbtn-sm">✕</button>
             </div>
           </div>
         </div>
-        <!-- Sections -->
         ${langs.length ? `
           <div class="eac-body">
-            <div class="eac-body-label">📚 Təhsil Bölmələri</div>
+            <div class="eac-body-label">Təhsil Bölmələri</div>
             ${has3
               ? langs.map(l=>langBlock(l)).join('')
               : `<div class="grade-chips-wrap">${langs.map(s=>gradeChip(s)).join('')}</div>`}
