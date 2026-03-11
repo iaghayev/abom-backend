@@ -128,6 +128,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .fcat-btn{padding:4px 10px;border:1.5px solid var(--border);border-radius:20px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:var(--navy);transition:all .15s;white-space:nowrap}
 .fcat-btn:hover{border-color:var(--blue);color:var(--blue)}
 .fcat-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.exam-group-sel{border-top:1px solid var(--border);padding-top:10px;margin-top:4px}
 .tag-gray{background:var(--off);color:var(--muted);border:1px solid var(--border)}
 .tag-sky{background:rgba(35,128,232,.08);color:var(--sky);border:1px solid rgba(35,128,232,.18)}
 
@@ -726,12 +727,6 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <div style="font-family:'Playfair Display',serif;font-size:30px;color:#047857;line-height:1" id="dashBest">—</div>
           <div style="font-size:10px;color:var(--muted)">bal</div>
         </div>
-        <!-- Parent Code -->
-        <div style="background:rgba(124,58,237,.06);border:1.5px solid rgba(124,58,237,.13);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Valideyn kodu</div>
-          <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--purple);letter-spacing:.1em;margin:4px 0" id="dashParentCode">——</div>
-          <div style="font-size:10px;color:var(--muted)">profilinizə aid kod</div>
-        </div>
       </div>
     </div>
 
@@ -1130,15 +1125,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="field"><label data-t="field_class">Sinif</label>
           <select class="inp" id="regClass">
-            <option value="">Sinif</option>
-            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="">Sinif seçin</option>
           </select>
         </div>
         <div class="field"><label data-t="field_section">Bölmə</label>
           <select class="inp" id="regSection">
-            <option value="">Bölmə</option>
-            <option value="az">AZ</option><option value="ru">RU</option><option value="en">EN</option>
+            <option value="">Bölmə seçin</option>
           </select>
         </div>
       </div>
@@ -1239,13 +1231,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field"><label>Sinif</label>
         <select class="inp" id="profClass">
-          <option value="">—</option><option value="4">4</option><option value="5">5</option>
-          <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option>
+          <option value="">—</option>
         </select>
       </div>
       <div class="field"><label>Bölmə</label>
         <select class="inp" id="profSection">
-          <option value="">—</option><option value="az">AZ</option><option value="ru">RU</option><option value="en">EN</option>
+          <option value="">—</option>
         </select>
       </div>
     </div>
@@ -2303,21 +2294,41 @@ function examCardHtml(e){
   if(!e.is_unlimited && e.start_date && now < e.start_date){
     dateBadge = `<span class="tag tag-gold" style="font-size:10px">🕒 ${e.start_date}-dən</span>`;
   }
+
+  // For group exam — show class/section selectors inside card
+  const groupSelectors = isGroup ? `
+    <div class="exam-group-sel" id="grpSel_${e.id}">
+      <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:6px">📚 Sinif və bölmənizi seçin:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <select class="inp" id="grpClass_${e.id}" style="padding:5px 8px;font-size:12px" onchange="checkGroupAvail('${e.id}')">
+          <option value="">Sinif...</option>
+        </select>
+        <select class="inp" id="grpSection_${e.id}" style="padding:5px 8px;font-size:12px" onchange="checkGroupAvail('${e.id}')">
+          <option value="">Bölmə...</option>
+        </select>
+      </div>
+      <div id="grpMsg_${e.id}" style="font-size:11px;min-height:16px;margin-bottom:4px"></div>
+    </div>` : '';
+
+  const btnOnclick = isGroup
+    ? `handleGroupExamBtn('${e.id}','${e.title.replace(/'/g,"\\'")}',${e.price})`
+    : `handleExamBtn('${e.id}','${e.title.replace(/'/g,"\\'")}',${e.price},0)`;
+
   return `<div class="exam-card reveal">
     <div class="exam-icon" style="background:${subjColor(e.subject)}">${subjIcon(e.subject)}</div>
-    <div class="exam-title">${e.title}${isGroup?'<span style="font-size:11px;font-weight:500;color:var(--blue);margin-left:6px">🗂 Qrup</span>':''}</div>
-    <div class="exam-desc">${e.description||''}</div>
+    <div class="exam-title">${e.title}${isGroup?'<span style="font-size:10px;font-weight:500;color:var(--blue);margin-left:6px">🗂 Qrup</span>':''}</div>
+    ${e.description?`<div class="exam-desc">${e.description}</div>`:''}
     <div class="exam-meta">
       <span class="tag tag-blue">${t(e.category)}</span>
       <span class="tag tag-gray">⏱ ${e.duration} ${t('min')}</span>
       <span class="tag tag-gray">❓ ${e.question_count||0} ${t('q')}</span>
-      ${e.class?`<span class="tag tag-gray">📚 ${e.class}-ci sinif</span>`:''}
-      ${isGroup?`<span class="tag tag-purple" style="font-size:10px">${e.sub_count} alt-imtahan</span>`:''}
+      ${isGroup?`<span class="tag tag-purple" style="font-size:10px">${e.sub_count} sinif var</span>`:(e.class?`<span class="tag tag-gray">📚 ${e.class}-ci sinif</span>`:'')}
       ${dateBadge}
     </div>
+    ${groupSelectors}
     <div class="exam-footer">
       <div class="exam-price">${e.price>0?e.price+' ₼':'Pulsuz'}</div>
-      <button class="btn btn-primary btn-sm" onclick="handleExamBtn('${e.id}','${e.title.replace(/'/g,"\\'")}',${e.price},${isGroup?1:0})">Bilet Al</button>
+      <button class="btn btn-primary btn-sm" onclick="${btnOnclick}">Bilet Al</button>
     </div>
   </div>`;
 }
@@ -2328,12 +2339,6 @@ async function loadExams(){
   const r=await GET('/exams');
   allExamsData=r.data||[];
   renderExams(allExamsData);
-}
-function renderExams(data){
-  const list=document.getElementById('allExamsList');
-  if(!data.length){ list.innerHTML=`<div class="a-empty" style="grid-column:1/-1;padding:48px;background:#fff;border-radius:14px;border:1.5px solid var(--border)">${t('no_exams')}</div>`; return; }
-  list.innerHTML=data.map(e=>examCardHtml(e)).join('');
-  initReveal();
 }
 function filterExams(){
   const s=document.getElementById('examSearch').value.toLowerCase();
@@ -2425,51 +2430,125 @@ async function loadRating(){
 }
 
 // ═══════════════════ TICKET ═══════════════════
+let _catCache = {class:null, section:null};
+async function loadCatSelect(selId, type, selected='', emptyLabel='Seçin'){
+  if(!_catCache[type]){
+    const r = await GET('/categories?type='+type);
+    _catCache[type] = r.data||[];
+  }
+  const sel = document.getElementById(selId); if(!sel) return;
+  sel.innerHTML = `<option value="">${emptyLabel}</option>` +
+    _catCache[type].map(c=>`<option value="${c.name}" ${c.name===selected?'selected':''}>${c.name}</option>`).join('');
+}
+
+// Populate group exam card class/section selectors
+async function populateGroupCardSelects(examId){
+  await loadCatSelect('grpClass_'+examId,   'class',   STATE.user?.class||'',   'Sinif...');
+  await loadCatSelect('grpSection_'+examId, 'section', STATE.user?.section||'', 'Bölmə...');
+  checkGroupAvail(examId);
+}
+
+function checkGroupAvail(examId){
+  const cls = document.getElementById('grpClass_'+examId)?.value||'';
+  const sec = document.getElementById('grpSection_'+examId)?.value||'';
+  const msgEl = document.getElementById('grpMsg_'+examId); if(!msgEl) return;
+  if(!cls && !sec){ msgEl.innerHTML=''; return; }
+  // Check if a matching sub-exam exists in allExamsData
+  // We can only truly verify server-side, but give quick client hint
+  msgEl.innerHTML = cls||sec
+    ? `<span style="color:var(--blue)">✓ ${cls?cls+'-ci sinif':''} ${sec||''} üçün bilet alınacaq</span>`
+    : '';
+}
+
+async function handleGroupExamBtn(examId, examTitle, price){
+  if(!STATE.user){ openModal('authModal'); toast('Bilet almaq üçün daxil olun.','info'); return; }
+  // Ensure selects populated
+  await populateGroupCardSelects(examId);
+  const cls = document.getElementById('grpClass_'+examId)?.value||'';
+  const sec = document.getElementById('grpSection_'+examId)?.value||'';
+  if(!cls){ toast('Zəhmət olmasa sinifnizi seçin.','err'); return; }
+  // Check ticket
+  const cr = await GET('/registrations/check/'+examId);
+  if(cr.hasTicket){
+    if(cr.status==='active'){ toast('Aktiv biletiniz var!','ok'); return; }
+    if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır.','info'); return; }
+    if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
+  }
+  // Open buy modal with class/section pre-filled from card
+  await openBuyModal(examId, examTitle, price, true, cls, sec);
+}
+
 async function handleExamBtn(examId, examTitle, price, hasSubExams){
   if(!STATE.user){ openModal('authModal'); toast('Bilet almaq üçün daxil olun.','info'); return; }
-  // Check if already has ticket
   const cr=await GET('/registrations/check/'+examId);
   if(cr.hasTicket){
     if(cr.status==='active'){
       toast('Aktiv biletiniz var! İmtahana başlayırsınız...','ok');
       startExam(examId); return;
     }
-    toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return;
+    if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return; }
+    if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
   }
-  // Open buy modal
-  document.getElementById('buyExamTitle').textContent='💰 '+examTitle+' — '+price+' AZN';
+  await openBuyModal(examId, examTitle, price, false);
+}
+
+async function openBuyModal(examId, examTitle, price, isGroup, preClass='', preSection=''){
+  document.getElementById('buyExamTitle').textContent='💰 '+examTitle+(price?' — '+price+' AZN':'');
   document.getElementById('buyName').value=STATE.user.name||'';
   const uPhone=(STATE.user.phone||'').replace(/\D/g,'').slice(-9);
-  document.getElementById('buyPhone').value=uPhone?'('+uPhone.slice(0,2)+') '+uPhone.slice(2,5)+' '+uPhone.slice(5,7)+' '+uPhone.slice(7):'';
-  document.getElementById('buyWa').value   =uPhone?'('+uPhone.slice(0,2)+') '+uPhone.slice(2,5)+' '+uPhone.slice(5,7)+' '+uPhone.slice(7):'';
-  // Pre-fill class/section from profile
-  if(STATE.user.class)   document.getElementById('buyClass').value   = STATE.user.class;
-  if(STATE.user.section) document.getElementById('buySection').value = STATE.user.section;
+  const fmt = p => p?'('+p.slice(0,2)+') '+p.slice(2,5)+' '+p.slice(5,7)+' '+p.slice(7):'';
+  document.getElementById('buyPhone').value = fmt(uPhone);
+  document.getElementById('buyWa').value    = fmt(uPhone);
+
+  // Load class/section from categories
+  const selCls = preClass   || STATE.user.class   || '';
+  const selSec = preSection || STATE.user.section || '';
+  await loadCatSelect('buyClass',   'class',   selCls, 'Sinif seçin');
+  await loadCatSelect('buySection', 'section', selSec, 'Bölmə seçin');
+
   // Smart assignment notice
-  const notice = document.getElementById('buySmartNotice');
-  notice.style.display = hasSubExams ? 'block' : 'none';
+  document.getElementById('buySmartNotice').style.display = isGroup ? 'block' : 'none';
   document.getElementById('buyMsg').style.display='none';
   document.getElementById('buyBtn').dataset.examId=examId;
+  document.getElementById('buyBtn').dataset.isGroup=isGroup?'1':'0';
   openModal('buyModal');
 }
 async function doBuyTicket(){
-  const examId=document.getElementById('buyBtn').dataset.examId;
+  const examId  = document.getElementById('buyBtn').dataset.examId;
+  const isGroup = document.getElementById('buyBtn').dataset.isGroup === '1';
+  const cls     = document.getElementById('buyClass').value;
+  const sec     = document.getElementById('buySection').value;
+  if(isGroup && !cls){ showMsg('buyMsg','Zəhmət olmasa sinifnizi seçin.','err'); return; }
   const btn=document.getElementById('buyBtn'); btn.disabled=true; btn.textContent='Göndərilir...';
   const r=await POST('/registrations',{
     exam_id:examId,
     name:document.getElementById('buyName').value,
     phone:getFullPhone('buyPhone'),
     whatsapp:getFullPhone('buyWa'),
-    class:document.getElementById('buyClass').value,
-    section:document.getElementById('buySection').value
+    class:cls,
+    section:sec
   });
   btn.disabled=false; btn.textContent='Bilet Al';
-  if(!r.success){ showMsg('buyMsg',r.message,'err'); return; }
+  if(!r.success){
+    // Special message if no sub-exam found for their class/section
+    const msg = r.message || 'Xəta baş verdi.';
+    showMsg('buyMsg', msg, 'err');
+    return;
+  }
   closeModal('buyModal');
   const msg = r.assigned_exam
     ? `✅ "${r.assigned_exam}" imtahanına qeydiyyatınız qəbul edildi! WhatsApp-a mesaj gözləyin.`
     : 'Bilet sorğunuz qəbul edildi! WhatsApp-a mesaj gözləyin.';
   toast(msg,'ok');
+}
+
+function renderExams(data){
+  const list=document.getElementById('allExamsList');
+  if(!data.length){ list.innerHTML=`<div class="a-empty" style="grid-column:1/-1;padding:48px;background:#fff;border-radius:14px;border:1.5px solid var(--border)">${t('no_exams')}</div>`; return; }
+  list.innerHTML=data.map(e=>examCardHtml(e)).join('');
+  // Populate group exam card selectors
+  data.filter(e=>e.sub_count>0).forEach(e=>populateGroupCardSelects(e.id));
+  initReveal();
 }
 
 // ═══════════════════ START EXAM ═══════════════════
@@ -2755,7 +2834,7 @@ async function loadDashboard(){
   document.getElementById('dashName').textContent=u.name;
   document.getElementById('dashUsername').textContent='@'+(u.username||'—');
   document.getElementById('dashPhone').textContent = formatPhoneDisplay(u.phone);
-  document.getElementById('dashParentCode').textContent=u.parent_code||'——';
+  
   const tags=document.getElementById('dashTags');
   tags.innerHTML='';
   if(u.class) tags.innerHTML+=`<span class="tag tag-blue">${u.class}-ci sinif</span>`;
@@ -4422,21 +4501,23 @@ async function addCategory(type){
   if(!name){ toast('Ad daxil edin','err'); return; }
   const r=await POST('/categories',{type,name});
   if(!r.success){ toast(r.message,'err'); return; }
-  inp.value=''; toast('Əlavə edildi!','ok'); loadCategories();
+  inp.value=''; toast('Əlavə edildi!','ok');
+  _catCache[type]=null; // invalidate cache
+  loadCategories();
 }
 function editCategory(id,name){
   const newName=prompt('Adı dəyişin:',name);
   if(!newName||newName.trim()===name) return;
   PUT('/categories/'+id,{name:newName.trim()}).then(r=>{
     toast(r.success?'Yeniləndi!':r.message,r.success?'ok':'err');
-    if(r.success) loadCategories();
+    if(r.success){ _catCache={class:null,section:null}; loadCategories(); }
   });
 }
 async function deleteCategory(id,type){
   if(!confirm('Silinsin?')) return;
   const r=await DEL('/categories/'+id);
   toast(r.success?'Silindi.':r.message,r.success?'ok':'err');
-  if(r.success) loadCategories();
+  if(r.success){ _catCache[type]=null; loadCategories(); }
 }
 
 async function updatePendingBadge(){
@@ -4457,12 +4538,16 @@ function openModal(id){
   if(id==='profileModal'&&STATE.user){
     document.getElementById('profName').value=STATE.user.name||'';
     document.getElementById('profUsername').value='@'+(STATE.user.username||'');
-    document.getElementById('profClass').value=STATE.user.class||'';
-    document.getElementById('profSection').value=STATE.user.section||'';
+    // Load class/section from categories
+    loadCatSelect('profClass',   'class',   STATE.user.class||'',   '—');
+    loadCatSelect('profSection', 'section', STATE.user.section||'', '—');
   }
   if(id==='authModal'){
     ['loginMsg','regMsg','parentAuthMsg','adminLoginMsg'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     document.getElementById('multiAccountWrap').style.display='none';
+    // Pre-load class/section for register tab
+    loadCatSelect('regClass',   'class',   '', 'Sinif seçin');
+    loadCatSelect('regSection', 'section', '', 'Bölmə seçin');
   }
 }
 async function saveProfile(){
