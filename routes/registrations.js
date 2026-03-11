@@ -43,15 +43,53 @@ router.get('/admin/all', adminMiddleware, (req, res) => {
 router.post('/', authMiddleware, (req, res) => {
   const { exam_id, name, phone, whatsapp, class: cls, section } = req.body;
   if (!exam_id || !name || !phone) return res.status(400).json({ success: false, message: 'Məlumatlar natamamdır.' });
-  const exam = db.prepare('SELECT * FROM exams WHERE id=? AND is_active=1').get(exam_id);
-  if (!exam) return res.status(404).json({ success: false, message: 'İmtahan tapılmadı.' });
-  const existing = db.prepare('SELECT id FROM registrations WHERE user_id=? AND exam_id=?').get(req.user.id, exam_id);
+
+  let targetExam = db.prepare('SELECT * FROM exams WHERE id=? AND is_active=1').get(exam_id);
+  if (!targetExam) return res.status(404).json({ success: false, message: 'İmtahan tapılmadı.' });
+
+  // Smart sub-exam assignment: if this is a group exam, find matching sub-exam
+  const subCount = db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(exam_id)?.c || 0;
+  if (subCount > 0) {
+    const studentClass   = cls || req.user.class || '';
+    const studentSection = section || req.user.section || '';
+    // Try exact class+section match first
+    let subExam = db.prepare(
+      "SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=? AND section=?"
+    ).get(exam_id, studentClass, studentSection);
+    // Fallback: class only
+    if (!subExam) subExam = db.prepare(
+      "SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?"
+    ).get(exam_id, studentClass);
+    // Fallback: section only
+    if (!subExam) subExam = db.prepare(
+      "SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?"
+    ).get(exam_id, studentSection);
+
+    if (!subExam) {
+      return res.status(400).json({
+        success: false,
+        message: `"${targetExam.title}" imtahanında ${studentClass} sinif ${studentSection} bölməsi üçün alt imtahan tapılmadı. Adminlə əlaqə saxlayın.`
+      });
+    }
+    targetExam = subExam;
+  }
+
+  const existing = db.prepare('SELECT id FROM registrations WHERE user_id=? AND exam_id=?').get(req.user.id, targetExam.id);
   if (existing) return res.status(409).json({ success: false, message: 'Bu imtahan üçün artıq müraciət etmisiniz.' });
+
   const id = uid();
   db.prepare(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, req.user.id, exam_id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', new Date().toISOString());
-  notifyNewRegistration({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, exam).catch(()=>{});
-  res.status(201).json({ success: true, message: 'Bilet sorğunuz qəbul edildi.' });
+    VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
+    id, req.user.id, targetExam.id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', new Date().toISOString()
+  );
+  notifyNewRegistration({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, targetExam).catch(()=>{});
+  res.status(201).json({
+    success: true,
+    message: subCount > 0
+      ? `"${targetExam.title}" imtahanına qeydiyyatınız qəbul edildi.`
+      : 'Bilet sorğunuz qəbul edildi.',
+    assigned_exam: targetExam.title
+  });
 });
 
 // Admin: manually assign exam to a student
