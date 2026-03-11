@@ -1157,7 +1157,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="m-sub" id="buyExamTitle">İmtahan</div>
     <!-- Smart assignment notice -->
     <div id="buySmartNotice" style="display:none;background:rgba(19,85,160,.07);border:1px solid rgba(19,85,160,.2);border-radius:9px;padding:10px 13px;margin-bottom:12px;font-size:12.5px;color:var(--blue)">
-      🎯 Bu qrup imtahandır. Seçdiyiniz <b>sinif</b> və <b>bölməyə</b> uyğun imtahan avtomatik təyin ediləcək.
+      🎯 Bu qrup imtahandır. Aşağıdan sinif və bölmənizi seçin — imtahan avtomatik təyin ediləcək.
     </div>
     <div class="msg" id="buyMsg"></div>
     <div class="field"><label>Ad Soyad</label><input class="inp" id="buyName" type="text" placeholder="Aytən Həsənova"></div>
@@ -1187,17 +1187,15 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <input class="phone-inp" id="buyWa" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('buyWa')">
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>Sinif</label>
+    <div id="buyClassSectionWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field" id="buyClassField"><label>Sinif</label>
         <select class="inp" id="buyClass">
-          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-          <option value="10">10</option><option value="11">11</option>
+          <option value="">Sinif seçin</option>
         </select>
       </div>
-      <div class="field"><label>Bölmə</label>
+      <div class="field" id="buySectionField"><label>Bölmə</label>
         <select class="inp" id="buySection">
-          <option value="AZ">AZ</option><option value="RU">RU</option><option value="EN">EN</option>
+          <option value="">Bölmə seçin</option>
         </select>
       </div>
     </div>
@@ -1295,17 +1293,11 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div class="field"><label>Sinif</label>
         <select class="inp" id="examFClass">
           <option value="">— Ümumi —</option>
-          <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-          <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-          <option value="10">10</option><option value="11">11</option>
         </select>
       </div>
       <div class="field"><label>Bölmə</label>
         <select class="inp" id="examFSection">
           <option value="">— Ümumi —</option>
-          <option value="AZ">AZ</option>
-          <option value="RU">RU</option>
-          <option value="EN">EN</option>
         </select>
       </div>
       <div class="field"><label>Müddət (dəq)</label><input class="inp" id="examFDur" type="number" value="60" min="5" max="300"></div>
@@ -2294,22 +2286,6 @@ function examCardHtml(e){
   if(!e.is_unlimited && e.start_date && now < e.start_date){
     dateBadge = `<span class="tag tag-gold" style="font-size:10px">🕒 ${e.start_date}-dən</span>`;
   }
-
-  // For group exam — show class/section selectors inside card
-  const groupSelectors = isGroup ? `
-    <div class="exam-group-sel" id="grpSel_${e.id}">
-      <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:6px">📚 Sinif və bölmənizi seçin:</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-        <select class="inp" id="grpClass_${e.id}" style="padding:5px 8px;font-size:12px" onchange="checkGroupAvail('${e.id}')">
-          <option value="">Sinif...</option>
-        </select>
-        <select class="inp" id="grpSection_${e.id}" style="padding:5px 8px;font-size:12px" onchange="checkGroupAvail('${e.id}')">
-          <option value="">Bölmə...</option>
-        </select>
-      </div>
-      <div id="grpMsg_${e.id}" style="font-size:11px;min-height:16px;margin-bottom:4px"></div>
-    </div>` : '';
-
   const btnOnclick = isGroup
     ? `handleGroupExamBtn('${e.id}','${e.title.replace(/'/g,"\\'")}',${e.price})`
     : `handleExamBtn('${e.id}','${e.title.replace(/'/g,"\\'")}',${e.price},0)`;
@@ -2322,10 +2298,9 @@ function examCardHtml(e){
       <span class="tag tag-blue">${t(e.category)}</span>
       <span class="tag tag-gray">⏱ ${e.duration} ${t('min')}</span>
       <span class="tag tag-gray">❓ ${e.question_count||0} ${t('q')}</span>
-      ${isGroup?`<span class="tag tag-purple" style="font-size:10px">${e.sub_count} sinif var</span>`:(e.class?`<span class="tag tag-gray">📚 ${e.class}-ci sinif</span>`:'')}
+      ${isGroup?`<span class="tag tag-purple" style="font-size:10px">🗂 ${e.sub_count} sinif</span>`:(e.class?`<span class="tag tag-gray">📚 ${e.class}-ci sinif</span>`:'')}
       ${dateBadge}
     </div>
-    ${groupSelectors}
     <div class="exam-footer">
       <div class="exam-price">${e.price>0?e.price+' ₼':'Pulsuz'}</div>
       <button class="btn btn-primary btn-sm" onclick="${btnOnclick}">Bilet Al</button>
@@ -2441,44 +2416,24 @@ async function loadCatSelect(selId, type, selected='', emptyLabel='Seçin'){
     _catCache[type].map(c=>`<option value="${c.name}" ${c.name===selected?'selected':''}>${c.name}</option>`).join('');
 }
 
-// Populate group exam card class/section selectors
-async function populateGroupCardSelects(examId){
-  await loadCatSelect('grpClass_'+examId,   'class',   STATE.user?.class||'',   'Sinif...');
-  await loadCatSelect('grpSection_'+examId, 'section', STATE.user?.section||'', 'Bölmə...');
-  checkGroupAvail(examId);
-}
-
-function checkGroupAvail(examId){
-  const cls = document.getElementById('grpClass_'+examId)?.value||'';
-  const sec = document.getElementById('grpSection_'+examId)?.value||'';
-  const msgEl = document.getElementById('grpMsg_'+examId); if(!msgEl) return;
-  if(!cls && !sec){ msgEl.innerHTML=''; return; }
-  // Check if a matching sub-exam exists in allExamsData
-  // We can only truly verify server-side, but give quick client hint
-  msgEl.innerHTML = cls||sec
-    ? `<span style="color:var(--blue)">✓ ${cls?cls+'-ci sinif':''} ${sec||''} üçün bilet alınacaq</span>`
-    : '';
-}
-
 async function handleGroupExamBtn(examId, examTitle, price){
   if(!STATE.user){ openModal('authModal'); toast('Bilet almaq üçün daxil olun.','info'); return; }
-  // Ensure selects populated
-  await populateGroupCardSelects(examId);
-  const cls = document.getElementById('grpClass_'+examId)?.value||'';
-  const sec = document.getElementById('grpSection_'+examId)?.value||'';
-  if(!cls){ toast('Zəhmət olmasa sinifnizi seçin.','err'); return; }
-  // Check ticket
   const cr = await GET('/registrations/check/'+examId);
   if(cr.hasTicket){
     if(cr.status==='active'){ toast('Aktiv biletiniz var!','ok'); return; }
-    if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır.','info'); return; }
+    if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return; }
     if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
   }
-  // Open buy modal with class/section pre-filled from card
-  await openBuyModal(examId, examTitle, price, true, cls, sec);
+  // Fetch available subs for this parent exam
+  const subsR = await GET('/exams/'+examId+'/subs');
+  const subs  = subsR.data || [];
+  if(!subs.length){
+    toast('Bu imtahan üçün hazırda aktiv sinif tapılmadı.','err'); return;
+  }
+  await openBuyModal(examId, examTitle, price, true, subs);
 }
 
-async function handleExamBtn(examId, examTitle, price, hasSubExams){
+async function handleExamBtn(examId, examTitle, price){
   if(!STATE.user){ openModal('authModal'); toast('Bilet almaq üçün daxil olun.','info'); return; }
   const cr=await GET('/registrations/check/'+examId);
   if(cr.hasTicket){
@@ -2489,65 +2444,95 @@ async function handleExamBtn(examId, examTitle, price, hasSubExams){
     if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return; }
     if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
   }
-  await openBuyModal(examId, examTitle, price, false);
+  await openBuyModal(examId, examTitle, price, false, []);
 }
 
-async function openBuyModal(examId, examTitle, price, isGroup, preClass='', preSection=''){
+async function openBuyModal(examId, examTitle, price, isGroup, subs){
   document.getElementById('buyExamTitle').textContent='💰 '+examTitle+(price?' — '+price+' AZN':'');
-  document.getElementById('buyName').value=STATE.user.name||'';
+  document.getElementById('buyName').value  = STATE.user.name||'';
   const uPhone=(STATE.user.phone||'').replace(/\D/g,'').slice(-9);
   const fmt = p => p?'('+p.slice(0,2)+') '+p.slice(2,5)+' '+p.slice(5,7)+' '+p.slice(7):'';
   document.getElementById('buyPhone').value = fmt(uPhone);
   document.getElementById('buyWa').value    = fmt(uPhone);
 
-  // Load class/section from categories
-  const selCls = preClass   || STATE.user.class   || '';
-  const selSec = preSection || STATE.user.section || '';
-  await loadCatSelect('buyClass',   'class',   selCls, 'Sinif seçin');
-  await loadCatSelect('buySection', 'section', selSec, 'Bölmə seçin');
+  const csWrap = document.getElementById('buyClassSectionWrap');
+  if(isGroup && subs.length){
+    csWrap.style.display = 'grid';
+    document.getElementById('buySmartNotice').style.display = 'block';
 
-  // Smart assignment notice
-  document.getElementById('buySmartNotice').style.display = isGroup ? 'block' : 'none';
+    // Build class options from actual sub-exams
+    const classes  = [...new Set(subs.map(s=>s.class ).filter(Boolean))].sort();
+    const sections = [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
+    const userCls  = STATE.user.class  || '';
+    const userSec  = STATE.user.section|| '';
+
+    const clsSel = document.getElementById('buyClass');
+    clsSel.innerHTML = '<option value="">Sinif seçin</option>' +
+      classes.map(c=>`<option value="${c}" ${c===userCls?'selected':''}>${c}-ci sinif</option>`).join('');
+
+    const secSel = document.getElementById('buySection');
+    secSel.innerHTML = '<option value="">Bölmə seçin</option>' +
+      sections.map(s=>`<option value="${s}" ${s===userSec?'selected':''}>${s}</option>`).join('');
+
+    // Store subs for onchange filtering
+    clsSel.onchange = () => filterBuySectionByCls(subs);
+    filterBuySectionByCls(subs);
+  } else {
+    // Non-group exam — hide class/section row
+    csWrap.style.display = 'none';
+    document.getElementById('buySmartNotice').style.display = 'none';
+  }
+
   document.getElementById('buyMsg').style.display='none';
-  document.getElementById('buyBtn').dataset.examId=examId;
-  document.getElementById('buyBtn').dataset.isGroup=isGroup?'1':'0';
+  document.getElementById('buyBtn').dataset.examId  = examId;
+  document.getElementById('buyBtn').dataset.isGroup = isGroup?'1':'0';
   openModal('buyModal');
 }
+
+function filterBuySectionByCls(subs){
+  const cls = document.getElementById('buyClass').value;
+  const secSel = document.getElementById('buySection');
+  const userSec = STATE.user.section||'';
+  // Filter sections available for selected class
+  const available = cls
+    ? [...new Set(subs.filter(s=>s.class===cls).map(s=>s.section).filter(Boolean))].sort()
+    : [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
+  secSel.innerHTML = '<option value="">Bölmə seçin</option>' +
+    available.map(s=>`<option value="${s}" ${s===userSec?'selected':''}>${s}</option>`).join('');
+  // If only one section, auto-select
+  if(available.length===1) secSel.value = available[0];
+}
+
 async function doBuyTicket(){
   const examId  = document.getElementById('buyBtn').dataset.examId;
   const isGroup = document.getElementById('buyBtn').dataset.isGroup === '1';
   const cls     = document.getElementById('buyClass').value;
   const sec     = document.getElementById('buySection').value;
-  if(isGroup && !cls){ showMsg('buyMsg','Zəhmət olmasa sinifnizi seçin.','err'); return; }
+  const csWrap  = document.getElementById('buyClassSectionWrap');
+  if(isGroup && csWrap.style.display!=='none'){
+    if(!cls){ showMsg('buyMsg','Zəhmət olmasa sinifnizi seçin.','err'); return; }
+  }
   const btn=document.getElementById('buyBtn'); btn.disabled=true; btn.textContent='Göndərilir...';
   const r=await POST('/registrations',{
     exam_id:examId,
     name:document.getElementById('buyName').value,
     phone:getFullPhone('buyPhone'),
     whatsapp:getFullPhone('buyWa'),
-    class:cls,
-    section:sec
+    class: isGroup ? cls : (STATE.user.class||''),
+    section: isGroup ? sec : (STATE.user.section||'')
   });
   btn.disabled=false; btn.textContent='Bilet Al';
-  if(!r.success){
-    // Special message if no sub-exam found for their class/section
-    const msg = r.message || 'Xəta baş verdi.';
-    showMsg('buyMsg', msg, 'err');
-    return;
-  }
+  if(!r.success){ showMsg('buyMsg', r.message||'Xəta baş verdi.', 'err'); return; }
   closeModal('buyModal');
-  const msg = r.assigned_exam
+  toast(r.assigned_exam
     ? `✅ "${r.assigned_exam}" imtahanına qeydiyyatınız qəbul edildi! WhatsApp-a mesaj gözləyin.`
-    : 'Bilet sorğunuz qəbul edildi! WhatsApp-a mesaj gözləyin.';
-  toast(msg,'ok');
+    : 'Bilet sorğunuz qəbul edildi! WhatsApp-a mesaj gözləyin.', 'ok');
 }
 
 function renderExams(data){
   const list=document.getElementById('allExamsList');
   if(!data.length){ list.innerHTML=`<div class="a-empty" style="grid-column:1/-1;padding:48px;background:#fff;border-radius:14px;border:1.5px solid var(--border)">${t('no_exams')}</div>`; return; }
   list.innerHTML=data.map(e=>examCardHtml(e)).join('');
-  // Populate group exam card selectors
-  data.filter(e=>e.sub_count>0).forEach(e=>populateGroupCardSelects(e.id));
   initReveal();
 }
 
@@ -3388,13 +3373,15 @@ async function openAddExamModal(){
   document.getElementById('examFDur').value = '60';
   document.getElementById('examFPrice').value = '8';
   document.getElementById('examFActive').value = '1';
-  document.getElementById('examFClass').value = '';
-  document.getElementById('examFSection').value = '';
   document.getElementById('examFUnlimited').checked = true;
   toggleExamDates();
   document.getElementById('examFStart').value = '';
   document.getElementById('examFEnd').value = '';
-  await loadParentExamSelect('');
+  await Promise.all([
+    loadParentExamSelect(''),
+    loadCatSelect('examFClass',   'class',   '', '— Ümumi —'),
+    loadCatSelect('examFSection', 'section', '', '— Ümumi —'),
+  ]);
   openModal('addExamModal');
 }
 
@@ -3423,15 +3410,13 @@ async function loadParentExamSelect(selectedId){
   });
 }
 
-function editExam(e){
+async function editExam(e){
   document.getElementById('examFormTitle').textContent = '✏️ İmtahanı Redaktə Et';
   document.getElementById('examFormId').value  = e.id;
   document.getElementById('examFTitle').value  = e.title;
   document.getElementById('examFDesc').value   = e.description||'';
   document.getElementById('examFCat').value    = e.category;
   document.getElementById('examFSubj').value   = e.subject;
-  document.getElementById('examFClass').value  = e.class||'';
-  document.getElementById('examFSection').value= e.section||'';
   document.getElementById('examFDur').value    = e.duration;
   document.getElementById('examFPrice').value  = e.price;
   document.getElementById('examFActive').value = e.is_active ? '1' : '0';
@@ -3441,7 +3426,11 @@ function editExam(e){
   document.getElementById('examFStart').value = e.start_date||'';
   document.getElementById('examFEnd').value   = e.end_date||'';
   toggleExamDates();
-  loadParentExamSelect(e.parent_exam_id||'');
+  await Promise.all([
+    loadParentExamSelect(e.parent_exam_id||''),
+    loadCatSelect('examFClass',   'class',   e.class||'',   '— Ümumi —'),
+    loadCatSelect('examFSection', 'section', e.section||'', '— Ümumi —'),
+  ]);
   openModal('addExamModal');
 }
 

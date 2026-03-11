@@ -65,6 +65,18 @@ router.get('/:id', optionalAuth, (req, res) => {
   res.json({ success: true, data: exam });
 });
 
+// GET /api/exams/:id/subs — available class/section pairs for a group exam
+router.get('/:id/subs', optionalAuth, (req, res) => {
+  const subs = db.prepare(`
+    SELECT class, section FROM exams
+    WHERE parent_exam_id = ? AND is_active = 1
+    ORDER BY class, section
+  `).all(req.params.id);
+  const classes  = [...new Set(subs.map(s=>s.class ).filter(Boolean))];
+  const sections = [...new Set(subs.map(s=>s.section).filter(Boolean))];
+  res.json({ success: true, data: subs, classes, sections });
+});
+
 // GET /api/exams/:id/questions
 router.get('/:id/questions', authMiddleware, (req, res) => {
   const user = req.user;
