@@ -1429,13 +1429,40 @@ function formatPhoneInput(fieldId) {
   const c = phoneState[fieldId]?.country || COUNTRIES[0];
   const digits = inp.value.replace(/\D/g, '').slice(0, c.digits);
   if (!digits.length) { inp.value = ''; return; }
-  // Walk through format, fill in digits
+  // Apply format: insert ALL separators that come BEFORE typed digits
   let out = '', di = 0, fmt = c.fmt;
-  for (let i = 0; i < fmt.length && di < digits.length; i++) {
-    if (fmt[i] === '#') { out += digits[di++]; }
-    else if (di > 0)    { out += fmt[i]; }
+  for (let i = 0; i < fmt.length; i++) {
+    if (di >= digits.length) break;
+    if (fmt[i] === '#') {
+      out += digits[di++];
+    } else {
+      // Add separator — even if it's before the first digit (e.g. opening parenthesis)
+      out += fmt[i];
+    }
   }
   inp.value = out;
+}
+
+function formatPhoneDisplay(phone) {
+  if (!phone) return '—';
+  // If stored as digits only (legacy 9-digit)
+  const digits = phone.replace(/\D/g,'');
+  if (digits.length === 9) return '+994 (' + digits.slice(0,2) + ') ' + digits.slice(2,5) + ' ' + digits.slice(5,7) + ' ' + digits.slice(7);
+  // Full international — find country by code
+  for (const c of COUNTRIES) {
+    const cDigits = c.code.replace(/\D/g,'');
+    if (digits.startsWith(cDigits)) {
+      const local = digits.slice(cDigits.length);
+      let out = c.code + ' ', di = 0, fmt = c.fmt;
+      for (let i = 0; i < fmt.length; i++) {
+        if (di >= local.length) break;
+        if (fmt[i] === '#') { out += local[di++]; }
+        else out += fmt[i];
+      }
+      return out;
+    }
+  }
+  return '+' + digits;
 }
 
 function getFullPhone(fieldId) {
@@ -2009,10 +2036,10 @@ async function handleExamBtn(examId, examTitle, price){
   // Open buy modal
   document.getElementById('buyExamTitle').textContent='💰 '+examTitle+' — '+price+' AZN';
   document.getElementById('buyName').value=STATE.user.name||'';
-  // Phone fields auto-prefilled via user data (digits only for AZ)
+  // Phone fields — show local digits only (country picker handles code)
   const uPhone = (STATE.user.phone||'').replace(/\D/g,'').slice(-9);
-  document.getElementById('buyPhone').value=uPhone;
-  document.getElementById('buyWa').value=uPhone;
+  document.getElementById('buyPhone').value = uPhone ? '('+uPhone.slice(0,2)+') '+uPhone.slice(2,5)+' '+uPhone.slice(5,7)+' '+uPhone.slice(7) : '';
+  document.getElementById('buyWa').value    = uPhone ? '('+uPhone.slice(0,2)+') '+uPhone.slice(2,5)+' '+uPhone.slice(5,7)+' '+uPhone.slice(7) : '';
   document.getElementById('buyMsg').style.display='none';
   document.getElementById('buyBtn').dataset.examId=examId;
   openModal('buyModal');
@@ -2291,7 +2318,7 @@ async function loadDashboard(){
   document.getElementById('dashAv').style.background=avatarColor(u.name||'');
   document.getElementById('dashName').textContent=u.name;
   document.getElementById('dashUsername').textContent='@'+(u.username||'—');
-  document.getElementById('dashPhone').textContent='+994 '+u.phone;
+  document.getElementById('dashPhone').textContent = formatPhoneDisplay(u.phone);
   document.getElementById('dashParentCode').textContent=u.parent_code||'——';
   const tags=document.getElementById('dashTags');
   tags.innerHTML='';
