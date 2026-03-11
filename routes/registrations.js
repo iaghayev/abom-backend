@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { sendTelegram } = require('../config/telegram');
+const { notifyNewRegistration, notifyActivation } = require('../config/telegram');
 
 function uid() { return 'reg_' + Date.now() + Math.random().toString(36).slice(2,5); }
 
@@ -52,7 +52,7 @@ router.post('/', authMiddleware, (req, res) => {
   db.prepare(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at)
     VALUES (?,?,?,?,?,?,?,?,?,?)`).run(id, req.user.id, exam_id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', now);
   // Notify telegram
-  sendTelegram(`🎫 Yeni bilet sorğusu!\n👤 ${name}\n📞 ${phone}\n📚 ${exam.title}\n💰 ${exam.price} AZN\n🕐 ${new Date().toLocaleString('az-AZ')}`).catch(()=>{});
+  notifyNewRegistration({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, exam).catch(()=>{});
   res.status(201).json({ success: true, message: 'Bilet sorğunuz qəbul edildi.' });
 });
 
@@ -63,7 +63,7 @@ router.put('/:id/activate', adminMiddleware, (req, res) => {
   db.prepare("UPDATE registrations SET status='active', activated_at=? WHERE id=?")
     .run(new Date().toISOString(), req.params.id);
   const exam = db.prepare('SELECT title FROM exams WHERE id=?').get(reg.exam_id);
-  sendTelegram(`✅ Bilet aktivləşdirildi!\n👤 ${reg.name}\n📚 ${exam?.title||'—'}`).catch(()=>{});
+  notifyActivation(reg, exam).catch(()=>{});
   res.json({ success: true, message: 'Aktivləşdirildi.' });
 });
 
