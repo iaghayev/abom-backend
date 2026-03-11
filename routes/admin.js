@@ -97,3 +97,5 @@ router.put('/users/:id', adminMiddleware, (req, res) => {
     res.status(400).json({ success: false, message: 'Username artıq mövcuddur.' });
   }
 });
+
+module.exports = router;
