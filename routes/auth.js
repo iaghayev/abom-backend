@@ -20,8 +20,8 @@ router.post('/register', (req, res) => {
     return res.status(400).json({ success: false, message: 'Şifrələr uyğun gəlmir.' });
   if (password.length < 6)
     return res.status(400).json({ success: false, message: 'Şifrə min 6 simvol olmalıdır.' });
-  const cleanPhone = phone.replace(/\D/g, '').slice(-9);
-  if (cleanPhone.length < 9)
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (cleanPhone.length < 6)
     return res.status(400).json({ success: false, message: 'Düzgün telefon nömrəsi daxil edin.' });
 
   // Same phone can have multiple students — check name+phone combo
@@ -47,9 +47,11 @@ router.post('/login', (req, res) => {
   if (username) {
     user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   } else {
-    const cleanPhone = (phone||'').replace(/\D/g, '').slice(-9);
+    const cleanPhone = (phone||'').replace(/\D/g, '');
     // If multiple users with same phone, return first active one or ask for username
-    const users = db.prepare("SELECT * FROM users WHERE phone = ? AND role = 'student'").all(cleanPhone);
+    // Match by last 9 digits to support both old (9-digit) and new (full intl) stored numbers
+    const last9 = cleanPhone.slice(-9);
+    const users = db.prepare("SELECT * FROM users WHERE (phone = ? OR phone LIKE ?) AND role = 'student'").all(cleanPhone, '%'+last9);
     if (users.length > 1) {
       return res.status(300).json({ success: false, multipleAccounts: true,
         accounts: users.map(u => ({ username: u.username, name: u.name })),

@@ -360,6 +360,20 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .reveal{opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease}
 .reveal.visible{opacity:1;transform:none}
 
+/* PHONE PICKER */
+.phone-wrap{display:flex;background:var(--off);border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;transition:all .2s}
+.phone-wrap:focus-within{border-color:var(--sky);background:#fff;box-shadow:0 0 0 3px rgba(35,128,232,.1)}
+.country-btn{display:flex;align-items:center;gap:5px;padding:10px 10px;background:rgba(19,85,160,.06);border:none;border-right:1.5px solid var(--border);cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap;flex-shrink:0;transition:background .18s;min-width:80px}
+.country-btn:hover{background:rgba(19,85,160,.11)}
+.country-btn .flag{font-size:16px;line-height:1}
+.country-btn .code{font-size:12px}
+.country-drop{position:absolute;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 28px rgba(11,31,58,.13);z-index:800;width:240px;max-height:280px;overflow-y:auto;top:calc(100% + 4px);left:0}
+.country-drop .cd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.country-drop .cd-item:hover{background:var(--off)}
+.country-drop .cd-item .flag{font-size:18px}
+.phone-inp{border:none;background:transparent;padding:10px 12px;font-size:14px;font-weight:500;color:var(--navy);outline:none;flex:1;font-family:'Outfit',sans-serif;min-width:0;letter-spacing:.02em}
+.phone-inp::placeholder{color:#b0c4d8;font-weight:400}
+
 /* RESPONSIVE */
 @media(max-width:1024px){
   #nav{padding:0 20px}
@@ -457,7 +471,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         <h1 class="hero-h1">Olimpiadada <em>qalibiyyəti</em><br>birlikdə qazanaq</h1>
         <p class="hero-p">Peşəkar müəllimlər, keyfiyyətli sınaq imtahanları və real olimpiada sualları ilə uşağınızın gələcəyini birlikdə inşa edək.</p>
         <div class="hero-acts">
-          <button class="btn btn-primary btn-lg" onclick="openModal('authModal')">🚀 İndi Başla</button>
+          <button class="btn btn-primary btn-lg" onclick="STATE.user ? goTo('dashboard') : openModal('authModal')">🚀 İndi Başla</button>
           <button class="btn btn-outline btn-lg" onclick="goTo('exams')">İmtahanlara Bax →</button>
         </div>
         <div class="hero-stats">
@@ -971,7 +985,17 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div id="loginPane">
       <div class="msg" id="loginMsg"></div>
       <div class="field"><label>Telefon nömrəsi</label>
-        <div class="inp-wrap"><span class="inp-pre">🇦🇿 +994</span><input class="inp-inner" id="loginPhone" type="tel" placeholder="55 123 45 67" oninput="checkMultipleAccounts()"></div>
+        <div class="phone-wrap" id="loginPhoneWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="loginPhoneCountryBtn" onclick="toggleCountryDrop('loginPhone')">
+              <span class="flag" id="loginPhoneFlag">🇦🇿</span>
+              <span class="code" id="loginPhoneCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="loginPhoneDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="loginPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('loginPhone'); checkMultipleAccounts()">
+        </div>
       </div>
       <div id="multiAccountWrap" style="display:none;margin-bottom:12px">
         <div class="msg info" style="display:flex">👥 Bu nömrə ilə bir neçə hesab var. Username seçin:</div>
@@ -986,7 +1010,17 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div class="msg" id="regMsg"></div>
       <div class="field"><label>Ad Soyad</label><input class="inp" id="regName" type="text" placeholder="Aytən Həsənova"></div>
       <div class="field"><label>Telefon nömrəsi</label>
-        <div class="inp-wrap"><span class="inp-pre">🇦🇿 +994</span><input class="inp-inner" id="regPhone" type="tel" placeholder="55 123 45 67"></div>
+        <div class="phone-wrap" id="regPhoneWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="regPhoneCountryBtn" onclick="toggleCountryDrop('regPhone')">
+              <span class="flag" id="regPhoneFlag">🇦🇿</span>
+              <span class="code" id="regPhoneCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="regPhoneDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="regPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('regPhone')">
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="field"><label>Sinif</label>
@@ -1015,7 +1049,17 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       </div>
       <div class="field"><label>Adınız</label><input class="inp" id="parName" type="text" placeholder="Vüsal Həsənov"></div>
       <div class="field"><label>Telefon</label>
-        <div class="inp-wrap"><span class="inp-pre">🇦🇿 +994</span><input class="inp-inner" id="parPhone" type="tel" placeholder="50 111 22 33"></div>
+        <div class="phone-wrap" id="parPhoneWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="parPhoneCountryBtn" onclick="toggleCountryDrop('parPhone')">
+              <span class="flag" id="parPhoneFlag">🇦🇿</span>
+              <span class="code" id="parPhoneCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="parPhoneDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="parPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('parPhone')">
+        </div>
       </div>
       <div class="field"><label>Uşağın kodu</label><input class="inp" id="parCode" type="text" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:.1em"></div>
       <div class="field"><label>Şifrə</label><input class="inp" id="parPass" type="password" placeholder="••••••"></div>
@@ -1041,10 +1085,30 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="msg" id="buyMsg"></div>
     <div class="field"><label>Ad Soyad</label><input class="inp" id="buyName" type="text" placeholder="Aytən Həsənova"></div>
     <div class="field"><label>Telefon</label>
-      <div class="inp-wrap"><span class="inp-pre">🇦🇿 +994</span><input class="inp-inner" id="buyPhone" type="tel"></div>
+      <div class="phone-wrap" id="buyPhoneWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="buyPhoneCountryBtn" onclick="toggleCountryDrop('buyPhone')">
+              <span class="flag" id="buyPhoneFlag">🇦🇿</span>
+              <span class="code" id="buyPhoneCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="buyPhoneDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="buyPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('buyPhone')">
+        </div>
     </div>
     <div class="field"><label>WhatsApp</label>
-      <div class="inp-wrap"><span class="inp-pre">📱 +994</span><input class="inp-inner" id="buyWa" type="tel"></div>
+      <div class="phone-wrap" id="buyWaWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="buyWaCountryBtn" onclick="toggleCountryDrop('buyWa')">
+              <span class="flag" id="buyWaFlag">🇦🇿</span>
+              <span class="code" id="buyWaCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="buyWaDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="buyWa" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('buyWa')">
+        </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field"><label>Sinif</label>
@@ -1297,6 +1361,97 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 </div>
 
 <script>
+// ═══════════════════ PHONE PICKER ═══════════════════
+const COUNTRIES = [
+  { code:'+994', flag:'🇦🇿', name:'Azərbaycan', iso:'AZ', fmt:'(##) ### ## ##', digits:9 },
+  { code:'+7',   flag:'🇷🇺', name:'Rusiya',      iso:'RU', fmt:'(###) ###-##-##', digits:10 },
+  { code:'+90',  flag:'🇹🇷', name:'Türkiyə',     iso:'TR', fmt:'(###) ### ## ##', digits:10 },
+  { code:'+380', flag:'🇺🇦', name:'Ukrayna',     iso:'UA', fmt:'## ### ## ##', digits:9 },
+  { code:'+1',   flag:'🇺🇸', name:'Amerika',     iso:'US', fmt:'(###) ###-####', digits:10 },
+  { code:'+995', flag:'🇬🇪', name:'Gürcüstan',   iso:'GE', fmt:'### ## ## ##', digits:9 },
+  { code:'+381', flag:'🇷🇸', name:'Serbiya',     iso:'RS', fmt:'## ### ## ##', digits:9 },
+  { code:'+49',  flag:'🇩🇪', name:'Almaniya',    iso:'DE', fmt:'### ## ## ##', digits:10 },
+  { code:'+48',  flag:'🇵🇱', name:'Polşa',       iso:'PL', fmt:'### ### ###', digits:9 },
+];
+
+const phoneState = {}; // fieldId → { country }
+
+function initPhonePicker(fieldId) {
+  if (!phoneState[fieldId]) phoneState[fieldId] = { country: COUNTRIES[0] };
+  // Build dropdown
+  const drop = document.getElementById(fieldId + 'Drop');
+  if (drop && !drop.dataset.built) {
+    drop.innerHTML = COUNTRIES.map(c => `
+      <div class="cd-item" onclick="selectCountry('${fieldId}','${c.iso}')">
+        <span class="flag">${c.flag}</span>
+        <span style="font-weight:600">${c.code}</span>
+        <span style="color:var(--muted);font-size:12px">${c.name}</span>
+      </div>`).join('');
+    drop.dataset.built = '1';
+  }
+}
+
+function toggleCountryDrop(fieldId) {
+  initPhonePicker(fieldId);
+  const drop = document.getElementById(fieldId + 'Drop');
+  const isOpen = drop.style.display !== 'none';
+  // Close all others
+  document.querySelectorAll('.country-drop').forEach(d => d.style.display = 'none');
+  if (!isOpen) drop.style.display = 'block';
+}
+
+function selectCountry(fieldId, iso) {
+  const c = COUNTRIES.find(x => x.iso === iso);
+  if (!c) return;
+  phoneState[fieldId] = { country: c };
+  document.getElementById(fieldId + 'Flag').textContent = c.flag;
+  document.getElementById(fieldId + 'Code').textContent = c.code;
+  document.getElementById(fieldId + 'Drop').style.display = 'none';
+  // Update placeholder
+  const inp = document.getElementById(fieldId);
+  if (inp) inp.placeholder = c.fmt.replace(/#/g, '0');
+  // Clear and re-focus
+  if (inp) { inp.value = ''; inp.focus(); }
+}
+
+function formatPhoneInput(fieldId) {
+  const inp = document.getElementById(fieldId);
+  if (!inp) return;
+  initPhonePicker(fieldId);
+  const c = phoneState[fieldId]?.country || COUNTRIES[0];
+  // Strip non-digits
+  let digits = inp.value.replace(/\D/g, '').slice(0, c.digits);
+  // Apply format pattern
+  let fmt = c.fmt;
+  let out = '', di = 0;
+  for (let i = 0; i < fmt.length && di < digits.length; i++) {
+    if (fmt[i] === '#') { out += digits[di++]; }
+    else { if (di > 0) out += fmt[i]; }
+  }
+  inp.value = out;
+}
+
+function getFullPhone(fieldId) {
+  initPhonePicker(fieldId);
+  const c = phoneState[fieldId]?.country || COUNTRIES[0];
+  const inp = document.getElementById(fieldId);
+  const digits = (inp?.value || '').replace(/\D/g, '');
+  return c.code + digits;
+}
+
+function getPhoneDigits(fieldId) {
+  initPhonePicker(fieldId);
+  const inp = document.getElementById(fieldId);
+  return (inp?.value || '').replace(/\D/g, '');
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('.country-btn') && !e.target.closest('.country-drop')) {
+    document.querySelectorAll('.country-drop').forEach(d => d.style.display = 'none');
+  }
+});
+
 // ═══════════════════ CONFIG ═══════════════════
 const API = window.location.origin + '/api';
 
@@ -1386,9 +1541,10 @@ function authTab(tab){
 }
 
 async function checkMultipleAccounts(){
-  const phone = document.getElementById('loginPhone').value.replace(/\D/g,'').slice(-9);
-  if(phone.length < 9){ document.getElementById('multiAccountWrap').style.display='none'; return; }
-  const r = await POST('/auth/login',{phone,password:'__CHECK__'});
+  const phone = getPhoneDigits('loginPhone');
+  const fullPhone = getFullPhone('loginPhone');
+  if(phone.length < 6){ document.getElementById('multiAccountWrap').style.display='none'; return; }
+  const r = await POST('/auth/login',{phone:fullPhone,password:'__CHECK__'});
   if(r.multipleAccounts){
     const wrap = document.getElementById('multiAccountWrap');
     const sel = document.getElementById('multiAccountSel');
@@ -1402,7 +1558,7 @@ async function checkMultipleAccounts(){
 
 async function doLogin(){
   const btn=document.getElementById('loginBtn'); btn.disabled=true; btn.textContent='Yüklənir...';
-  const phone = document.getElementById('loginPhone').value.replace(/\D/g,'').slice(-9);
+  const phone = getFullPhone('loginPhone');
   const password = document.getElementById('loginPass').value;
   const username = document.getElementById('multiAccountSel').value;
   const body = username ? {username,password} : {phone,password};
@@ -1416,7 +1572,7 @@ async function doLogin(){
 async function doRegister(){
   const btn=document.getElementById('regBtn'); btn.disabled=true; btn.textContent='Yüklənir...';
   const name=document.getElementById('regName').value.trim();
-  const phone=document.getElementById('regPhone').value.replace(/\D/g,'').slice(-9);
+  const phone=getFullPhone('regPhone');
   const cls=document.getElementById('regClass').value;
   const section=document.getElementById('regSection').value;
   const password=document.getElementById('regPass').value;
@@ -1440,7 +1596,7 @@ async function doAdminLogin(){
 async function doParentAuth(){
   const btn=document.getElementById('parAuthBtn'); btn.disabled=true;
   const name=document.getElementById('parName').value.trim();
-  const phone=document.getElementById('parPhone').value.replace(/\D/g,'').slice(-9);
+  const phone=getFullPhone('parPhone');
   const childCode=document.getElementById('parCode').value.trim().toUpperCase();
   const password=document.getElementById('parPass').value;
   const r = await POST('/auth/parent-register',{name,phone,password,childCode});
@@ -1698,8 +1854,10 @@ async function handleExamBtn(examId, examTitle, price){
   // Open buy modal
   document.getElementById('buyExamTitle').textContent='💰 '+examTitle+' — '+price+' AZN';
   document.getElementById('buyName').value=STATE.user.name||'';
-  document.getElementById('buyPhone').value=STATE.user.phone||'';
-  document.getElementById('buyWa').value=STATE.user.phone||'';
+  // Phone fields auto-prefilled via user data (digits only for AZ)
+  const uPhone = (STATE.user.phone||'').replace(/\D/g,'').slice(-9);
+  document.getElementById('buyPhone').value=uPhone;
+  document.getElementById('buyWa').value=uPhone;
   document.getElementById('buyMsg').style.display='none';
   document.getElementById('buyBtn').dataset.examId=examId;
   openModal('buyModal');
@@ -1710,8 +1868,8 @@ async function doBuyTicket(){
   const r=await POST('/registrations',{
     exam_id:examId,
     name:document.getElementById('buyName').value,
-    phone:'+994'+document.getElementById('buyPhone').value.replace(/\D/g,'').slice(-9),
-    whatsapp:'+994'+document.getElementById('buyWa').value.replace(/\D/g,'').slice(-9),
+    phone:getFullPhone('buyPhone'),
+    whatsapp:getFullPhone('buyWa'),
     class:document.getElementById('buyClass').value,
     section:document.getElementById('buySection').value
   });
