@@ -1108,7 +1108,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <!-- Register -->
     <div id="registerPane" style="display:none">
       <div class="msg" id="regMsg"></div>
-      <div class="field"><label data-t="field_name">Ad Soyad</label><input class="inp" id="regName" type="text" placeholder="Aytən Həsənova"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Ad</label><input class="inp" id="regFirstName" type="text" placeholder="Aytən"></div>
+        <div class="field"><label>Soyad</label><input class="inp" id="regLastName" type="text" placeholder="Həsənova"></div>
+      </div>
       <div class="field"><label>Telefon nömrəsi</label>
         <div class="phone-wrap" id="regPhoneWrap">
           <div style="position:relative">
@@ -1160,7 +1163,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       🎯 Bu qrup imtahandır. Aşağıdan sinif və bölmənizi seçin — imtahan avtomatik təyin ediləcək.
     </div>
     <div class="msg" id="buyMsg"></div>
-    <div class="field"><label>Ad Soyad</label><input class="inp" id="buyName" type="text" placeholder="Aytən Həsənova"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Ad</label><input class="inp" id="buyFirstName" type="text" placeholder="Aytən"></div>
+      <div class="field"><label>Soyad</label><input class="inp" id="buyLastName" type="text" placeholder="Həsənova"></div>
+    </div>
     <div class="field"><label>Telefon</label>
       <div class="phone-wrap" id="buyPhoneWrap">
           <div style="position:relative">
@@ -1188,12 +1194,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         </div>
     </div>
     <div id="buyClassSectionWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field" id="buyClassField"><label>Sinif</label>
-        <select class="inp" id="buyClass">
+      <div class="field"><label>Sinif</label>
+        <select class="inp" id="buyClass" onchange="filterBuySectionByCls(window._buySubs||[])">
           <option value="">Sinif seçin</option>
         </select>
       </div>
-      <div class="field" id="buySectionField"><label>Bölmə</label>
+      <div class="field"><label>Bölmə</label>
         <select class="inp" id="buySection">
           <option value="">Bölmə seçin</option>
         </select>
@@ -2139,12 +2145,15 @@ async function doLogin(){
 
 async function doRegister(){
   const btn=document.getElementById('regBtn'); btn.disabled=true; btn.textContent='Yüklənir...';
-  const name=document.getElementById('regName').value.trim();
+  const firstName=(document.getElementById('regFirstName').value||'').trim();
+  const lastName =(document.getElementById('regLastName').value||'').trim();
+  const name = (firstName+' '+lastName).trim();
   const phone=getFullPhone('regPhone');
   const cls=document.getElementById('regClass').value;
   const section=document.getElementById('regSection').value;
   const password=document.getElementById('regPass').value;
   const confirmPassword=document.getElementById('regPassConfirm').value;
+  if(!firstName||!lastName){ showMsg('regMsg','Ad və soyad daxil edin.','err'); btn.disabled=false; btn.textContent='Qeydiyyat'; return; }
   if(password!==confirmPassword){ showMsg('regMsg','Şifrələr uyğun gəlmir!','err'); btn.disabled=false; btn.textContent='Qeydiyyat'; return; }
   const r = await POST('/auth/register',{name,phone,password,confirmPassword,class:cls,section});
   btn.disabled=false; btn.textContent='Qeydiyyat';
@@ -2448,39 +2457,38 @@ async function handleExamBtn(examId, examTitle, price){
 }
 
 async function openBuyModal(examId, examTitle, price, isGroup, subs){
-  document.getElementById('buyExamTitle').textContent='💰 '+examTitle+(price?' — '+price+' AZN':'');
-  document.getElementById('buyName').value  = STATE.user.name||'';
+  document.getElementById('buyExamTitle').textContent = '💰 '+examTitle+(price?' — '+price+' AZN':'');
+
+  // Split stored name into first/last
+  const nameParts = (STATE.user.name||'').trim().split(' ');
+  document.getElementById('buyFirstName').value = nameParts[0]||'';
+  document.getElementById('buyLastName').value  = nameParts.slice(1).join(' ')||'';
+
   const uPhone=(STATE.user.phone||'').replace(/\D/g,'').slice(-9);
   const fmt = p => p?'('+p.slice(0,2)+') '+p.slice(2,5)+' '+p.slice(5,7)+' '+p.slice(7):'';
   document.getElementById('buyPhone').value = fmt(uPhone);
   document.getElementById('buyWa').value    = fmt(uPhone);
 
-  const csWrap = document.getElementById('buyClassSectionWrap');
-  if(isGroup && subs.length){
-    csWrap.style.display = 'grid';
+  // Store subs globally for onchange handler
+  window._buySubs = subs||[];
+  window._buyIsGroup = isGroup;
+
+  const userCls = STATE.user.class  ||'';
+  const userSec = STATE.user.section||'';
+
+  if(isGroup && subs && subs.length){
     document.getElementById('buySmartNotice').style.display = 'block';
-
-    // Build class options from actual sub-exams
-    const classes  = [...new Set(subs.map(s=>s.class ).filter(Boolean))].sort();
-    const sections = [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
-    const userCls  = STATE.user.class  || '';
-    const userSec  = STATE.user.section|| '';
-
-    const clsSel = document.getElementById('buyClass');
-    clsSel.innerHTML = '<option value="">Sinif seçin</option>' +
+    // Build selects from actual sub-exam data
+    const classes = [...new Set(subs.map(s=>s.class).filter(Boolean))].sort();
+    document.getElementById('buyClass').innerHTML =
+      '<option value="">Sinif seçin</option>' +
       classes.map(c=>`<option value="${c}" ${c===userCls?'selected':''}>${c}-ci sinif</option>`).join('');
-
-    const secSel = document.getElementById('buySection');
-    secSel.innerHTML = '<option value="">Bölmə seçin</option>' +
-      sections.map(s=>`<option value="${s}" ${s===userSec?'selected':''}>${s}</option>`).join('');
-
-    // Store subs for onchange filtering
-    clsSel.onchange = () => filterBuySectionByCls(subs);
     filterBuySectionByCls(subs);
   } else {
-    // Non-group exam — hide class/section row
-    csWrap.style.display = 'none';
     document.getElementById('buySmartNotice').style.display = 'none';
+    // Non-group exam — load all classes/sections from categories
+    await loadCatSelect('buyClass',   'class',   userCls, 'Sinif seçin');
+    await loadCatSelect('buySection', 'section', userSec, 'Bölmə seçin');
   }
 
   document.getElementById('buyMsg').style.display='none';
@@ -2490,36 +2498,43 @@ async function openBuyModal(examId, examTitle, price, isGroup, subs){
 }
 
 function filterBuySectionByCls(subs){
-  const cls = document.getElementById('buyClass').value;
+  const cls    = document.getElementById('buyClass').value;
   const secSel = document.getElementById('buySection');
-  const userSec = STATE.user.section||'';
-  // Filter sections available for selected class
-  const available = cls
-    ? [...new Set(subs.filter(s=>s.class===cls).map(s=>s.section).filter(Boolean))].sort()
-    : [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
+  const userSec = STATE.user?.section||'';
+  let available;
+  if(window._buyIsGroup && subs && subs.length){
+    available = cls
+      ? [...new Set(subs.filter(s=>s.class===cls).map(s=>s.section).filter(Boolean))].sort()
+      : [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
+  } else {
+    // For non-group exams don't filter by class — keep all sections
+    return;
+  }
   secSel.innerHTML = '<option value="">Bölmə seçin</option>' +
     available.map(s=>`<option value="${s}" ${s===userSec?'selected':''}>${s}</option>`).join('');
-  // If only one section, auto-select
   if(available.length===1) secSel.value = available[0];
 }
 
 async function doBuyTicket(){
   const examId  = document.getElementById('buyBtn').dataset.examId;
   const isGroup = document.getElementById('buyBtn').dataset.isGroup === '1';
-  const cls     = document.getElementById('buyClass').value;
-  const sec     = document.getElementById('buySection').value;
-  const csWrap  = document.getElementById('buyClassSectionWrap');
-  if(isGroup && csWrap.style.display!=='none'){
-    if(!cls){ showMsg('buyMsg','Zəhmət olmasa sinifnizi seçin.','err'); return; }
-  }
+  const firstName = (document.getElementById('buyFirstName').value||'').trim();
+  const lastName  = (document.getElementById('buyLastName').value||'').trim();
+  const fullName  = (firstName+' '+lastName).trim();
+  const cls = document.getElementById('buyClass').value;
+  const sec = document.getElementById('buySection').value;
+
+  if(!firstName||!lastName){ showMsg('buyMsg','Ad və soyad daxil edin.','err'); return; }
+  if(!cls){ showMsg('buyMsg','Sinifnizi seçin.','err'); return; }
+
   const btn=document.getElementById('buyBtn'); btn.disabled=true; btn.textContent='Göndərilir...';
   const r=await POST('/registrations',{
-    exam_id:examId,
-    name:document.getElementById('buyName').value,
-    phone:getFullPhone('buyPhone'),
+    exam_id: examId,
+    name:    fullName,
+    phone:   getFullPhone('buyPhone'),
     whatsapp:getFullPhone('buyWa'),
-    class: isGroup ? cls : (STATE.user.class||''),
-    section: isGroup ? sec : (STATE.user.section||'')
+    class:   cls,
+    section: sec
   });
   btn.disabled=false; btn.textContent='Bilet Al';
   if(!r.success){ showMsg('buyMsg', r.message||'Xəta baş verdi.', 'err'); return; }

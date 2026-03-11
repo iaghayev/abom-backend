@@ -26,6 +26,27 @@ async function notifyActivation(reg, exam) {
   });
 }
 
+// ── GET student's own registrations ──────────────────────
+router.get('/', authMiddleware, (req, res) => {
+  const { status } = req.query;
+  let sql = `
+    SELECT r.*, e.title as exam_title, e.duration as exam_duration, e.price as exam_price
+    FROM registrations r
+    LEFT JOIN exams e ON e.id = r.exam_id
+    WHERE r.user_id = ?`;
+  const params = [req.user.id];
+  if (status) { sql += ' AND r.status = ?'; params.push(status); }
+  sql += ' ORDER BY r.created_at DESC';
+  const rows = db.prepare(sql).all(...params);
+  res.json({ success: true, data: rows });
+});
+
+// ── Pending count (admin badge) ──────────────────────────
+router.get('/pending-count', adminMiddleware, (req, res) => {
+  const row = db.prepare("SELECT COUNT(*) as count FROM registrations WHERE status='pending'").get();
+  res.json({ success: true, count: row?.count||0 });
+});
+
 // ── GET all (admin) ──────────────────────────────────────
 router.get('/admin/all', adminMiddleware, (req, res) => {
   const rows = db.prepare(`
