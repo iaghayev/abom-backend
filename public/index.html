@@ -743,7 +743,9 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div>
         <!-- Active exams -->
         <div class="card" style="margin-bottom:14px" id="activeExamsCard">
-          <div class="card-title" data-t="active_exams">⚡ Aktiv İmtahanlar <span id="activeExamsBadge" class="tag tag-green" style="display:none"></span></div>
+          <div class="card-title" data-t="active_exams">⚡ Aktiv İmtahanlar <span id="activeExamsBadge" class="tag tag-green" style="display:none"></span>
+            <button class="btn btn-sm btn-outline" style="margin-left:auto;font-size:11px" onclick="loadDashboard()">🔄 Yenilə</button>
+          </div>
           <div id="activeExamsList"><div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Aktiv bilet tapılmadı.</div></div>
         </div>
         <!-- Chart -->
@@ -1605,6 +1607,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       ℹ️ Hər imtahan yalnız bir dəfə verilə bilər. Yenidən açmaq üçün adminlə əlaqə saxlayın.
     </div>
     <button class="form-btn" id="atReviewBtn">🔍 Cavablarıma Bax</button>
+    <button class="btn btn-outline btn-w" id="atCertBtn" style="margin-top:8px;display:none" onclick="downloadCertById(window._atResultId)">🏅 Sertifikat Yüklə</button>
     <button class="btn btn-outline btn-w" style="margin-top:8px" onclick="closeModal('alreadyTakenModal')">Bağla</button>
   </div>
 </div>
@@ -1888,7 +1891,7 @@ let STATE = {
   currentExam: null, examAnswers: {}, examTimer: null, examStartTime: null,
   currentResult: null, currentCertLevel: null, examQuestions: [],
   allRegs: [], allUsers: [],
-  lang: 'az'
+  lang: 'az', currentPage: 'home'
 };
 
 // ═══════════════════ LANG ═══════════════════
@@ -2085,6 +2088,7 @@ function toast(msg, type='ok'){
 
 // ═══════════════════ NAV ═══════════════════
 function goTo(pg){
+  STATE.currentPage = pg;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
   window.scrollTo(0,0);
@@ -2432,6 +2436,7 @@ async function handleGroupExamBtn(examId, examTitle, price){
     if(cr.status==='active'){ toast('Aktiv biletiniz var!','ok'); return; }
     if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return; }
     if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
+    if(cr.status==='completed'){ toast('Bu imtahanı artıq bitirdiniz. Nəticələrə baxın.','info'); goTo('myresults'); return; }
   }
   // Fetch available subs for this parent exam
   const subsR = await GET('/exams/'+examId+'/subs');
@@ -2452,6 +2457,7 @@ async function handleExamBtn(examId, examTitle, price){
     }
     if(cr.status==='pending'){ toast('Biletiniz gözləmə siyahısındadır. Adminlə əlaqə saxlayın.','info'); return; }
     if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
+    if(cr.status==='completed'){ toast('Bu imtahanı artıq bitirdiniz. Nəticələrə baxın.','info'); goTo('myresults'); return; }
   }
   await openBuyModal(examId, examTitle, price, false, []);
 }
@@ -2578,12 +2584,15 @@ async function startExam(examId){
 }
 
 function openAlreadyTakenModal(result){
-  document.getElementById('atScore').textContent=result.score+'%';
-  document.getElementById('atCorrect').textContent=result.correct;
-  document.getElementById('atTotal').textContent=result.total;
-  document.getElementById('atExam').textContent=result.exam_title||'İmtahan';
-  document.getElementById('atDate').textContent=fmtDate(result.created_at);
-  document.getElementById('atReviewBtn').onclick=()=>{ closeModal('alreadyTakenModal'); loadReview(result.id); };
+  window._atResultId = result.id;
+  document.getElementById('atScore').textContent   = result.score+'%';
+  document.getElementById('atCorrect').textContent = result.correct;
+  document.getElementById('atTotal').textContent   = result.total;
+  document.getElementById('atExam').textContent    = result.exam_title||'İmtahan';
+  document.getElementById('atDate').textContent    = fmtDate(result.created_at);
+  document.getElementById('atReviewBtn').onclick   = ()=>{ closeModal('alreadyTakenModal'); loadReview(result.id); };
+  const certBtn = document.getElementById('atCertBtn');
+  certBtn.style.display = result.score>=41 ? 'block' : 'none';
   openModal('alreadyTakenModal');
 }
 
@@ -2719,30 +2728,46 @@ function updateExamProgress(){
 
 function startTimer(seconds){
   clearInterval(STATE.examTimer);
-  let remaining=seconds;
-  const el=document.getElementById('examTimer');
-  STATE.examTimer=setInterval(()=>{
+  let remaining = seconds;
+  const el = document.getElementById('examTimer');
+  function tick(){
     remaining--;
     const m=Math.floor(remaining/60), s=remaining%60;
     el.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-    el.classList.toggle('warn',remaining<=60);
-    if(remaining<=0){ clearInterval(STATE.examTimer); submitExam(); }
-  },1000);
+    el.classList.toggle('warn', remaining<=60);
+    el.style.color = remaining<=30 ? 'var(--red)' : remaining<=60 ? '#d97706' : '';
+    el.style.fontWeight = remaining<=60 ? '800' : '';
+    if(remaining===60) toast('⚠️ 1 dəqiqə qaldı!','info');
+    if(remaining===0){
+      clearInterval(STATE.examTimer);
+      el.textContent='00:00';
+      toast('⏰ Vaxt bitdi! Cavablarınız göndərilir...','info');
+      submitExam(true);
+    }
+  }
+  STATE.examTimer = setInterval(tick, 1000);
 }
 
-async function submitExam(){
+async function submitExam(auto=false){
   clearInterval(STATE.examTimer);
-  const timeSpent=Math.round((Date.now()-STATE.examStartTime)/1000);
-  const answers={};
+  if(!auto){
+    const answered = Object.values(STATE.examAnswers).filter(a=>a).length;
+    const total    = STATE.examQuestions.length;
+    if(answered < total){
+      const ok = confirm(`${total-answered} sual cavabsız qalıb. İmtahanı bitirmək istəyirsiniz?`);
+      if(!ok){ startTimer(Math.max(1, (STATE.currentExam.duration*60) - Math.round((Date.now()-STATE.examStartTime)/1000))); return; }
+    }
+  }
+  const timeSpent = Math.round((Date.now()-STATE.examStartTime)/1000);
+  const answers = {};
   STATE.examQuestions.forEach((q,i)=>{ answers[i]=STATE.examAnswers[i]||''; });
-  const r=await POST('/results/submit',{
-    exam_id:STATE.currentExam.id,
-    answers,
-    time_spent:timeSpent
-  });
+  const submitBtn = document.querySelector('.exam-topbar .btn-primary');
+  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent='Göndərilir...'; }
+  const r = await POST('/results/submit',{ exam_id:STATE.currentExam.id, answers, time_spent:timeSpent });
+  if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='✓ Bitir'; }
   if(!r.success){ toast(r.message,'err'); return; }
-  STATE.currentResult=r.data;
-  STATE.currentCertLevel=r.level;
+  STATE.currentResult    = r.data;
+  STATE.currentCertLevel = r.level;
   showResult(r.data, r.level, r.exam);
 }
 
@@ -2778,6 +2803,8 @@ function showResult(result, level, exam){
   }
   document.getElementById('resReviewBtn').style.display='flex';
   goTo('result');
+  // Refresh dashboard in background so active exams list is updated
+  if(STATE.currentPage!=='result') loadDashboard();
 }
 
 function downloadCert(){
@@ -2919,7 +2946,10 @@ async function loadDashboard(){
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title}</div>
         <div style="font-size:11.5px;color:var(--muted)">${r.correct}/${r.total} düzgün · ${fmtDate(r.created_at)}</div>
       </div>
-      ${r.score>=41?'<span class="tag tag-gold">🏅</span>':''}
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        ${r.score>=41?`<button class="btn btn-sm" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;font-size:10px;padding:3px 7px" onclick="downloadCertById('${r.id}')">🏅</button>`:''}
+        <button class="btn btn-outline btn-sm" style="font-size:10px;padding:3px 7px" onclick="loadReview('${r.id}')">🔍</button>
+      </div>
     </div>`).join('');
 }
 
@@ -4615,12 +4645,30 @@ document.addEventListener('click',e=>{
     e.target.classList.remove('open');
   }
 });
-document.addEventListener('keydown',e=>{
+document.addEventListener('keydown', e => {
   if(e.key==='Escape'){
     document.querySelectorAll('.overlay.open').forEach(o=>{
       if(o.id==='videoModal') document.getElementById('ytFrame').src='';
       o.classList.remove('open');
     });
+  }
+  if(e.key==='Enter'){
+    const modal = document.querySelector('.overlay.open');
+    if(!modal) return;
+    // Auth modal Enter submit
+    if(modal.id==='authModal'){
+      const loginPane  = document.getElementById('loginPane');
+      const regPane    = document.getElementById('registerPane');
+      const adminPane  = document.getElementById('adminLoginPane');
+      if(loginPane  && loginPane.style.display  !=='none') doLogin();
+      else if(regPane && regPane.style.display !== 'none') doRegister();
+      else if(adminPane && adminPane.style.display !=='none') doAdminLogin();
+    }
+    // Buy modal Enter submit
+    if(modal.id==='buyModal'){
+      const btn=document.getElementById('buyBtn');
+      if(btn && !btn.disabled) doBuyTicket();
+    }
   }
 });
 
