@@ -9,7 +9,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ─── SECURITY MIDDLEWARE ──────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://img.youtube.com", "https://*.ytimg.com"],
+      frameSrc: ["'self'", "https://www.youtube.com"],
+      connectSrc: ["'self'", "https://api.telegram.org"],
+    },
+  },
+}));
 app.use(cors({
   origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : '*',
   credentials: true
