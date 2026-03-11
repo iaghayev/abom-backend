@@ -3712,17 +3712,16 @@ async function openAddExamModal(){
 }
 
 async function openAddSubExam(parentId, parentTitle){
-  // Detect level: is parentId a root exam (has no parent_exam_id) or a lang section?
-  const parentData = await GET('/exams/'+parentId);
+  const parentData = await GET('/exams/'+parentId+'?admin=1');
   const parent = parentData?.data;
-  if(!parent) return;
+  if(!parent){ toast('İmtahan məlumatı yüklənmədi.','err'); return; }
 
-  const isRoot = !parent.parent_exam_id; // root → add language section
+  // isRoot: has no parent (null, undefined, or empty string)
+  const isRoot = !parent.parent_exam_id || parent.parent_exam_id === '';
   if(isRoot) openAddLangModal(parentId, parent);
   else       openAddGradeModal(parentId, parent);
 }
 
-/* ── ADD LANGUAGE SECTION (under root exam) ── */
 function openAddLangModal(parentId, parent){
   const html = `
     <div class="overlay active" id="subLangModal" onclick="if(event.target===this)closeSubModal()">
@@ -3756,11 +3755,14 @@ function openAddLangModal(parentId, parent){
         </div>
 
         <div class="msg" id="slMsg"></div>
-        <button class="form-btn" onclick="saveSubLang('${parentId}','${parent.category||'olimpiada'}','${parent.subject||'riyaziyyat'}')">Bölmə Əlavə Et</button>
+        <button class="form-btn" id="slSaveBtn"
+          data-parent="${parentId}"
+          data-cat="${parent.category||'olimpiada'}"
+          data-subj="${parent.subject||'riyaziyyat'}"
+          onclick="saveSubLang()">Bölmə Əlavə Et</button>
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
-  // Set default title
   selectSubLang(document.querySelector('#slLangBtns [data-lang="AZ"]'));
 }
 
@@ -3771,18 +3773,23 @@ function selectSubLang(btn){
   document.getElementById('slTitle').value = LABELS[btn.dataset.lang] || btn.textContent.trim();
 }
 
-async function saveSubLang(parentId, category, subject){
-  const lang  = document.querySelector('#slLangBtns .xbtn-primary')?.dataset.lang || 'AZ';
-  const title = document.getElementById('slTitle').value.trim();
-  const price = parseFloat(document.getElementById('slPrice').value)||0;
-  const active= parseInt(document.getElementById('slActive').value);
+async function saveSubLang(){
+  const btn      = document.getElementById('slSaveBtn');
+  const parentId = btn.dataset.parent;
+  const category = btn.dataset.cat;
+  const subject  = btn.dataset.subj;
+  const lang     = document.querySelector('#slLangBtns .xbtn-primary')?.dataset.lang || 'AZ';
+  const title    = document.getElementById('slTitle').value.trim();
+  const price    = parseFloat(document.getElementById('slPrice').value)||0;
+  const active   = parseInt(document.getElementById('slActive').value);
   if(!title){ showMsg('slMsg','Başlıq tələb olunur.','err'); return; }
+  btn.disabled = true; btn.textContent = 'Əlavə edilir...';
   const r = await POST('/exams', {
     title, category, subject,
     section: lang, class:'', price, is_active: active,
     is_unlimited:1, parent_exam_id: parentId, duration:60
   });
-  if(!r.success){ showMsg('slMsg', r.message||'Xəta','err'); return; }
+  if(!r.success){ showMsg('slMsg', r.message||'Xəta','err'); btn.disabled=false; btn.textContent='Bölmə Əlavə Et'; return; }
   closeSubModal(); loadAdminExams();
   toast(`✅ "${title}" bölməsi əlavə edildi!`, 'ok');
 }
@@ -3820,7 +3827,12 @@ function openAddGradeModal(parentId, parent){
         </div>
 
         <div class="msg" id="sgMsg"></div>
-        <button class="form-btn" onclick="saveSubGrades('${parentId}','${(parent.category||'olimpiada').replace(/'/g,"\\'")}','${(parent.subject||'riyaziyyat').replace(/'/g,"\\'")}',${parent.price||0})">Sinifləri Əlavə Et</button>
+        <button class="form-btn" id="sgSaveBtn"
+          data-parent="${parentId}"
+          data-cat="${parent.category||'olimpiada'}"
+          data-subj="${parent.subject||'riyaziyyat'}"
+          data-price="${parent.price||0}"
+          onclick="saveSubGrades()">Sinifləri Əlavə Et</button>
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
@@ -3831,19 +3843,25 @@ function toggleGradePick(btn){
   btn.classList.toggle('xbtn-outline');
 }
 
-async function saveSubGrades(parentId, category, subject, price){
+async function saveSubGrades(){
+  const btn      = document.getElementById('sgSaveBtn');
+  const parentId = btn.dataset.parent;
+  const category = btn.dataset.cat;
+  const subject  = btn.dataset.subj;
+  const price    = parseFloat(btn.dataset.price)||0;
+
   const selected = [...document.querySelectorAll('#sgGradeBtns .xbtn-primary')].map(b=>b.dataset.grade);
   if(!selected.length){ showMsg('sgMsg','Ən azı bir sinif seçin.','err'); return; }
   const dur    = parseInt(document.getElementById('sgDur').value)||60;
   const active = parseInt(document.getElementById('sgActive').value);
 
-  // Get parent's parent to inherit section (language)
-  const parentData = await GET('/exams/'+parentId);
-  const section = parentData?.data?.section || '';
+  btn.disabled = true; btn.textContent = 'Əlavə edilir...';
 
-  // Get grandparent for title base
+  // Get parent's section (language key)
+  const parentData = await GET('/exams/'+parentId+'?admin=1');
+  const section = parentData?.data?.section || '';
   const grandId = parentData?.data?.parent_exam_id;
-  const grandData = grandId ? await GET('/exams/'+grandId) : null;
+  const grandData = grandId ? await GET('/exams/'+grandId+'?admin=1') : null;
   const baseTitle = grandData?.data?.title || parentData?.data?.title || '';
 
   let errors = 0;
