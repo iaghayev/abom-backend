@@ -774,10 +774,33 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div id="certBoxWrap"></div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px">
         <button class="btn btn-primary" id="resCertBtn" style="display:none" onclick="downloadCert()">🏅 Sertifikat Yüklə</button>
+        <button class="btn btn-outline" id="resReviewBtn" style="display:none" onclick="loadReview(STATE.currentResult?.id)">🔍 Cavablarıma Bax</button>
         <button class="btn btn-outline" onclick="goTo('myresults')">📋 Nəticələrim</button>
         <button class="btn btn-outline" onclick="goTo('exams')">🏠 Ana Səhifə</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ REVIEW PAGE ═══════════════════════════════════ -->
+<div class="page" id="page-review" style="padding-top:64px">
+  <div style="background:#fff;border-bottom:1.5px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:64px;z-index:50">
+    <div>
+      <div style="font-weight:700;font-size:16px;color:var(--navy)" id="rvExamTitle">İmtahan</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Cavab İcmalı — Hansı suallar düzgün, hansılar yanlış</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;gap:16px">
+        <div style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy)" id="rvScore">0%</div><div style="font-size:10px;color:var(--muted);font-weight:700">ÜMUMI BAL</div></div>
+        <div style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--green)" id="rvCorrect">0</div><div style="font-size:10px;color:var(--muted);font-weight:700">DÜZGÜN</div></div>
+        <div style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--red)" id="rvWrong">0</div><div style="font-size:10px;color:var(--muted);font-weight:700">YANLIM</div></div>
+        <div style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy)" id="rvTotal">0</div><div style="font-size:10px;color:var(--muted);font-weight:700">CƏMİ</div></div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="goTo('myresults')">← Nəticələrə qayıt</button>
+    </div>
+  </div>
+  <div style="max-width:760px;margin:0 auto;padding:24px 20px" id="reviewQList">
+    <div class="a-empty"><span class="spinner" style="margin:0 auto"></span></div>
   </div>
 </div>
 
@@ -811,6 +834,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <button class="as-lnk active" onclick="aPanel('dashboard')"><span class="ico">📊</span>Dashboard</button>
       <button class="as-lnk" onclick="aPanel('regs')"><span class="ico">🎫</span>Qeydiyyatlar <span class="pend-badge" id="pendBadge" style="display:none">0</span></button>
       <button class="as-lnk" onclick="aPanel('results')"><span class="ico">📋</span>Nəticələr</button>
+      <button class="as-lnk" onclick="aPanel('icazeler')"><span class="ico">🔑</span>İmtahan İcazələri</button>
       <button class="as-sec">Məzmun</button>
       <button class="as-lnk" onclick="aPanel('exams')"><span class="ico">📝</span>İmtahanlar</button>
       <button class="as-lnk" onclick="aPanel('questions')"><span class="ico">❓</span>Suallar</button>
@@ -860,12 +884,29 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
       <!-- Results -->
       <div class="a-panel" id="ap-results">
-        <div class="a-hdr"><div><div class="a-title">📋 Nəticələr</div></div>
+        <div class="a-hdr"><div><div class="a-title">📋 Nəticələr</div><div class="a-sub">Nəticəni silsəniz şagird imtahanı yenidən verə bilər</div></div>
           <div style="display:flex;gap:8px">
-            <button class="btn btn-green btn-sm" onclick="window.open('/api/results/export/csv','_blank')">⬇ CSV</button>
+            <button class="btn btn-green btn-sm" onclick="window.open(API+'/results/export/csv','_blank')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="loadAdminResults()">↻</button>
           </div>
         </div>
+        <div class="filter-bar">
+          <div class="search-inp" style="max-width:260px"><span>🔍</span><input type="text" id="resAdminSearch" placeholder="Ad, imtahan..." oninput="filterAdminResults()"></div>
+        </div>
         <div class="a-table" id="resultsTable"><div class="a-empty">Yüklənir...</div></div>
+      </div>
+
+      <!-- Icazeler -->
+      <div class="a-panel" id="ap-icazeler">
+        <div class="a-hdr">
+          <div><div class="a-title">🔑 İmtahan İcazələri</div><div class="a-sub">Aktiv icazəni silsəniz şagird imtahanı görməz</div></div>
+          <button class="btn btn-outline btn-sm" onclick="loadIcazeler()">↻ Yenilə</button>
+        </div>
+        <div class="filter-bar">
+          <div class="search-inp" style="max-width:260px"><span>🔍</span><input type="text" id="icazeSearch" placeholder="Ad, imtahan..." oninput="filterIcazeler()"></div>
+          <select class="flt-sel" id="icazeExamFilter" onchange="filterIcazeler()"><option value="">Bütün imtahanlar</option></select>
+        </div>
+        <div class="a-table" id="icazelerTable"><div class="a-empty">Yüklənir...</div></div>
       </div>
 
       <!-- Exams -->
@@ -1220,6 +1261,38 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="m-sub">Kopyalayıb göndərin</div>
     <textarea class="inp" id="waText" rows="8" style="font-size:13px;resize:none" readonly></textarea>
     <button class="form-btn" style="margin-top:12px" onclick="copyWaText()">Kopyala 📋</button>
+  </div>
+</div>
+
+<!-- ALREADY TAKEN MODAL -->
+<div class="overlay" id="alreadyTakenModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('alreadyTakenModal')">✕</button>
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:44px;margin-bottom:8px">📋</div>
+      <div class="m-title">Bu imtahanı artıq vermişsiniz</div>
+      <div class="m-sub" id="atExam">İmtahan</div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin:16px 0">
+      <div style="text-align:center;background:var(--off);border:1.5px solid var(--border);border-radius:12px;padding:14px 20px;min-width:90px">
+        <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--navy)" id="atScore">0%</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">BAL</div>
+      </div>
+      <div style="text-align:center;background:rgba(5,150,105,.06);border:1.5px solid rgba(5,150,105,.15);border-radius:12px;padding:14px 20px;min-width:90px">
+        <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--green)" id="atCorrect">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">DÜZGÜN</div>
+      </div>
+      <div style="text-align:center;background:rgba(220,38,38,.05);border:1.5px solid rgba(220,38,38,.12);border-radius:12px;padding:14px 20px;min-width:90px">
+        <div style="font-family:'Playfair Display',serif;font-size:32px;color:var(--red)" id="atTotal">0</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700">CƏMİ SUAL</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:16px" id="atDate"></div>
+    <div style="background:rgba(19,85,160,.06);border:1px solid rgba(19,85,160,.15);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--blue);margin-bottom:16px">
+      ℹ️ Hər imtahan yalnız bir dəfə verilə bilər. Yenidən açmaq üçün adminlə əlaqə saxlayın.
+    </div>
+    <button class="form-btn" id="atReviewBtn">🔍 Cavablarıma Bax</button>
+    <button class="btn btn-outline btn-w" style="margin-top:8px" onclick="closeModal('alreadyTakenModal')">Bağla</button>
   </div>
 </div>
 
@@ -1650,6 +1723,17 @@ async function doBuyTicket(){
 
 // ═══════════════════ START EXAM ═══════════════════
 async function startExam(examId){
+  // Check if already taken
+  const check = await GET('/results/check/'+examId);
+  if(check.taken && check.result){
+    openAlreadyTakenModal(check.result);
+    return;
+  }
+  // Check permission still active
+  const regCheck = await GET('/registrations/check/'+examId);
+  if(!regCheck.hasTicket || regCheck.status !== 'active'){
+    toast('Bu imtahan üçün aktiv icazəniz yoxdur.','err'); return;
+  }
   const eq=await GET('/exams/'+examId+'/questions');
   if(!eq.success){ toast(eq.message,'err'); return; }
   const ex=await GET('/exams/'+examId);
@@ -1661,6 +1745,77 @@ async function startExam(examId){
   renderRunningExam();
   startTimer(ex.data.duration*60);
   goTo('exam');
+}
+
+function openAlreadyTakenModal(result){
+  document.getElementById('atScore').textContent=result.score+'%';
+  document.getElementById('atCorrect').textContent=result.correct;
+  document.getElementById('atTotal').textContent=result.total;
+  document.getElementById('atExam').textContent=result.exam_title||'İmtahan';
+  document.getElementById('atDate').textContent=fmtDate(result.created_at);
+  document.getElementById('atReviewBtn').onclick=()=>{ closeModal('alreadyTakenModal'); loadReview(result.id); };
+  openModal('alreadyTakenModal');
+}
+
+async function loadReview(resultId){
+  const r = await GET('/results/'+resultId+'/review');
+  if(!r.success){ toast(r.message,'err'); return; }
+  STATE.currentReviewData = r;
+  renderReview(r);
+  goTo('review');
+}
+
+function renderReview(data){
+  const result = data.result;
+  const questions = data.questions;
+  document.getElementById('rvExamTitle').textContent = result.exam_title;
+  document.getElementById('rvScore').textContent = result.score+'%';
+  document.getElementById('rvCorrect').textContent = result.correct;
+  document.getElementById('rvWrong').textContent = result.total - result.correct;
+  document.getElementById('rvTotal').textContent = result.total;
+
+  document.getElementById('reviewQList').innerHTML = questions.map((q,i)=>{
+    const ic = q.is_correct;
+    const borderColor = ic ? 'var(--green)' : 'var(--red)';
+    const bgColor = ic ? 'rgba(5,150,105,.04)' : 'rgba(220,38,38,.04)';
+    let optionsHtml = '';
+    if(q.type === 'multiple_choice'){
+      optionsHtml = ['A','B','C','D'].map(l=>{
+        const opt = q['option_'+l.toLowerCase()]; if(!opt) return '';
+        const isGiven = q.given_answer?.toUpperCase() === l;
+        const isCorrect = q.correct_answer?.toUpperCase() === l;
+        let cls = 'q-opt';
+        if(isCorrect) cls += ' correct';
+        else if(isGiven && !isCorrect) cls += ' wrong';
+        return `<div class="${cls}" style="pointer-events:none">
+          <div class="q-letter">${l}</div><span>${opt}</span>
+          ${isCorrect?'<span style="margin-left:auto;font-size:12px;color:var(--green);font-weight:700">✓ Düzgün</span>':''}
+          ${isGiven&&!isCorrect?'<span style="margin-left:auto;font-size:12px;color:var(--red);font-weight:700">✗ Sizin</span>':''}
+        </div>`;
+      }).join('');
+    } else {
+      optionsHtml = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        <div style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(220,38,38,.3);background:rgba(220,38,38,.04)">
+          <div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:4px">✗ SİZİN CAVABINIZ</div>
+          <div style="font-size:14px;font-weight:600">${q.given_answer||'(boş)'}</div>
+        </div>
+        <div style="padding:10px 14px;border-radius:9px;border:1.5px solid rgba(5,150,105,.3);background:rgba(5,150,105,.04)">
+          <div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:4px">✓ DÜZGÜN CAVAB</div>
+          <div style="font-size:14px;font-weight:600">${q.correct_answer}</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="q-card" style="border-color:${borderColor};background:${bgColor}">
+      <div class="q-num">
+        <span style="background:${ic?'var(--green)':'var(--red)'};color:#fff;padding:2px 8px;border-radius:100px;font-size:11px">
+          ${ic?'✓ DÜZGÜN':'✗ YANLIM'}
+        </span>
+        Sual ${i+1}
+      </div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-opts">${optionsHtml}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderRunningExam(){
@@ -1785,6 +1940,7 @@ function showResult(result, level, exam){
     certWrap.innerHTML='';
     certBtn.style.display='none';
   }
+  document.getElementById('resReviewBtn').style.display='flex';
   goTo('result');
 }
 
@@ -1929,16 +2085,17 @@ function drawChart(trend){
 async function loadMyResults(){
   const r=await GET('/results');
   const data=r.data||[];
-  const cols='grid-template-columns:1fr 80px 120px 80px 80px';
+  const cols='grid-template-columns:1fr 80px 100px 70px 80px 80px';
   document.getElementById('myResultsList').innerHTML=
-    `<div class="a-t-hdr" style="${cols}"><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Sertifikat</div><div>Tarix</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Sertifikat</div><div>Tarix</div><div>İcmal</div></div>`+
     (data.length?data.map(r=>`
       <div class="a-t-row" style="${cols}">
-        <div style="font-weight:600">${r.exam_title||'—'}</div>
+        <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title||'—'}</div>
         <div><span style="font-weight:700;color:${scoreColor(r.score)}">${r.score}%</span></div>
         <div style="font-size:12px;color:var(--muted)">${r.correct}/${r.total} düzgün</div>
         <div>${r.score>=41?'<span class="tag tag-gold">🏅</span>':'<span class="tag tag-gray">—</span>'}</div>
         <div style="font-size:12px;color:var(--muted)">${fmtDate(r.created_at)}</div>
+        <div><button class="btn btn-outline btn-sm" onclick="loadReview('${r.id}')">🔍 Bax</button></div>
       </div>`).join(''):'<div class="a-empty">Hələ nəticə yoxdur.</div>');
 }
 
@@ -1991,6 +2148,7 @@ function aPanel(p){
   if(p==='dashboard') loadAdminDashboard();
   if(p==='regs') loadRegs();
   if(p==='results') loadAdminResults();
+  if(p==='icazeler') loadIcazeler();
   if(p==='exams') loadAdminExams();
   if(p==='questions') loadQExamSelect();
   if(p==='videos') loadAdminVideos();
@@ -2072,20 +2230,120 @@ function copyWaText(){
   toast('Kopyalandı!','ok');
 }
 
+let allAdminResults = [];
 async function loadAdminResults(){
-  const r=await GET('/results');
-  const data=r.data||[];
-  const cols='grid-template-columns:1fr 1fr 60px 80px 80px';
+  const r = await GET('/results/admin/all');
+  allAdminResults = r.data || [];
+  renderAdminResults(allAdminResults);
+}
+function filterAdminResults(){
+  const s = document.getElementById('resAdminSearch')?.value.toLowerCase()||'';
+  renderAdminResults(allAdminResults.filter(r=>
+    !s || (r.user_name+r.exam_title).toLowerCase().includes(s)
+  ));
+}
+function renderAdminResults(data){
+  const cols='grid-template-columns:1fr 1fr 60px 80px 80px 90px';
   document.getElementById('resultsTable').innerHTML=
-    `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Tarix</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Tarix</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(r=>`<div class="a-t-row" style="${cols}">
       <div style="font-weight:600">${r.user_name||'—'}</div>
       <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title||'—'}</div>
       <div><span style="font-weight:700;color:${scoreColor(r.score)}">${r.score}%</span></div>
       <div style="font-size:12px">${r.correct}/${r.total}</div>
       <div style="font-size:12px;color:var(--muted)">${fmtDate(r.created_at)}</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-sm" title="Cavabları gör" onclick="adminViewResult('${r.id}','${(r.user_name||'').replace(/'/g,"\\'")}')">🔍</button>
+        <button class="btn btn-red btn-sm" title="Sil (şagird yenidən verə bilər)" onclick="adminDeleteResult('${r.id}')">↺</button>
+      </div>
     </div>`).join(''):'<div class="a-empty">Nəticə yoxdur.</div>');
 }
+async function adminDeleteResult(id){
+  if(!confirm('Nəticəni silmək istədiyinizə əminsiniz?\n\n✅ Şagird bu imtahanı yenidən verə bilər.')) return;
+  const r = await DEL('/results/'+id);
+  toast(r.success ? '✅ Nəticə silindi. Şagird imtahanı yenidən verə bilər.' : r.message, r.success?'ok':'err');
+  loadAdminResults();
+}
+async function adminViewResult(id, name){
+  const r = await GET('/results/'+id+'/review');
+  if(!r || !r.success){ toast('İcmal açıla bilmədi.','err'); return; }
+  // Open a simple popup
+  const w = window.open('','_blank','width=700,height=600,scrollbars=yes');
+  const qs = r.questions || [];
+  const correct = qs.filter(q=>q.is_correct).length;
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>body{font-family:Outfit,sans-serif;padding:24px;background:#f4f7ff;max-width:700px;margin:0 auto}
+  h2{color:#0b1f3a;margin-bottom:4px}
+  .q{background:#fff;border-radius:10px;padding:16px;margin-bottom:10px;border:1.5px solid}
+  .q.ok{border-color:rgba(5,150,105,.3);background:rgba(5,150,105,.03)}
+  .q.err{border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.03)}
+  .badge{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;display:inline-block;margin-bottom:8px}
+  .ok .badge{background:#059669}.err .badge{background:#dc2626}
+  .opt{padding:8px 12px;border-radius:7px;border:1.5px solid #e0e7ef;margin:4px 0;font-size:13px}
+  .opt.correct{border-color:#059669;background:rgba(5,150,105,.08)}
+  .opt.wrong{border-color:#dc2626;background:rgba(220,38,38,.06)}
+  </style></head><body>
+  <h2>${name} — İcmal</h2>
+  <p style="color:#6b8aad;margin-bottom:16px">${r.result.exam_title} · ${r.result.score}% · ${correct}/${qs.length} düzgün</p>
+  ${qs.map((q,i)=>`<div class="q ${q.is_correct?'ok':'err'}">
+    <div class="badge">${q.is_correct?'✓ DÜZGÜN':'✗ YANLIM'}</div>
+    <div style="font-weight:600;margin-bottom:8px">${i+1}. ${q.text}</div>
+    ${q.type==='multiple_choice'?['A','B','C','D'].map(l=>{
+      const opt=q['option_'+l.toLowerCase()];if(!opt)return'';
+      const isc=q.correct_answer?.toUpperCase()===l;
+      const isg=q.given_answer?.toUpperCase()===l;
+      return `<div class="opt ${isc?'correct':isg?'wrong':''}">${l}: ${opt}${isc?' ✓':''}${isg&&!isc?' ← Sizin':''}</div>`;
+    }).join(''):
+    `<div class="opt wrong">Cavab: ${q.given_answer||'(boş)'}</div>
+    <div class="opt correct">Düzgün: ${q.correct_answer}</div>`}
+  </div>`).join('')}
+  <\/body><\/html>`);
+  w.document.close();
+}
+
+// ═══ İMTAHAN İCAZƏLƏRİ ═══
+let allIcazeler = [];
+async function loadIcazeler(){
+  const r = await GET('/registrations/admin/all');
+  allIcazeler = (r.data||[]).filter(reg => reg.status === 'active');
+  // Fill exam filter
+  const sel = document.getElementById('icazeExamFilter');
+  if(sel){
+    const examTitles = [...new Set(allIcazeler.map(r=>r.exam_title).filter(Boolean))];
+    sel.innerHTML = '<option value="">Bütün imtahanlar</option>' +
+      examTitles.map(t=>`<option value="${t}">${t}</option>`).join('');
+  }
+  renderIcazeler(allIcazeler);
+}
+function filterIcazeler(){
+  const s = document.getElementById('icazeSearch')?.value.toLowerCase()||'';
+  const ex = document.getElementById('icazeExamFilter')?.value||'';
+  renderIcazeler(allIcazeler.filter(r=>
+    (!s || (r.name+r.phone).toLowerCase().includes(s)) &&
+    (!ex || r.exam_title === ex)
+  ));
+}
+function renderIcazeler(data){
+  const cols = 'grid-template-columns:1fr 120px 1fr 100px 80px';
+  document.getElementById('icazelerTable').innerHTML =
+    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Aktivləşmə</div><div>İcazəni sil</div></div>`+
+    (data.length ? data.map(reg=>`<div class="a-t-row" style="${cols}">
+      <div style="font-weight:600">${reg.name}</div>
+      <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
+      <div style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${reg.exam_title||'—'}</div>
+      <div style="font-size:11.5px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
+      <div><button class="btn btn-red btn-sm" title="İcazəni sil — şagird imtahanı görməyəcək" onclick="deleteIcaze('${reg.id}')">🚫 Sil</button></div>
+    </div>`).join('') : '<div class="a-empty"><span class="ico">🔑</span>Aktiv icazə yoxdur.</div>');
+}
+async function deleteIcaze(id){
+  if(!confirm('Bu icazəni silmək istədiyinizə əminsiniz?\n\n🚫 Şagird bu imtahanı artıq görməyəcək.')) return;
+  const r = await DEL('/registrations/'+id);
+  toast(r.success ? '🚫 İcazə silindi.' : r.message, r.success?'ok':'err');
+  loadIcazeler(); updatePendingBadge();
+}
+
+
 
 async function loadAdminExams(){
   const r=await GET('/exams');
