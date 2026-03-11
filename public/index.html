@@ -441,7 +441,8 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .xbtn-red{background:rgba(220,38,38,.08);color:#dc2626;border:1.5px solid rgba(220,38,38,.15)}.xbtn-red:hover{background:#dc2626;color:#fff}
 .xbtn-ghost{background:transparent;color:var(--muted)}.xbtn-ghost:hover{background:var(--off);color:var(--navy)}
 /* Grade picker */
-.grade-pick-btn{width:42px;height:42px;border-radius:10px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;border:1.5px solid var(--border)}
+.grade-pick-btn{width:42px;height:42px;border-radius:10px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:#fff}
+.grade-pick-btn.xbtn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 /* smaller toggles */
 .pub-toggle-sm{width:32px;height:18px}.pub-toggle-sm .pub-slider:before{width:12px;height:12px;left:3px;top:3px}
 .pub-toggle-sm input:checked+.pub-slider:before{transform:translateX(14px)}
@@ -3850,83 +3851,111 @@ function openAddGradeModal(parentId, parentOrStr){
     : (window._examReg||{})[parentId];
   if(!parent){ toast('Məlumat tapılmadı.','err'); return; }
   const rootTitle = parent._rootTitle || parent.title || '';
+  const section   = parent.section || '';
+  const LANG_META2 = {AZ:'Azərbaycan',RU:'Rus',EN:'İngilis'};
+  const langLabel  = LANG_META2[section] || section;
+
   const gradeButtons = Array.from({length:11},(_,i)=>i+1).map(g=>`
-    <button type="button" class="grade-pick-btn xbtn-outline" data-grade="${g}"
-      onclick="toggleGradePick(this)">${g}</button>`).join('');
+    <button type="button" class="grade-pick-btn grade-pick-single xbtn-outline" data-grade="${g}"
+      onclick="selectSingleGrade(this)">${g}</button>`).join('');
+
+  const defaultTitle = rootTitle ? `${rootTitle}${section?' ('+langLabel+')':''}` : '';
 
   const html = `
     <div class="overlay open" id="subGradeModal" onclick="if(event.target===this)closeSubModal()">
       <div class="modal modal-sm" onclick="event.stopPropagation()">
         <button class="m-close" onclick="closeSubModal()">✕</button>
-        <div class="m-title">🎓 Sinif İmtahanı Əlavə Et</div>
-        <div class="m-sub" style="margin-bottom:16px">${parent.title}</div>
+        <div class="m-title">✏️ Yeni İmtahan Yarat</div>
+        <div class="m-sub" style="margin-bottom:16px">${parent.title}${langLabel?' · '+langLabel:''}</div>
 
         <div class="field">
-          <label>Sinif(lər) seçin <span style="font-size:11px;color:var(--muted);font-weight:400">— Birdən çox seçə bilərsiniz</span></label>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px" id="sgGradeBtns">
+          <label>İmtahanın adı</label>
+          <input class="inp" id="sgTitle" placeholder="məs. Riyaziyyat olimpiadası" value="${defaultTitle}">
+        </div>
+
+        <div class="field">
+          <label>Sinif</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="sgGradeBtns">
             ${gradeButtons}
           </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label>Qiymət (AZN)</label>
+            <input class="inp" type="number" id="sgPrice" value="${parent.price||0}" min="0">
+          </div>
           <div class="field"><label>Müddət (dəq)</label>
             <input class="inp" type="number" id="sgDur" value="60" min="5" max="300">
-          </div>
-          <div class="field"><label>Status</label>
-            <select class="inp" id="sgActive">
-              <option value="1">Aktiv</option>
-              <option value="0">Gizli</option>
-            </select>
           </div>
         </div>
 
         <div class="msg" id="sgMsg"></div>
-        <button class="form-btn" id="sgSaveBtn"
-          data-parent="${parentId}"
-          data-cat="${parent.category||'olimpiada'}"
-          data-subj="${parent.subject||'riyaziyyat'}"
-          data-price="${parent.price||0}"
-          data-section="${parent.section||''}"
-          data-basetitle="${rootTitle}"
-          onclick="saveSubGrades()">Sinifləri Əlavə Et</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <button class="form-btn" id="sgSaveBtn" style="background:var(--navy)"
+            data-parent="${parentId}"
+            data-cat="${parent.category||'olimpiada'}"
+            data-subj="${parent.subject||'riyaziyyat'}"
+            data-section="${section}"
+            onclick="saveNewGradeExam(false)">Saxla</button>
+          <button class="form-btn" id="sgSaveOpenBtn"
+            data-parent="${parentId}"
+            data-cat="${parent.category||'olimpiada'}"
+            data-subj="${parent.subject||'riyaziyyat'}"
+            data-section="${section}"
+            onclick="saveNewGradeExam(true)">💾 Saxla + Sual Yaz</button>
+        </div>
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function toggleGradePick(btn){
-  btn.classList.toggle('xbtn-primary');
-  btn.classList.toggle('xbtn-outline');
+function selectSingleGrade(btn){
+  document.querySelectorAll('#sgGradeBtns .grade-pick-single').forEach(b=>{
+    b.classList.remove('xbtn-primary'); b.classList.add('xbtn-outline');
+  });
+  btn.classList.remove('xbtn-outline'); btn.classList.add('xbtn-primary');
 }
 
-async function saveSubGrades(){
+async function saveNewGradeExam(openQuestions){
   const btn      = document.getElementById('sgSaveBtn');
   const parentId = btn.dataset.parent;
   const category = btn.dataset.cat;
   const subject  = btn.dataset.subj;
-  const price    = parseFloat(btn.dataset.price)||0;
   const section  = btn.dataset.section||'';
-  const baseTitle= btn.dataset.basetitle||'';
 
-  const selected = [...document.querySelectorAll('#sgGradeBtns .xbtn-primary')].map(b=>b.dataset.grade);
-  if(!selected.length){ showMsg('sgMsg','Ən azı bir sinif seçin.','err'); return; }
-  const dur    = parseInt(document.getElementById('sgDur').value)||60;
-  const active = parseInt(document.getElementById('sgActive').value);
+  const title    = document.getElementById('sgTitle').value.trim();
+  const gradeBtn = document.querySelector('#sgGradeBtns .xbtn-primary');
+  const cls      = gradeBtn?.dataset.grade || '';
+  const price    = parseFloat(document.getElementById('sgPrice').value)||0;
+  const dur      = parseInt(document.getElementById('sgDur').value)||60;
 
-  btn.disabled = true; btn.textContent = 'Əlavə edilir...';
+  if(!title){ showMsg('sgMsg','İmtahanın adını yazın.','err'); return; }
+  if(!cls)  { showMsg('sgMsg','Sinif seçin.','err'); return; }
 
-  let errors = 0;
-  for(const cls of selected){
-    const title = `${baseTitle} — ${section} — ${cls}-ci sinif`.trim();
-    const r = await POST('/exams', {
-      title, category, subject, section, class: cls,
-      price, duration: dur, is_active: active,
-      is_unlimited:1, parent_exam_id: parentId
-    });
-    if(!r.success) errors++;
+  [document.getElementById('sgSaveBtn'), document.getElementById('sgSaveOpenBtn')]
+    .forEach(b=>{ b.disabled=true; b.textContent='Saxlanır...'; });
+
+  const r = await POST('/exams', {
+    title, category, subject, section, class: cls,
+    price, duration: dur, is_active: 1,
+    is_unlimited:1, parent_exam_id: parentId
+  });
+
+  if(!r.success){ showMsg('sgMsg', r.message||'Xəta baş verdi.','err');
+    [document.getElementById('sgSaveBtn'), document.getElementById('sgSaveOpenBtn')]
+      .forEach(b=>{ b.disabled=false; });
+    document.getElementById('sgSaveBtn').textContent='Saxla';
+    document.getElementById('sgSaveOpenBtn').textContent='💾 Saxla + Sual Yaz';
+    return;
   }
-  closeSubModal(); loadAdminExams();
-  toast(errors ? `⚠️ ${errors} sinif əlavə edilmədi.` : `✅ ${selected.length} sinif əlavə edildi!`, errors?'err':'ok');
+
+  closeSubModal();
+  await loadAdminExams();
+  toast(`✅ "${title}" yaradıldı!`, 'ok');
+
+  if(openQuestions && r.data?.id){
+    openQuestionsFor(r.data.id, title);
+  }
 }
 
 function closeSubModal(){
