@@ -2308,13 +2308,12 @@ function examCardHtml(e){
 
   return `<div class="exam-card reveal">
     <div class="exam-icon" style="background:${subjColor(e.subject)}">${subjIcon(e.subject)}</div>
-    <div class="exam-title">${e.title}${isGroup?'<span style="font-size:10px;font-weight:500;color:var(--blue);margin-left:6px">🗂 Qrup</span>':''}</div>
+    <div class="exam-title">${e.title}</div>
     ${e.description?`<div class="exam-desc">${e.description}</div>`:''}
     <div class="exam-meta">
       <span class="tag tag-blue">${t(e.category)}</span>
       <span class="tag tag-gray">⏱ ${e.duration} ${t('min')}</span>
       <span class="tag tag-gray">❓ ${e.question_count||0} ${t('q')}</span>
-      ${isGroup?`<span class="tag tag-purple" style="font-size:10px">🗂 ${e.sub_count} sinif</span>`:(e.class?`<span class="tag tag-gray">📚 ${e.class}-ci sinif</span>`:'')}
       ${dateBadge}
     </div>
     <div class="exam-footer">
