@@ -3741,7 +3741,7 @@ function openAddLangModal(parentId, parentOrStr){
     : (window._examReg||{})[parentId];
   if(!parent){ toast('Məlumat tapılmadı.','err'); return; }
   const html = `
-    <div class="overlay active" id="subLangModal" onclick="if(event.target===this)closeSubModal()">
+    <div class="overlay open" id="subLangModal" onclick="if(event.target===this)closeSubModal()">
       <div class="modal modal-sm" onclick="event.stopPropagation()">
         <button class="m-close" onclick="closeSubModal()">✕</button>
         <div class="m-title">📚 Dil Bölməsi Əlavə Et</div>
@@ -3822,7 +3822,7 @@ function openAddGradeModal(parentId, parentOrStr){
       onclick="toggleGradePick(this)">${g}</button>`).join('');
 
   const html = `
-    <div class="overlay active" id="subGradeModal" onclick="if(event.target===this)closeSubModal()">
+    <div class="overlay open" id="subGradeModal" onclick="if(event.target===this)closeSubModal()">
       <div class="modal modal-sm" onclick="event.stopPropagation()">
         <button class="m-close" onclick="closeSubModal()">✕</button>
         <div class="m-title">🎓 Sinif İmtahanı Əlavə Et</div>
