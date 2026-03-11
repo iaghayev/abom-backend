@@ -10,7 +10,7 @@ function authMiddleware(req, res, next) {
   const token = header.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = db.prepare('SELECT id, name, phone, class, section, role FROM users WHERE id = ?').get(decoded.id);
+    const user = db.prepare('SELECT id, username, name, phone, class, section, role FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(401).json({ success: false, message: 'İstifadəçi tapılmadı.' });
     req.user = user;
     next();
@@ -36,7 +36,7 @@ function optionalAuth(req, res, next) {
     const token = header.split(' ')[1];
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = db.prepare('SELECT id, name, phone, class, section, role FROM users WHERE id = ?').get(decoded.id);
+      const user = db.prepare('SELECT id, username, name, phone, class, section, role FROM users WHERE id = ?').get(decoded.id);
       if (user) req.user = user;
     } catch {}
   }
