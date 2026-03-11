@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0b1f3a">
 <title>ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -946,7 +947,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <!-- Videos -->
       <div class="a-panel" id="ap-videos">
         <div class="a-hdr"><div><div class="a-title">🎬 Videolar</div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('addVideoModal')">+ Video əlavə et</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddVideoModal()">+ Video əlavə et</button>
         </div>
         <div class="a-table" id="adminVideosTable"><div class="a-empty">Yüklənir...</div></div>
       </div>
@@ -1288,7 +1289,8 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <div class="overlay" id="addVideoModal">
   <div class="modal modal-md">
     <button class="m-close" onclick="closeModal('addVideoModal')">✕</button>
-    <div class="m-title">🎬 Video Əlavə Et</div>
+    <div class="m-title" id="videoModalTitle">🎬 Video Əlavə Et</div>
+    <input type="hidden" id="vFId">
     <div class="field"><label>Başlıq</label><input class="inp" id="vFTitle" placeholder="Video başlığı"></div>
     <div class="field"><label>YouTube ID və ya URL</label><input class="inp" id="vFYtId" placeholder="dQw4w9WgXcQ və ya youtube.com/watch?v=..."></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1313,7 +1315,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       </div>
       <div class="field"><label>Müddət</label><input class="inp" id="vFDur" placeholder="18:24"></div>
     </div>
-    <button class="form-btn" onclick="saveVideo()">Video Əlavə Et</button>
+    <button class="form-btn" onclick="saveVideo()">Video Saxla</button>
   </div>
 </div>
 
@@ -1357,6 +1359,58 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     </div>
     <button class="form-btn" id="atReviewBtn">🔍 Cavablarıma Bax</button>
     <button class="btn btn-outline btn-w" style="margin-top:8px" onclick="closeModal('alreadyTakenModal')">Bağla</button>
+  </div>
+</div>
+
+<!-- ICAZE EDIT MODAL -->
+<div class="overlay" id="icazeEditModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('icazeEditModal')">✕</button>
+    <div class="m-title">✏️ İcazəni Redaktə Et</div>
+    <input type="hidden" id="icazeEditId">
+    <div class="field"><label>Ad Soyad</label><input class="inp" id="icazeEditName"></div>
+    <div class="field"><label>Telefon</label><input class="inp" id="icazeEditPhone"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Sinif</label><input class="inp" id="icazeEditClass"></div>
+      <div class="field"><label>Bölmə</label><input class="inp" id="icazeEditSection"></div>
+    </div>
+    <div class="field"><label>Status</label>
+      <select class="inp" id="icazeEditStatus">
+        <option value="pending">Gözləyən</option>
+        <option value="active">Aktiv</option>
+        <option value="cancelled">Ləğv edilmiş</option>
+      </select>
+    </div>
+    <button class="form-btn" onclick="saveIcazeEdit()">Yadda saxla</button>
+  </div>
+</div>
+
+<!-- CERT TEMPLATE MODAL -->
+<div class="overlay" id="certTemplateModal">
+  <div class="modal" style="max-width:700px">
+    <button class="m-close" onclick="closeModal('certTemplateModal')">✕</button>
+    <div class="m-title" id="certTplTitle">🏅 Sertifikat Şablonu</div>
+    <div class="m-sub" id="certTplSub">Şablonu yükləyin, sahə koordinatlarını təyin edin</div>
+    <input type="hidden" id="certTplCfgId">
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Şablon Şəkil (JPG/PNG)</label>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+        <input type="file" id="certTplFile" accept="image/*" style="flex:1;padding:8px;border:1.5px dashed var(--border);border-radius:8px;font-size:13px">
+        <button class="btn btn-primary btn-sm" onclick="uploadCertTemplate()">⬆ Yüklə</button>
+      </div>
+      <div id="certTplPreviewWrap" style="margin-top:10px;display:none;position:relative">
+        <img id="certTplPreview" style="width:100%;border-radius:10px;border:1.5px solid var(--border);display:block">
+        <div id="certTplDots"></div>
+      </div>
+    </div>
+    <div style="background:var(--soft);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">📍 Sahə Koordinatları (% — şəkilin sol-üst küncündən)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="certFieldInputs"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="form-btn" onclick="saveCertTemplateFields()" style="flex:1">💾 Saxla</button>
+      <button class="btn btn-outline" onclick="closeModal('certTemplateModal')" style="min-width:90px">Bağla</button>
+    </div>
   </div>
 </div>
 
@@ -2665,16 +2719,41 @@ function filterIcazeler(){
   ));
 }
 function renderIcazeler(data){
-  const cols = 'grid-template-columns:1fr 120px 1fr 100px 80px';
+  const cols = 'grid-template-columns:1fr 120px 1fr 90px 110px';
   document.getElementById('icazelerTable').innerHTML =
-    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Aktivləşmə</div><div>İcazəni sil</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Aktivləşmə</div><div>Əməliyyat</div></div>`+
     (data.length ? data.map(reg=>`<div class="a-t-row" style="${cols}">
       <div style="font-weight:600">${reg.name}</div>
       <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
       <div style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${reg.exam_title||'—'}</div>
       <div style="font-size:11.5px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
-      <div><button class="btn btn-red btn-sm" title="İcazəni sil — şagird imtahanı görməyəcək" onclick="deleteIcaze('${reg.id}')">🚫 Sil</button></div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-sm" onclick='editIcaze(${JSON.stringify(reg).replace(/'/g,"\\'")})'  >✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteIcaze('${reg.id}')">🚫</button>
+      </div>
     </div>`).join('') : '<div class="a-empty"><span class="ico">🔑</span>Aktiv icazə yoxdur.</div>');
+}
+function editIcaze(reg){
+  document.getElementById('icazeEditId').value = reg.id;
+  document.getElementById('icazeEditName').value = reg.name||'';
+  document.getElementById('icazeEditPhone').value = reg.phone||'';
+  document.getElementById('icazeEditClass').value = reg.class||'';
+  document.getElementById('icazeEditSection').value = reg.section||'';
+  document.getElementById('icazeEditStatus').value = reg.status||'active';
+  openModal('icazeEditModal');
+}
+async function saveIcazeEdit(){
+  const id = document.getElementById('icazeEditId').value;
+  const body = {
+    name: document.getElementById('icazeEditName').value,
+    phone: document.getElementById('icazeEditPhone').value,
+    class: document.getElementById('icazeEditClass').value,
+    section: document.getElementById('icazeEditSection').value,
+    status: document.getElementById('icazeEditStatus').value,
+  };
+  const r = await PUT('/registrations/'+id+'/edit', body);
+  toast(r.success?'Yeniləndi!':r.message, r.success?'ok':'err');
+  if(r.success){ closeModal('icazeEditModal'); loadIcazeler(); }
 }
 async function deleteIcaze(id){
   if(!confirm('Bu icazəni silmək istədiyinizə əminsiniz?\n\n🚫 Şagird bu imtahanı artıq görməyəcək.')) return;
@@ -2760,20 +2839,42 @@ async function loadAdminQuestions(){
   if(!examId){ document.getElementById('adminQsTable').innerHTML='<div class="a-empty">İmtahan seçin</div>'; return; }
   const r=await GET('/questions?exam_id='+examId);
   const data=r.data||[];
-  const cols='grid-template-columns:40px 1fr 80px 1fr 60px';
+  const cols='grid-template-columns:40px 1fr 80px 1fr 80px';
   document.getElementById('adminQsTable').innerHTML=
     `<div class="a-t-title">${data.length} sual <div style="display:flex;gap:6px">
       <button class="btn btn-outline btn-sm" onclick="openAddQuestion()">+ Sual</button>
       <button class="btn btn-red btn-sm" onclick="deleteAllQs('${examId}')">Hamısını sil</button>
     </div></div>`+
-    `<div class="a-t-hdr" style="${cols}"><div>#</div><div>Sual</div><div>Növ</div><div>Cavab</div><div>Sil</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>#</div><div>Sual</div><div>Növ</div><div>Cavab</div><div>Əməliyyat</div></div>`+
     (data.length?data.map((q,i)=>`<div class="a-t-row" style="${cols}">
       <div style="color:var(--muted)">${i+1}</div>
       <div style="font-size:12.5px">${q.text?.substring(0,80)||'—'}</div>
       <div><span class="tag ${q.type==='multiple_choice'?'tag-blue':q.type==='open_ended'?'tag-green':'tag-purple'}">${q.type==='multiple_choice'?'MC':q.type==='open_ended'?'Açıq':'Boşluq'}</span></div>
       <div style="font-size:12.5px;color:var(--muted)">${q.correct?.substring(0,40)||'—'}</div>
-      <div><button class="btn btn-red btn-sm" onclick="deleteQ('${q.id}')">✗</button></div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-sm" onclick="editQuestion(${JSON.stringify(q).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteQ('${q.id}')">✗</button>
+      </div>
     </div>`).join(''):'<div class="a-empty">Sual yoxdur. Əlavə edin.</div>');
+}
+
+function editQuestion(q){
+  document.getElementById('qFormTitle').textContent='✏️ Soruyu Redaktə Et';
+  document.getElementById('qFormId').value=q.id;
+  document.getElementById('qFormExamId').value=q.exam_id;
+  document.getElementById('qFText').value=q.text||'';
+  document.getElementById('qOA').value=q.option_a||'';
+  document.getElementById('qOB').value=q.option_b||'';
+  document.getElementById('qOC').value=q.option_c||'';
+  document.getElementById('qOD').value=q.option_d||'';
+  qType(q.type||'multiple_choice');
+  if(q.type==='multiple_choice'){
+    document.getElementById('qFCorrect').value=q.correct||'';
+    selectAns(q.correct?.toUpperCase());
+  } else {
+    document.getElementById('qFCorrectOpen').value=q.correct||'';
+  }
+  openModal('addQModal');
 }
 
 function openAddQuestion(){
@@ -2806,6 +2907,7 @@ function selectAns(l){
 }
 async function saveQuestion(){
   const type=STATE.currentQType||'multiple_choice';
+  const id=document.getElementById('qFormId').value;
   const examId=document.getElementById('qFormExamId').value||document.getElementById('qExamFilter').value;
   const body={
     exam_id:examId,
@@ -2818,9 +2920,9 @@ async function saveQuestion(){
     correct:type==='multiple_choice'?document.getElementById('qFCorrect').value:document.getElementById('qFCorrectOpen').value
   };
   if(!body.text||!body.correct){ toast('Sual mətni və cavab tələb olunur.','err'); return; }
-  const r=await POST('/questions',body);
+  const r = id ? await PUT('/questions/'+id, body) : await POST('/questions', body);
   if(!r.success){ toast(r.message,'err'); return; }
-  toast('Sual əlavə edildi!','ok');
+  toast(id?'Sual yeniləndi!':'Sual əlavə edildi!','ok');
   closeModal('addQModal');
   loadAdminQuestions();
 }
@@ -2845,19 +2947,45 @@ async function doCSVImport(){
 async function loadAdminVideos(){
   const r=await GET('/videos');
   const data=r.data||[];
-  const cols='grid-template-columns:1fr 80px 80px 80px 60px';
+  const cols='grid-template-columns:1fr 80px 60px 70px 80px';
   document.getElementById('adminVideosTable').innerHTML=
     `<div class="a-t-title">Bütün Videolar <span class="tag tag-blue">${data.length}</span></div>`+
-    `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Fənn</div><div>Sinif</div><div>Növ</div><div>Sil</div></div>`+
+    `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Fənn</div><div>Sinif</div><div>Növ</div><div>Əməliyyat</div></div>`+
     (data.length?data.map(v=>`<div class="a-t-row" style="${cols}">
-      <div style="font-weight:600">${v.title}</div>
+      <div style="font-weight:600;font-size:13px">${v.title}</div>
       <div style="font-size:12px">${v.subject}</div>
       <div>${v.class}</div>
       <div><span class="tag ${v.type==='paid'?'tag-gold':'tag-green'}">${t(v.type)}</span></div>
-      <div><button class="btn btn-red btn-sm" onclick="deleteVideo('${v.id}')">✗</button></div>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-outline btn-sm" onclick="editVideo(${JSON.stringify(v).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="deleteVideo('${v.id}')">✗</button>
+      </div>
     </div>`).join(''):'<div class="a-empty">Video yoxdur.</div>');
 }
+
+function editVideo(v){
+  document.getElementById('videoModalTitle').textContent='✏️ Video Redaktə Et';
+  document.getElementById('vFId').value=v.id;
+  document.getElementById('vFTitle').value=v.title||'';
+  document.getElementById('vFYtId').value=v.youtube_id||'';
+  document.getElementById('vFSubj').value=v.subject||'riyaziyyat';
+  document.getElementById('vFClass').value=v.class||'5';
+  document.getElementById('vFType').value=v.type||'free';
+  document.getElementById('vFDur').value=v.duration||'';
+  openModal('addVideoModal');
+}
+
+function openAddVideoModal(){
+  document.getElementById('videoModalTitle').textContent='🎬 Video Əlavə Et';
+  document.getElementById('vFId').value='';
+  document.getElementById('vFTitle').value='';
+  document.getElementById('vFYtId').value='';
+  document.getElementById('vFDur').value='';
+  openModal('addVideoModal');
+}
+
 async function saveVideo(){
+  const id=document.getElementById('vFId').value;
   const body={
     title:document.getElementById('vFTitle').value,
     youtube_id:document.getElementById('vFYtId').value,
@@ -2866,9 +2994,10 @@ async function saveVideo(){
     type:document.getElementById('vFType').value,
     duration:document.getElementById('vFDur').value
   };
-  const r=await POST('/videos',body);
+  const r = id ? await PUT('/videos/'+id, body) : await POST('/videos', body);
   if(!r.success){ toast(r.message,'err'); return; }
-  toast('Video əlavə edildi!','ok'); closeModal('addVideoModal'); loadAdminVideos();
+  toast(id?'Video yeniləndi!':'Video əlavə edildi!','ok');
+  closeModal('addVideoModal'); loadAdminVideos();
 }
 async function deleteVideo(id){ await DEL('/videos/'+id); toast('Silindi.','ok'); loadAdminVideos(); }
 
@@ -2878,52 +3007,216 @@ async function loadCertExamSelect(){
   sel.innerHTML='<option value="">İmtahan seçin</option>';
   (r.data||[]).forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; sel.appendChild(o); });
 }
+
+const CERT_LEVELS_DEFAULT = [
+  {level_name:'İştirakçı', min_score:0,  max_score:40,  color:'#64748b'},
+  {level_name:'Bürünc',    min_score:41, max_score:70,  color:'#b45309'},
+  {level_name:'Gümüş',     min_score:71, max_score:85,  color:'#94a3b8'},
+  {level_name:'Qızıl',     min_score:86, max_score:100, color:'#d97706'},
+];
+
 async function loadCertConfig(){
   const examId=document.getElementById('certExamSel').value;
   if(!examId){ document.getElementById('certConfigWrap').innerHTML='<div class="a-empty"><span class="ico">☝️</span>Yuxarıda imtahan seçin</div>'; return; }
   const r=await GET('/certs/config/'+examId);
-  const levels=r.data||[];
+  const levels = r.data?.length ? r.data : CERT_LEVELS_DEFAULT;
   document.getElementById('certConfigWrap').innerHTML=`
     <div class="card">
-      <div style="font-size:14px;font-weight:700;margin-bottom:12px">Sertifikat Səviyyələri</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px">🏅 Sertifikat Səviyyələri</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Hər səviyyə üçün bal aralığı, rəng və şablon təyin edin</div>
+      <div style="display:grid;grid-template-columns:1fr 70px 70px 60px 120px 36px;gap:6px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+        <div>Səviyyə adı</div><div>Min bal</div><div>Max bal</div><div>Rəng</div><div>Şablon</div><div></div>
+      </div>
       <div id="certLevels">${levels.map((l,i)=>`
-        <div style="display:grid;grid-template-columns:1fr 60px 60px 80px 32px;gap:8px;align-items:center;margin-bottom:8px">
-          <input class="inp" value="${l.level_name}" id="clName${i}" placeholder="Səviyyə adı" style="padding:7px 10px">
+        <div style="display:grid;grid-template-columns:1fr 70px 70px 60px 120px 36px;gap:6px;align-items:center;margin-bottom:6px" data-id="${l.id||''}">
+          <input class="inp" value="${l.level_name}" id="clName${i}" style="padding:7px 10px">
           <input class="inp" type="number" value="${l.min_score}" id="clMin${i}" style="padding:7px 10px">
           <input class="inp" type="number" value="${l.max_score}" id="clMax${i}" style="padding:7px 10px">
-          <input type="color" value="${l.color||'#1355a0'}" id="clColor${i}" style="width:100%;height:36px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:2px">
+          <input type="color" value="${l.color||'#94a3b8'}" id="clColor${i}" style="width:100%;height:36px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:2px">
+          <button class="btn btn-outline btn-sm" onclick="openCertTemplate('${l.id||''}','${(l.level_name||'').replace(/'/g,'\\\'')}')"
+            style="${l.template_url?'border-color:var(--green);color:var(--green)':''}">
+            ${l.template_url?'✅ Şablon var':'📄 Şablon yüklə'}
+          </button>
           <button class="btn btn-red btn-sm" onclick="this.closest('div').remove()">✗</button>
         </div>`).join('')}
       </div>
-      <button class="btn btn-outline btn-sm" onclick="addCertLevel()">+ Səviyyə əlavə et</button>
-      <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="saveCertConfig('${examId}')">Yadda saxla</button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-outline btn-sm" onclick="addCertLevel()">+ Səviyyə əlavə et</button>
+        <button class="btn btn-primary btn-sm" onclick="saveCertConfig('${examId}')">💾 Yadda saxla</button>
+      </div>
     </div>`;
 }
+
 function addCertLevel(){
   const container=document.getElementById('certLevels');
   const i=container.children.length;
   const d=document.createElement('div');
-  d.style.cssText='display:grid;grid-template-columns:1fr 60px 60px 80px 32px;gap:8px;align-items:center;margin-bottom:8px';
+  d.style.cssText='display:grid;grid-template-columns:1fr 70px 70px 60px 120px 36px;gap:6px;align-items:center;margin-bottom:6px';
   d.innerHTML=`
     <input class="inp" id="clName${i}" placeholder="Yeni səviyyə" style="padding:7px 10px">
     <input class="inp" type="number" value="0" id="clMin${i}" style="padding:7px 10px">
     <input class="inp" type="number" value="100" id="clMax${i}" style="padding:7px 10px">
     <input type="color" value="#1355a0" id="clColor${i}" style="width:100%;height:36px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:2px">
+    <button class="btn btn-outline btn-sm" style="font-size:11px">📄 Əvvəl saxla</button>
     <button class="btn btn-red btn-sm" onclick="this.closest('div').remove()">✗</button>`;
   container.appendChild(d);
 }
+
 async function saveCertConfig(examId){
   const rows=document.getElementById('certLevels').children;
   const levels=[];
   for(let i=0;i<rows.length;i++){
     const name=rows[i].querySelector(`#clName${i}`)?.value;
-    const min=parseInt(rows[i].querySelector(`#clMin${i}`)?.value);
-    const max=parseInt(rows[i].querySelector(`#clMax${i}`)?.value);
-    const color=rows[i].querySelector(`#clColor${i}`)?.value;
+    const min=parseInt(rows[i].querySelector(`#clMin${i}`)?.value)||0;
+    const max=parseInt(rows[i].querySelector(`#clMax${i}`)?.value)||100;
+    const color=rows[i].querySelector(`#clColor${i}`)?.value||'#94a3b8';
     if(name) levels.push({level_name:name,min_score:min,max_score:max,color});
   }
   const r=await PUT('/certs/config/'+examId,{levels});
-  toast(r.success?'Saxlandı!':r.message, r.success?'ok':'err');
+  toast(r.success?'Saxlandı! İndi hər səviyyə üçün şablon yükləyə bilərsiniz.':r.message, r.success?'ok':'err');
+  if(r.success) loadCertConfig();
+}
+
+// ═══ CERT TEMPLATE UPLOAD + FIELDS ═══
+const CERT_FIELDS = [
+  {key:'name',  label:'👤 Ad Soyad'},
+  {key:'date',  label:'📅 Tarix'},
+  {key:'exam',  label:'📚 İmtahan adı'},
+  {key:'score', label:'🎯 Bal'},
+];
+
+async function openCertTemplate(cfgId, levelName){
+  if(!cfgId){ toast('Əvvəlcə sertifikat konfiqini yadda saxlayın.','err'); return; }
+  document.getElementById('certTplCfgId').value = cfgId;
+  document.getElementById('certTplTitle').textContent = '🏅 '+levelName+' — Şablon';
+  document.getElementById('certTplSub').textContent = 'Şablon şəkil yükləyin, sahələri X/Y % ilə yerləşdirin';
+  document.getElementById('certTplPreviewWrap').style.display = 'none';
+  document.getElementById('certTplFile').value = '';
+
+  // Build field inputs
+  document.getElementById('certFieldInputs').innerHTML = CERT_FIELDS.map(f=>`
+    <div style="background:#fff;border-radius:8px;padding:10px;border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">${f.label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:4px">
+        <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="X %" style="padding:5px 8px;font-size:12px">
+        <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="Y %" style="padding:5px 8px;font-size:12px">
+        <input class="inp" id="cf_${f.key}_size" type="number" min="8" max="200" value="32" placeholder="px" style="padding:5px 8px;font-size:12px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 40px;gap:4px">
+        <input class="inp" id="cf_${f.key}_font" placeholder="Font ailəsi (ixtiyari)" style="padding:4px 8px;font-size:11px">
+        <input type="color" id="cf_${f.key}_color" value="#0b1f3a" style="width:100%;height:28px;border:1.5px solid var(--border);border-radius:6px;padding:1px;cursor:pointer">
+      </div>
+    </div>`).join('');
+
+  // Load existing config if any
+  const cfgAll = await api('GET', '/certs/by-id/'+cfgId);
+  if(cfgAll?.success && cfgAll.data) {
+    const cfg = cfgAll.data;
+    if(cfg.template_url){
+      document.getElementById('certTplPreviewWrap').style.display='block';
+      document.getElementById('certTplPreview').src = cfg.template_url;
+    }
+    const fields = typeof cfg.template_fields === 'string' ? JSON.parse(cfg.template_fields||'{}') : (cfg.template_fields||{});
+    CERT_FIELDS.forEach(f=>{
+      const fd = fields[f.key]||{};
+      if(fd.x!=null) document.getElementById('cf_'+f.key+'_x').value=fd.x;
+      if(fd.y!=null) document.getElementById('cf_'+f.key+'_y').value=fd.y;
+      if(fd.size) document.getElementById('cf_'+f.key+'_size').value=fd.size;
+      if(fd.color) document.getElementById('cf_'+f.key+'_color').value=fd.color;
+      if(fd.font) document.getElementById('cf_'+f.key+'_font').value=fd.font;
+    });
+  }
+  openModal('certTemplateModal');
+}
+
+async function uploadCertTemplate(){
+  const cfgId=document.getElementById('certTplCfgId').value;
+  const file=document.getElementById('certTplFile').files[0];
+  if(!file){ toast('Şəkil seçin','err'); return; }
+  const fd=new FormData(); fd.append('template',file);
+  const res=await fetch(API+'/certs/upload-template/'+cfgId,{method:'POST',headers:{Authorization:'Bearer '+STATE.token},body:fd});
+  const r=await res.json();
+  if(!r.success){ toast(r.message,'err'); return; }
+  toast('Şablon yükləndi!','ok');
+  document.getElementById('certTplPreview').src=r.url+'?t='+Date.now();
+  document.getElementById('certTplPreviewWrap').style.display='block';
+}
+
+async function saveCertTemplateFields(){
+  const cfgId=document.getElementById('certTplCfgId').value;
+  const fields={};
+  CERT_FIELDS.forEach(f=>{
+    fields[f.key]={
+      x:parseFloat(document.getElementById('cf_'+f.key+'_x').value)||0,
+      y:parseFloat(document.getElementById('cf_'+f.key+'_y').value)||0,
+      size:parseInt(document.getElementById('cf_'+f.key+'_size').value)||32,
+      color:document.getElementById('cf_'+f.key+'_color').value||'#0b1f3a',
+      font:document.getElementById('cf_'+f.key+'_font').value||'',
+    };
+  });
+  const r=await PUT('/certs/fields/'+cfgId,{fields});
+  toast(r.success?'Sahələr saxlandı!':r.message,r.success?'ok':'err');
+  if(r.success){ closeModal('certTemplateModal'); loadCertConfig(); }
+}
+
+// ═══ CERT PDF GENERATION (CLIENT-SIDE) ═══
+async function downloadCert(){
+  const result = STATE.currentResult;
+  if(!result){ toast('Nəticə tapılmadı','err'); return; }
+  const r = await GET('/certs/check/'+result.id);
+  if(!r.hasCert || !r.data){ toast('Bu nəticə üçün sertifikat yoxdur','err'); return; }
+  const cert = r.data;
+  const fields = typeof cert.template_fields==='string' ? JSON.parse(cert.template_fields||'{}') : (cert.template_fields||{});
+  if(!cert.template_url){ toast('Sertifikat şablonu hələ yüklənməyib','err'); return; }
+  await generateCertPDF(cert, fields, result);
+}
+
+async function generateCertPDF(cert, fields, result){
+  try {
+    const canvas = document.createElement('canvas');
+    const img = new Image(); img.crossOrigin='anonymous';
+    img.src = cert.template_url+'?t='+Date.now();
+    await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+    canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+
+    const fieldData = {
+      name:  cert.user_name || result?.user_name || '—',
+      date:  (result?.created_at||cert.date||'').split('T')[0],
+      exam:  cert.exam_title || '—',
+      score: (result?.score??cert.score) + '%',
+    };
+
+    Object.entries(fieldData).forEach(([key,value])=>{
+      const fd=fields[key]; if(!fd||fd.x==null) return;
+      const x=(fd.x/100)*canvas.width;
+      const y=(fd.y/100)*canvas.height;
+      const size=Math.round((fd.size||32)*(canvas.width/800));
+      ctx.font=`bold ${size}px ${fd.font||'Arial, sans-serif'}`;
+      ctx.fillStyle=fd.color||'#0b1f3a';
+      ctx.textAlign='center';
+      ctx.fillText(value,x,y);
+    });
+
+    // Convert to PDF via jsPDF if available, else download as image
+    if(window.jspdf?.jsPDF){
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:canvas.width>canvas.height?'landscape':'portrait',unit:'px',format:[canvas.width,canvas.height]});
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,canvas.width,canvas.height);
+      pdf.save(`ABOM_Sertifikat_${cert.user_name||'student'}.pdf`);
+    } else {
+      // Fallback: download as image
+      const a=document.createElement('a');
+      a.href=canvas.toDataURL('image/jpeg',0.95);
+      a.download=`ABOM_Sertifikat_${cert.user_name||'student'}.jpg`;
+      a.click();
+    }
+    toast('Sertifikat yükləndi!','ok');
+  } catch(e){
+    console.error(e);
+    toast('Sertifikat yaradılarkən xəta baş verdi','err');
+  }
 }
 
 async function loadAdminUsers(){

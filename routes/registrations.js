@@ -85,3 +85,21 @@ router.delete('/:id', adminMiddleware, (req, res) => {
 });
 
 module.exports = router;
+
+// PUT /api/registrations/:id/edit — admin edits registration details
+router.put('/:id/edit', adminMiddleware, (req, res) => {
+  const { name, phone, class: cls, section, status } = req.body;
+  const reg = db.prepare('SELECT id FROM registrations WHERE id=?').get(req.params.id);
+  if (!reg) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
+  const updates = [];
+  const params = [];
+  if (name    !== undefined) { updates.push('name=?');    params.push(name); }
+  if (phone   !== undefined) { updates.push('phone=?');   params.push(phone); }
+  if (cls     !== undefined) { updates.push('class=?');   params.push(cls); }
+  if (section !== undefined) { updates.push('section=?'); params.push(section); }
+  if (status  !== undefined) { updates.push('status=?');  params.push(status); }
+  if (!updates.length) return res.json({ success: true });
+  params.push(req.params.id);
+  db.prepare(`UPDATE registrations SET ${updates.join(',')} WHERE id=?`).run(...params);
+  res.json({ success: true });
+});

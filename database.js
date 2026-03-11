@@ -128,6 +128,9 @@ tryAddCol('questions', 'option_a', "TEXT DEFAULT ''");
 tryAddCol('questions', 'option_b', "TEXT DEFAULT ''");
 tryAddCol('questions', 'option_c', "TEXT DEFAULT ''");
 tryAddCol('questions', 'option_d', "TEXT DEFAULT ''");
+tryAddCol('cert_configs', 'template_url', "TEXT DEFAULT ''");
+tryAddCol('cert_configs', 'template_fields', "TEXT DEFAULT '{}'");
+tryAddCol('registrations', 'activated_at', "TEXT DEFAULT ''");;
 
 // ── Username generator ───────────────────────────────────────
 function generateUsername(name) {
