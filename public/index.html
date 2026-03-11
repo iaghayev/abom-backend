@@ -7,6 +7,8 @@
 <title>ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -87,6 +89,33 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .tag-gold{background:rgba(217,119,6,.08);color:var(--gold);border:1px solid rgba(217,119,6,.18)}
 .tag-red{background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.18)}
 .tag-purple{background:rgba(124,58,237,.08);color:var(--purple);border:1px solid rgba(124,58,237,.18)}
+
+/* ── Rich Editor ──────────────────────────────────────── */
+.rich-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:3px;padding:6px 8px;background:#f0f4fa;border:1.5px solid var(--border);border-bottom:none;border-radius:9px 9px 0 0}
+.rtb-group{display:flex;align-items:center;gap:2px}
+.rtb-sep{width:1px;height:20px;background:var(--border);margin:0 3px}
+.rtb-btn{padding:3px 7px;border:1px solid transparent;border-radius:5px;background:none;cursor:pointer;font-size:13px;color:var(--navy);transition:all .15s;white-space:nowrap}
+.rtb-btn:hover{background:#e2e8f4;border-color:var(--border)}
+.rtb-btn.active{background:var(--blue);color:#fff}
+.rtb-formula{font-size:12px;color:var(--blue);font-weight:700;border-color:rgba(19,85,160,.2)!important}
+.rtb-formula:hover{background:rgba(19,85,160,.08)!important}
+.rtb-sel{padding:2px 4px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--navy);background:#fff;cursor:pointer;max-width:80px}
+.rich-editor{min-height:100px;max-height:240px;overflow-y:auto;padding:10px 12px;border:1.5px solid var(--border);border-radius:0 0 9px 9px;font-size:14px;font-family:'Outfit',sans-serif;color:var(--navy);outline:none;line-height:1.6;background:#fff;position:relative}
+.rich-editor:empty:before{content:attr(placeholder);color:#aab;pointer-events:none;position:absolute}
+.rich-editor:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(19,85,160,.08)}
+.rich-editor img{max-width:100%;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border .15s;display:inline-block}
+.q-opt-text{flex:1;line-height:1.5}
+.q-opt-text img{max-width:120px;max-height:60px;border-radius:4px;vertical-align:middle}
+.rich-editor img.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(19,85,160,.15)}
+.rich-editor img:hover{border-color:rgba(19,85,160,.4)}
+.rich-editor .math-formula{display:inline-block;background:rgba(19,85,160,.06);border:1px solid rgba(19,85,160,.2);border-radius:4px;padding:2px 6px;font-family:'KaTeX_Main',serif;font-size:15px;cursor:default;user-select:none;color:var(--navy)}
+.opt-editor-wrap{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;background:#fff;margin-bottom:6px;transition:border .15s}
+.opt-editor-wrap:focus-within{border-color:var(--blue)}
+.opt-label{font-size:13px;font-weight:800;color:var(--blue);min-width:22px;padding-top:1px}
+.opt-editor{flex:1;min-height:34px;max-height:120px;overflow-y:auto;outline:none;font-size:13.5px;font-family:'Outfit',sans-serif;color:var(--navy);line-height:1.5}
+.opt-toolbar{display:flex;gap:2px;flex-shrink:0}
+.opt-tb-btn{padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:#f5f7fa;cursor:pointer;font-size:11px;color:var(--navy)}
+.opt-tb-btn:hover{background:#e2e8f4}
 .tag-gray{background:var(--off);color:var(--muted);border:1px solid var(--border)}
 .tag-sky{background:rgba(35,128,232,.08);color:var(--sky);border:1px solid rgba(35,128,232,.18)}
 
@@ -1300,46 +1329,147 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   </div>
 </div>
 
-<!-- ADD/EDIT QUESTION -->
+<!-- ADD/EDIT QUESTION - RICH EDITOR -->
 <div class="overlay" id="addQModal">
-  <div class="modal modal-lg">
+  <div class="modal" style="max-width:800px;width:97vw;max-height:92vh;display:flex;flex-direction:column">
     <button class="m-close" onclick="closeModal('addQModal')">✕</button>
     <div class="m-title" id="qFormTitle">+ Sual Əlavə Et</div>
     <input type="hidden" id="qFormId">
     <input type="hidden" id="qFormExamId">
-    <div class="field"><label>Sual növü</label>
-      <div class="tab-bar" style="margin-bottom:0">
-        <button class="tab-btn active" onclick="qType('multiple_choice')" id="qtMC" style="flex:1">📋 Çoxseçimli</button>
-        <button class="tab-btn" onclick="qType('open_ended')" id="qtOE" style="flex:1">✍️ Açıq sual</button>
-        <button class="tab-btn" onclick="qType('fill_blank')" id="qtFB" style="flex:1">🔲 Boşluq doldur</button>
-      </div>
+
+    <!-- Question type tabs -->
+    <div class="tab-bar" style="margin-bottom:14px">
+      <button class="tab-btn active" onclick="qType('multiple_choice')" id="qtMC" style="flex:1">📋 Çoxseçimli</button>
+      <button class="tab-btn" onclick="qType('open_ended')" id="qtOE" style="flex:1">✍️ Açıq sual</button>
+      <button class="tab-btn" onclick="qType('fill_blank')" id="qtFB" style="flex:1">🔲 Boşluq doldur</button>
     </div>
-    <div class="field"><label id="qTextLabel">Sual mətni</label><textarea class="inp" id="qFText" rows="3" placeholder="Sualı daxil edin..."></textarea></div>
-    <!-- MC options -->
-    <div id="mcOptions">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field"><label>A variantı</label><input class="inp" id="qOA" placeholder="A variantı"></div>
-        <div class="field"><label>B variantı</label><input class="inp" id="qOB" placeholder="B variantı"></div>
-        <div class="field"><label>C variantı</label><input class="inp" id="qOC" placeholder="C variantı"></div>
-        <div class="field"><label>D variantı</label><input class="inp" id="qOD" placeholder="D variantı"></div>
-      </div>
-      <div class="field"><label>Düzgün cavab</label>
-        <div style="display:flex;gap:8px">
-          <button type="button" class="btn btn-outline" id="ansA" onclick="selectAns('A')" style="flex:1">A</button>
-          <button type="button" class="btn btn-outline" id="ansB" onclick="selectAns('B')" style="flex:1">B</button>
-          <button type="button" class="btn btn-outline" id="ansC" onclick="selectAns('C')" style="flex:1">C</button>
-          <button type="button" class="btn btn-outline" id="ansD" onclick="selectAns('D')" style="flex:1">D</button>
+
+    <!-- Scrollable body -->
+    <div style="overflow-y:auto;flex:1;padding-right:4px">
+
+      <!-- QUESTION TEXT — rich editor -->
+      <div class="field">
+        <label id="qTextLabel" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Sual mətni</span>
+          <span style="font-size:10px;color:var(--muted);font-weight:400">Formula, şəkil, bold, kursiv dəstəklənir</span>
+        </label>
+        <!-- Toolbar -->
+        <div class="rich-toolbar" id="qToolbar">
+          <div class="rtb-group">
+            <button class="rtb-btn" onclick="rfmt('bold')" title="Qalın (Ctrl+B)"><b>B</b></button>
+            <button class="rtb-btn" onclick="rfmt('italic')" title="Kursiv (Ctrl+I)"><i>I</i></button>
+            <button class="rtb-btn" onclick="rfmt('underline')" title="Altı xətt"><u>U</u></button>
+            <button class="rtb-btn" onclick="rfmt('strikeThrough')" title="Üstü xətt"><s>S</s></button>
+          </div>
+          <div class="rtb-sep"></div>
+          <div class="rtb-group">
+            <select class="rtb-sel" onchange="rfmtBlock('fontSize',this.value);this.value=''" title="Şrift ölçüsü">
+              <option value="">Ölçü</option>
+              <option value="1">Kiçik</option><option value="3">Normal</option>
+              <option value="5">Böyük</option><option value="7">Çox böyük</option>
+            </select>
+            <select class="rtb-sel" onchange="rfmtFont(this.value);this.value=''" title="Şrift">
+              <option value="">Şrift</option>
+              <option value="Arial">Arial</option>
+              <option value="Times New Roman">Times NR</option>
+              <option value="Courier New">Courier</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+          </div>
+          <div class="rtb-sep"></div>
+          <div class="rtb-group">
+            <button class="rtb-btn" onclick="rfmt('justifyLeft')" title="Sol">⬅</button>
+            <button class="rtb-btn" onclick="rfmt('justifyCenter')" title="Mərkəz">≡</button>
+            <button class="rtb-btn" onclick="rfmt('justifyRight')" title="Sağ">➡</button>
+          </div>
+          <div class="rtb-sep"></div>
+          <div class="rtb-group">
+            <button class="rtb-btn" onclick="rfmt('insertUnorderedList')" title="Siyahı">• ≡</button>
+            <button class="rtb-btn" onclick="rfmt('insertOrderedList')" title="Nömrəli">1. ≡</button>
+          </div>
+          <div class="rtb-sep"></div>
+          <div class="rtb-group">
+            <button class="rtb-btn rtb-formula" onclick="openFormulaPanel('qEditor')" title="Formula daxil et">∑ Formula</button>
+            <button class="rtb-btn" onclick="insertImgToEditor('qEditor')" title="Şəkil yüklə">🖼 Şəkil</button>
+            <input type="file" id="qImgFile" accept="image/*" style="display:none" onchange="handleEditorImgUpload('qEditor','qImgFile')">
+          </div>
+          <div class="rtb-sep"></div>
+          <div class="rtb-group">
+            <input type="color" id="qFontColor" value="#0b1f3a" onchange="rfmtColor(this.value)" title="Mətn rəngi" style="width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0">
+            <button class="rtb-btn" onclick="rfmt('removeFormat')" title="Formatı sil" style="font-size:11px">✕fmt</button>
+          </div>
         </div>
-        <input type="hidden" id="qFCorrect">
+        <!-- ContentEditable editor -->
+        <div id="qEditor" class="rich-editor" contenteditable="true"
+          onpaste="handleEditorPaste(event,'qEditor')"
+          onkeydown="handleEditorKeydown(event)"
+          placeholder="Sualı daxil edin... (formula üçün ∑ düyməsini basın)"></div>
+      </div>
+
+      <!-- MC options with rich editors -->
+      <div id="mcOptions">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Cavab variantları</div>
+        <div id="mcOptionsList">
+          <!-- options rendered by JS -->
+        </div>
+        <div class="field"><label>Düzgün cavab</label>
+          <div style="display:flex;gap:8px" id="answerBtns">
+            <button type="button" class="btn btn-outline" id="ansA" onclick="selectAns('A')" style="flex:1;font-weight:700">A</button>
+            <button type="button" class="btn btn-outline" id="ansB" onclick="selectAns('B')" style="flex:1;font-weight:700">B</button>
+            <button type="button" class="btn btn-outline" id="ansC" onclick="selectAns('C')" style="flex:1;font-weight:700">C</button>
+            <button type="button" class="btn btn-outline" id="ansD" onclick="selectAns('D')" style="flex:1;font-weight:700">D</button>
+          </div>
+          <input type="hidden" id="qFCorrect">
+        </div>
+      </div>
+
+      <!-- Open/fill correct answer -->
+      <div id="openOptions" style="display:none">
+        <div class="field"><label id="correctLabel">Düzgün cavab (qiymətləndirmə üçün)</label>
+          <input class="inp" id="qFCorrectOpen" placeholder="Düzgün cavabı daxil edin..."></div>
+      </div>
+
+    </div><!-- end scroll -->
+
+    <button class="form-btn" onclick="saveQuestion()" id="qFormBtn" style="margin-top:14px;flex-shrink:0">Sualı Saxla</button>
+  </div>
+</div>
+
+<!-- FORMULA PANEL -->
+<div class="overlay" id="formulaPanel" style="z-index:10001">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('formulaPanel')">✕</button>
+    <div class="m-title">∑ Formula Daxil Et</div>
+
+    <!-- Quick symbols -->
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Tez düymələr</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px" id="formulaQuickBtns">
+        <!-- Populated by JS -->
       </div>
     </div>
-    <!-- Open/fill options -->
-    <div id="openOptions" style="display:none">
-      <div class="field"><label id="correctLabel">Düzgün cavab (qiymətləndirmə üçün)</label>
-        <input class="inp" id="qFCorrectOpen" placeholder="Düzgün cavabı daxil edin..."></div>
+
+    <div class="field">
+      <label>LaTeX formulu yaz <span style="font-size:10px;color:var(--muted)">(məs: \frac{1}{2}, x^2, \sqrt{x})</span></label>
+      <input class="inp" id="formulaLatexInput" placeholder="\frac{a}{b}" style="font-family:monospace;font-size:14px"
+        oninput="previewFormula()">
     </div>
-    <button class="form-btn" onclick="saveQuestion()" id="qFormBtn">Sualı Saxla</button>
+    <div style="min-height:50px;text-align:center;font-size:22px;padding:10px;background:var(--soft);border-radius:8px;margin-bottom:14px;border:1px solid var(--border)" id="formulaPreview">
+      Önizləmə...
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="form-btn" onclick="insertFormula()" style="flex:1">Daxil Et</button>
+      <button class="btn btn-outline" onclick="closeModal('formulaPanel')" style="min-width:80px">Ləğv Et</button>
+    </div>
   </div>
+</div>
+
+<!-- IMAGE RESIZE OVERLAY -->
+<div id="imgResizeBar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(11,31,58,.92);color:#fff;border-radius:10px;padding:8px 14px;z-index:10002;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+  <span>🖼 Ölçü:</span>
+  <input type="range" id="imgResizeSlider" min="10" max="100" value="100" style="width:120px" oninput="applyImgResize(this.value)">
+  <span id="imgResizeVal">100%</span>
+  <button onclick="document.getElementById('imgResizeBar').style.display='none';window._selectedImg=null" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:12px">✕</button>
 </div>
 
 <!-- CSV IMPORT -->
@@ -2371,7 +2501,7 @@ function renderReview(data){
         </span>
         Sual ${i+1}
       </div>
-      <div class="q-text">${q.text}</div>
+      <div class="q-text">${renderRichText(q.text)}</div>
       <div class="q-opts">${optionsHtml}</div>
     </div>`;
   }).join('');
@@ -2388,29 +2518,35 @@ function renderRunningExam(){
   updateExamProgress();
 }
 
+function renderRichText(html){
+  // html already contains KaTeX-rendered spans from admin editor, just return
+  return html||'';
+}
+
 function qHtml(q,i){
+  const qText = renderRichText(q.text||'');
   if(q.type==='open_ended') return `
     <div class="q-card" id="qcard${i}">
       <div class="q-num">✍️ Sual ${i+1} — Açıq sual</div>
-      <div class="q-text">${q.text}</div>
+      <div class="q-text">${qText}</div>
       <textarea class="q-open-inp" rows="3" placeholder="Cavabınızı yazın..." onchange="setAnswer(${i},this.value)">${STATE.examAnswers[i]||''}</textarea>
     </div>`;
   if(q.type==='fill_blank') return `
     <div class="q-card" id="qcard${i}">
       <div class="q-num">🔲 Sual ${i+1} — Boşluq doldur</div>
-      <div class="q-text">${q.text.replace(/___/g,'<strong style="color:var(--blue)">___</strong>')}</div>
+      <div class="q-text">${qText.replace(/___/g,'<strong style="color:var(--blue)">___</strong>')}</div>
       <input class="q-fill-inp" placeholder="Boşluğu doldurun..." value="${STATE.examAnswers[i]||''}" onchange="setAnswer(${i},this.value)">
     </div>`;
   // Multiple choice
   return `
     <div class="q-card" id="qcard${i}">
       <div class="q-num">📋 Sual ${i+1}</div>
-      <div class="q-text">${q.text}</div>
+      <div class="q-text">${qText}</div>
       <div class="q-opts">${['A','B','C','D'].map(l=>{
-        const opt=q['option_'+l.toLowerCase()]; if(!opt) return '';
-        const sel=STATE.examAnswers[i]===l;
+        const opt = q['option_'+l.toLowerCase()]; if(!opt) return '';
+        const sel = STATE.examAnswers[i]===l;
         return `<div class="q-opt${sel?' sel':''}" onclick="selectAnswer(${i},'${l}',this)">
-          <div class="q-letter">${l}</div><span>${opt}</span></div>`;
+          <div class="q-letter">${l}</div><div class="q-opt-text">${renderRichText(opt)}</div></div>`;
       }).join('')}</div>
     </div>`;
 }
@@ -3159,74 +3295,280 @@ async function loadAdminQuestions(){
     </div>`).join(''):'<div class="a-empty">Sual yoxdur. Əlavə edin.</div>');
 }
 
+// ══════════════════════════════════════════════════════════
+//  RICH EDITOR ENGINE
+// ══════════════════════════════════════════════════════════
+let _savedSel = null; // saved selection before formula panel
+
+function rfmt(cmd){ document.execCommand(cmd, false, null); }
+function rfmtBlock(cmd, val){ document.execCommand(cmd, false, val); }
+function rfmtFont(fontName){ document.execCommand('fontName', false, fontName); }
+function rfmtColor(color){ document.execCommand('foreColor', false, color); }
+
+function saveEditorSel(){
+  const sel = window.getSelection();
+  if(sel.rangeCount) _savedSel = sel.getRangeAt(0).cloneRange();
+}
+function restoreEditorSel(editorId){
+  const editor = document.getElementById(editorId);
+  editor.focus();
+  if(_savedSel){ const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(_savedSel); }
+}
+function insertHtmlAtCaret(editorId, html){
+  restoreEditorSel(editorId);
+  document.execCommand('insertHTML', false, html);
+}
+
+// ── Formula panel ─────────────────────────────────
+const FORMULA_QUICK = [
+  {label:'x²',latex:'x^{2}'},  {label:'√x',latex:'\\sqrt{x}'},
+  {label:'½',latex:'\\frac{1}{2}'}, {label:'∫',latex:'\\int'},
+  {label:'∑',latex:'\\sum'}, {label:'∞',latex:'\\infty'},
+  {label:'≠',latex:'\\neq'}, {label:'≤',latex:'\\leq'},
+  {label:'≥',latex:'\\geq'}, {label:'π',latex:'\\pi'},
+  {label:'α',latex:'\\alpha'}, {label:'β',latex:'\\beta'},
+  {label:'γ',latex:'\\gamma'}, {label:'Δ',latex:'\\Delta'},
+  {label:'θ',latex:'\\theta'}, {label:'λ',latex:'\\lambda'},
+  {label:'μ',latex:'\\mu'},   {label:'σ',latex:'\\sigma'},
+  {label:'±',latex:'\\pm'},   {label:'×',latex:'\\times'},
+  {label:'÷',latex:'\\div'},  {label:'→',latex:'\\rightarrow'},
+  {label:'⟺',latex:'\\Leftrightarrow'}, {label:'∈',latex:'\\in'},
+  {label:'aⁿ',latex:'a^{n}'}, {label:'log',latex:'\\log'},
+  {label:'sin',latex:'\\sin'}, {label:'cos',latex:'\\cos'},
+  {label:'tan',latex:'\\tan'}, {label:'lim',latex:'\\lim_{x \\to \\infty}'},
+];
+
+let _formulaTargetEditor = 'qEditor';
+
+function openFormulaPanel(editorId){
+  _formulaTargetEditor = editorId;
+  saveEditorSel();
+  // Build quick buttons
+  document.getElementById('formulaQuickBtns').innerHTML = FORMULA_QUICK.map(f=>
+    `<button class="opt-tb-btn" style="font-size:14px;padding:4px 8px;min-width:36px" onclick="pickQuickFormula('${f.latex.replace(/'/g,"\\'")}')" title="${f.latex}">${f.label}</button>`
+  ).join('');
+  document.getElementById('formulaLatexInput').value='';
+  document.getElementById('formulaPreview').innerHTML='Önizləmə...';
+  openModal('formulaPanel');
+}
+
+function pickQuickFormula(latex){
+  document.getElementById('formulaLatexInput').value = latex;
+  previewFormula();
+}
+
+function previewFormula(){
+  const latex = document.getElementById('formulaLatexInput').value.trim();
+  const prev  = document.getElementById('formulaPreview');
+  if(!latex){ prev.innerHTML='Önizləmə...'; return; }
+  try{ katex.render(latex, prev, {throwOnError:false, displayMode:true}); }
+  catch(e){ prev.textContent = latex; }
+}
+
+function insertFormula(){
+  const latex = document.getElementById('formulaLatexInput').value.trim();
+  if(!latex){ toast('Formula daxil edin','err'); return; }
+  let rendered = '';
+  try{
+    const span = document.createElement('span');
+    katex.render(latex, span, {throwOnError:false});
+    span.className = 'math-formula';
+    span.dataset.latex = latex;
+    span.contentEditable = 'false';
+    rendered = span.outerHTML + '&nbsp;';
+  } catch(e){ rendered = `<span class="math-formula">${latex}</span>&nbsp;`; }
+  closeModal('formulaPanel');
+  insertHtmlAtCaret(_formulaTargetEditor, rendered);
+}
+
+// ── Image handling ─────────────────────────────────
+function insertImgToEditor(editorId){
+  _formulaTargetEditor = editorId;
+  saveEditorSel();
+  document.getElementById('qImgFile').click();
+}
+
+function handleEditorImgUpload(editorId, inputId){
+  const file = document.getElementById(inputId).files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = `<img src="${e.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this)" data-width="100">`;
+    insertHtmlAtCaret(editorId, img);
+    document.getElementById(inputId).value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleEditorPaste(e, editorId){
+  const items = e.clipboardData?.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      e.preventDefault();
+      const blob = item.getAsFile();
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = `<img src="${ev.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this)" data-width="100">`;
+        document.getElementById(editorId).focus();
+        document.execCommand('insertHTML', false, img);
+      };
+      reader.readAsDataURL(blob);
+      return;
+    }
+  }
+}
+
+function handleEditorKeydown(e){ if(e.key==='Tab'){ e.preventDefault(); document.execCommand('insertText',false,'    '); } }
+
+// ── Image resize ──────────────────────────────────
+function selectEditorImg(imgEl){
+  window._selectedImg = imgEl;
+  // remove previous selection
+  document.querySelectorAll('.rich-editor img.selected').forEach(i=>i.classList.remove('selected'));
+  imgEl.classList.add('selected');
+  const bar = document.getElementById('imgResizeBar');
+  bar.style.display = 'flex';
+  const w = imgEl.dataset.width || '100';
+  document.getElementById('imgResizeSlider').value = w;
+  document.getElementById('imgResizeVal').textContent = w + '%';
+}
+function applyImgResize(val){
+  if(!window._selectedImg) return;
+  window._selectedImg.style.width = val + '%';
+  window._selectedImg.style.maxWidth = '100%';
+  window._selectedImg.dataset.width = val;
+  document.getElementById('imgResizeVal').textContent = val + '%';
+}
+// Click outside deselects image
+document.addEventListener('click', e=>{
+  if(e.target.tagName==='IMG' && e.target.closest('.rich-editor')) return;
+  if(e.target.closest('#imgResizeBar')) return;
+  document.getElementById('imgResizeBar').style.display='none';
+  document.querySelectorAll('.rich-editor img.selected').forEach(i=>i.classList.remove('selected'));
+  window._selectedImg=null;
+});
+
+// ── Build MC option rows ───────────────────────────
+function buildMCOptions(vals){
+  const labels = ['A','B','C','D'];
+  document.getElementById('mcOptionsList').innerHTML = labels.map((lbl,i)=>`
+    <div class="opt-editor-wrap" id="optWrap${lbl}">
+      <div class="opt-label">${lbl}</div>
+      <div class="opt-editor" id="optEditor${lbl}" contenteditable="true"
+        onpaste="handleEditorPaste(event,'optEditor${lbl}')"
+        placeholder="${lbl} variantını daxil edin..."
+        style="min-height:30px;max-height:90px;overflow-y:auto;outline:none;font-size:13.5px;font-family:'Outfit',sans-serif;color:var(--navy);line-height:1.5;flex:1">${vals?.[i]||''}</div>
+      <div class="opt-toolbar">
+        <button class="opt-tb-btn" onclick="rfmtInOpt('bold','optEditor${lbl}')" title="Qalın"><b>B</b></button>
+        <button class="opt-tb-btn" onclick="rfmtInOpt('italic','optEditor${lbl}')" title="Kursiv"><i>I</i></button>
+        <button class="opt-tb-btn" onclick="openFormulaPanel('optEditor${lbl}')" title="Formula">∑</button>
+        <button class="opt-tb-btn" onclick="insertImgToEditorOpt('optEditor${lbl}')" title="Şəkil">🖼</button>
+        <input type="file" id="optImg${lbl}" accept="image/*" style="display:none" onchange="handleEditorImgUpload('optEditor${lbl}','optImg${lbl}')">
+      </div>
+    </div>`).join('');
+  // Placeholder support for contenteditable
+  document.querySelectorAll('.opt-editor').forEach(el=>{
+    el.addEventListener('focus',()=>{ if(el.innerHTML.trim()==='') el.innerHTML=''; });
+  });
+}
+
+function rfmtInOpt(cmd, editorId){
+  document.getElementById(editorId).focus();
+  document.execCommand(cmd, false, null);
+}
+function insertImgToEditorOpt(editorId){
+  const lbl = editorId.replace('optEditor','');
+  _formulaTargetEditor = editorId;
+  saveEditorSel();
+  document.getElementById('optImg'+lbl).click();
+}
+
+// ── getEditorHTML / setEditorHTML helpers ──────────
+function getEditorHTML(id){ return document.getElementById(id)?.innerHTML?.trim()||''; }
+function setEditorHTML(id, html){ const el=document.getElementById(id); if(el) el.innerHTML=html||''; }
+
+// ══════════════════════════════════════════════════════════
+//  QUESTION MODAL
+// ══════════════════════════════════════════════════════════
+function qType(type){
+  STATE.currentQType = type;
+  document.getElementById('mcOptions').style.display   = type==='multiple_choice' ? 'block' : 'none';
+  document.getElementById('openOptions').style.display = type!=='multiple_choice' ? 'block' : 'none';
+  document.getElementById('correctLabel').textContent  = type==='fill_blank' ? 'Boşluğun cavabı' : 'Açıq sualın cavabı';
+  document.querySelectorAll('#addQModal [id^="qt"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('qt'+{multiple_choice:'MC',open_ended:'OE',fill_blank:'FB'}[type])?.classList.add('active');
+}
+
+function selectAns(l){
+  if(!l) return;
+  document.getElementById('qFCorrect').value = l;
+  document.querySelectorAll('#answerBtns .btn').forEach(b=>b.classList.remove('btn-primary'));
+  document.getElementById('ans'+l)?.classList.add('btn-primary');
+}
+
+function openAddQuestion(){
+  const examId = document.getElementById('qExamFilter').value;
+  document.getElementById('qFormTitle').textContent = '+ Sual Əlavə Et';
+  document.getElementById('qFormId').value = '';
+  document.getElementById('qFormExamId').value = examId;
+  setEditorHTML('qEditor', '');
+  buildMCOptions([]);
+  document.getElementById('qFCorrect').value = '';
+  document.getElementById('qFCorrectOpen').value = '';
+  document.querySelectorAll('#answerBtns .btn').forEach(b=>b.classList.remove('btn-primary'));
+  qType('multiple_choice');
+  openModal('addQModal');
+  setTimeout(()=>document.getElementById('qEditor').focus(), 200);
+}
+
 function editQuestion(q){
-  document.getElementById('qFormTitle').textContent='✏️ Soruyu Redaktə Et';
-  document.getElementById('qFormId').value=q.id;
-  document.getElementById('qFormExamId').value=q.exam_id;
-  document.getElementById('qFText').value=q.text||'';
-  document.getElementById('qOA').value=q.option_a||'';
-  document.getElementById('qOB').value=q.option_b||'';
-  document.getElementById('qOC').value=q.option_c||'';
-  document.getElementById('qOD').value=q.option_d||'';
-  qType(q.type||'multiple_choice');
-  if(q.type==='multiple_choice'){
-    document.getElementById('qFCorrect').value=q.correct||'';
+  document.getElementById('qFormTitle').textContent = '✏️ Sualı Redaktə Et';
+  document.getElementById('qFormId').value    = q.id;
+  document.getElementById('qFormExamId').value= q.exam_id;
+  setEditorHTML('qEditor', q.text||'');
+  const type = q.type||'multiple_choice';
+  buildMCOptions([q.option_a||'', q.option_b||'', q.option_c||'', q.option_d||'']);
+  qType(type);
+  if(type==='multiple_choice'){
+    document.getElementById('qFCorrect').value = q.correct||'';
     selectAns(q.correct?.toUpperCase());
   } else {
-    document.getElementById('qFCorrectOpen').value=q.correct||'';
+    document.getElementById('qFCorrectOpen').value = q.correct||'';
   }
   openModal('addQModal');
 }
 
-function openAddQuestion(){
-  const examId=document.getElementById('qExamFilter').value;
-  document.getElementById('qFormTitle').textContent='+ Sual Əlavə Et';
-  document.getElementById('qFormId').value='';
-  document.getElementById('qFormExamId').value=examId;
-  document.getElementById('qFText').value='';
-  document.getElementById('qOA').value=''; document.getElementById('qOB').value='';
-  document.getElementById('qOC').value=''; document.getElementById('qOD').value='';
-  document.getElementById('qFCorrect').value='';
-  document.getElementById('qFCorrectOpen').value='';
-  document.querySelectorAll('#addQModal .btn[id^="ans"]').forEach(b=>b.classList.remove('btn-primary'));
-  qType('multiple_choice');
-  openModal('addQModal');
-}
-function qType(type){
-  STATE.currentQType=type;
-  document.getElementById('mcOptions').style.display=type==='multiple_choice'?'block':'none';
-  document.getElementById('openOptions').style.display=type!=='multiple_choice'?'block':'none';
-  document.getElementById('correctLabel').textContent=type==='fill_blank'?'Boşluğun cavabı':'Açıq sualın cavabı';
-  document.getElementById('qTextLabel').textContent=type==='fill_blank'?'Sual mətni (___ ilə boşluq göstərin)':'Sual mətni';
-  document.querySelectorAll('#addQModal [id^="qt"]').forEach(b=>b.classList.remove('active'));
-  document.getElementById('qt'+{multiple_choice:'MC',open_ended:'OE',fill_blank:'FB'}[type])?.classList.add('active');
-}
-function selectAns(l){
-  document.getElementById('qFCorrect').value=l;
-  document.querySelectorAll('#addQModal .btn[id^="ans"]').forEach(b=>b.classList.remove('btn-primary'));
-  document.getElementById('ans'+l)?.classList.add('btn-primary');
-}
 async function saveQuestion(){
-  const type=STATE.currentQType||'multiple_choice';
-  const id=document.getElementById('qFormId').value;
-  const examId=document.getElementById('qFormExamId').value||document.getElementById('qExamFilter').value;
-  const body={
-    exam_id:examId,
-    text:document.getElementById('qFText').value.trim(),
-    type,
-    option_a:document.getElementById('qOA').value,
-    option_b:document.getElementById('qOB').value,
-    option_c:document.getElementById('qOC').value,
-    option_d:document.getElementById('qOD').value,
-    correct:type==='multiple_choice'?document.getElementById('qFCorrect').value:document.getElementById('qFCorrectOpen').value
-  };
-  if(!body.text||!body.correct){ toast('Sual mətni və cavab tələb olunur.','err'); return; }
+  const type   = STATE.currentQType||'multiple_choice';
+  const id     = document.getElementById('qFormId').value;
+  const examId = document.getElementById('qFormExamId').value || document.getElementById('qExamFilter').value;
+
+  const qText = getEditorHTML('qEditor');
+  if(!qText){ toast('Sual mətni tələb olunur.','err'); return; }
+
+  let body;
+  if(type==='multiple_choice'){
+    const oA = getEditorHTML('optEditorA');
+    const oB = getEditorHTML('optEditorB');
+    const oC = getEditorHTML('optEditorC');
+    const oD = getEditorHTML('optEditorD');
+    const correct = document.getElementById('qFCorrect').value;
+    if(!correct){ toast('Düzgün cavab seçin.','err'); return; }
+    body = { exam_id:examId, text:qText, type, option_a:oA, option_b:oB, option_c:oC, option_d:oD, correct };
+  } else {
+    const correct = document.getElementById('qFCorrectOpen').value.trim();
+    if(!correct){ toast('Düzgün cavab tələb olunur.','err'); return; }
+    body = { exam_id:examId, text:qText, type, correct };
+  }
+
   const r = id ? await PUT('/questions/'+id, body) : await POST('/questions', body);
   if(!r.success){ toast(r.message,'err'); return; }
-  toast(id?'Sual yeniləndi!':'Sual əlavə edildi!','ok');
+  toast(id ? 'Sual yeniləndi!' : 'Sual əlavə edildi!', 'ok');
   closeModal('addQModal');
   loadAdminQuestions();
 }
+
 async function deleteQ(id){ await DEL('/questions/'+id); toast('Silindi.','ok'); loadAdminQuestions(); }
 async function deleteAllQs(examId){
   if(!confirm('Bu imtahanın bütün sualları silinsin?')) return;
@@ -3391,33 +3733,82 @@ function setV(id,v){ const el=document.getElementById(id); if(el) el.value=v; }
 
 function buildCertFieldInputs(){
   document.getElementById('certFieldInputs').innerHTML = CERT_FIELDS.map(f=>`
-    <div style="background:#fff;border-radius:8px;padding:9px;border:1px solid var(--border);margin-bottom:6px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">${f.label}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 52px 38px;gap:3px;margin-bottom:3px">
-        <div><div style="font-size:9px;color:var(--muted)">X%</div>
-          <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="50"
-            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
-        <div><div style="font-size:9px;color:var(--muted)">Y%</div>
-          <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="50"
-            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
-        <div><div style="font-size:9px;color:var(--muted)">px</div>
-          <input class="inp" id="cf_${f.key}_size" type="number" min="6" max="200" value="36"
-            style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
-        <div><div style="font-size:9px;color:var(--muted)">Rəng</div>
-          <input type="color" id="cf_${f.key}_color" value="#0b1f3a"
-            style="width:100%;height:28px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer"
-            oninput="updateCertPreview()"></div>
+    <div id="cfBlock_${f.key}" style="border-radius:8px;border:1.5px solid var(--border);margin-bottom:6px;overflow:hidden;transition:all .2s">
+      <!-- Header row with toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#fff;cursor:pointer" onclick="toggleCertField('${f.key}')">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div id="cfToggle_${f.key}" style="width:36px;height:20px;border-radius:10px;background:var(--blue);position:relative;transition:background .2s;flex-shrink:0">
+            <div id="cfToggleKnob_${f.key}" style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;left:18px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:var(--navy)">${f.label}</span>
+        </div>
+        <span id="cfStatus_${f.key}" style="font-size:10px;color:var(--green);font-weight:600">AKTİV</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 76px;gap:3px">
-        <input class="inp" id="cf_${f.key}_font" placeholder="Arial (ixtiyari)"
-          style="padding:3px 7px;font-size:10px" oninput="updateCertPreview()">
-        <select class="inp" id="cf_${f.key}_align" style="padding:3px 7px;font-size:10px" onchange="updateCertPreview()">
-          <option value="center">Mərkəz</option>
-          <option value="left">Sol</option>
-          <option value="right">Sağ</option>
-        </select>
+      <!-- Content (collapsible) -->
+      <div id="cfContent_${f.key}" style="padding:9px 10px;background:#fafbfc;border-top:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 52px 38px;gap:3px;margin-bottom:3px">
+          <div><div style="font-size:9px;color:var(--muted)">X%</div>
+            <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="50"
+              style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+          <div><div style="font-size:9px;color:var(--muted)">Y%</div>
+            <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="50"
+              style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+          <div><div style="font-size:9px;color:var(--muted)">px</div>
+            <input class="inp" id="cf_${f.key}_size" type="number" min="6" max="200" value="36"
+              style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+          <div><div style="font-size:9px;color:var(--muted)">Rəng</div>
+            <input type="color" id="cf_${f.key}_color" value="#0b1f3a"
+              style="width:100%;height:28px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer"
+              oninput="updateCertPreview()"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 76px;gap:3px">
+          <input class="inp" id="cf_${f.key}_font" placeholder="Arial (ixtiyari)"
+            style="padding:3px 7px;font-size:10px" oninput="updateCertPreview()">
+          <select class="inp" id="cf_${f.key}_align" style="padding:3px 7px;font-size:10px" onchange="updateCertPreview()">
+            <option value="center">Mərkəz</option>
+            <option value="left">Sol</option>
+            <option value="right">Sağ</option>
+          </select>
+        </div>
       </div>
     </div>`).join('');
+  // init state tracking
+  window._certFieldEnabled = window._certFieldEnabled || {};
+  CERT_FIELDS.forEach(f => { if(window._certFieldEnabled[f.key]===undefined) window._certFieldEnabled[f.key]=true; });
+}
+
+function toggleCertField(key){
+  window._certFieldEnabled = window._certFieldEnabled || {};
+  const enabled = !window._certFieldEnabled[key];
+  window._certFieldEnabled[key] = enabled;
+  const toggle = document.getElementById('cfToggle_'+key);
+  const knob   = document.getElementById('cfToggleKnob_'+key);
+  const status = document.getElementById('cfStatus_'+key);
+  const content= document.getElementById('cfContent_'+key);
+  const block  = document.getElementById('cfBlock_'+key);
+  if(toggle){
+    toggle.style.background = enabled ? 'var(--blue)' : '#ccc';
+    knob.style.left = enabled ? '18px' : '2px';
+  }
+  if(status){ status.textContent = enabled ? 'AKTİV' : 'Söndürülüb'; status.style.color = enabled ? 'var(--green)' : 'var(--muted)'; }
+  if(content){ content.style.display = enabled ? 'block' : 'none'; }
+  if(block){ block.style.opacity = enabled ? '1' : '.6'; }
+  updateCertPreview();
+}
+
+function setCertFieldEnabled(key, enabled){
+  window._certFieldEnabled = window._certFieldEnabled || {};
+  window._certFieldEnabled[key] = enabled;
+  // Apply visual state
+  const toggle = document.getElementById('cfToggle_'+key);
+  const knob   = document.getElementById('cfToggleKnob_'+key);
+  const status = document.getElementById('cfStatus_'+key);
+  const content= document.getElementById('cfContent_'+key);
+  const block  = document.getElementById('cfBlock_'+key);
+  if(toggle){ toggle.style.background = enabled ? 'var(--blue)' : '#ccc'; knob.style.left = enabled ? '18px' : '2px'; }
+  if(status){ status.textContent = enabled ? 'AKTİV' : 'Söndürülüb'; status.style.color = enabled ? 'var(--green)' : 'var(--muted)'; }
+  if(content){ content.style.display = enabled ? 'block' : 'none'; }
+  if(block){ block.style.opacity = enabled ? '1' : '.6'; }
 }
 
 function updateCertPreview(){
@@ -3428,6 +3819,8 @@ function updateCertPreview(){
   if(!img || img.style.display==='none' || !img.offsetWidth) return;
 
   CERT_FIELDS.forEach(f=>{
+    // Skip disabled fields
+    if(window._certFieldEnabled && window._certFieldEnabled[f.key]===false) return;
     const xEl = document.getElementById('cf_'+f.key+'_x');
     const yEl = document.getElementById('cf_'+f.key+'_y');
     if(!xEl||!yEl) return;
@@ -3457,6 +3850,9 @@ async function openCertTemplate(cfgId, levelName){
   document.getElementById('certTplPreview').style.display = 'none';
   document.getElementById('certNoPreview').style.display = 'block';
   document.getElementById('certTplDots').innerHTML = '';
+  // Reset enabled state
+  window._certFieldEnabled = {};
+  CERT_FIELDS.forEach(f => window._certFieldEnabled[f.key] = true);
   buildCertFieldInputs();
 
   const cfgAll = await api('GET', '/certs/by-id/'+cfgId);
@@ -3470,6 +3866,10 @@ async function openCertTemplate(cfgId, levelName){
     const fields = typeof cfg.template_fields==='string' ? JSON.parse(cfg.template_fields||'{}') : (cfg.template_fields||{});
     CERT_FIELDS.forEach(f=>{
       const fd = fields[f.key]||{};
+      // Restore enabled/disabled state
+      const isEnabled = fd.enabled !== false; // default true
+      window._certFieldEnabled[f.key] = isEnabled;
+      setCertFieldEnabled(f.key, isEnabled);
       setV('cf_'+f.key+'_x',     fd.x??'');
       setV('cf_'+f.key+'_y',     fd.y??'');
       setV('cf_'+f.key+'_size',  fd.size||36);
@@ -3499,7 +3899,9 @@ async function saveCertTemplateFields(){
   const cfgId=document.getElementById('certTplCfgId').value;
   const fields={};
   CERT_FIELDS.forEach(f=>{
+    const enabled = window._certFieldEnabled?.[f.key] !== false;
     fields[f.key]={
+      enabled,
       x:     parseFloat(document.getElementById('cf_'+f.key+'_x')?.value)||0,
       y:     parseFloat(document.getElementById('cf_'+f.key+'_y')?.value)||0,
       size:  parseInt(document.getElementById('cf_'+f.key+'_size')?.value)||36,
@@ -3547,6 +3949,7 @@ async function generateCertPDF(cert, fields, result){
 
     Object.entries(fieldData).forEach(([key,value])=>{
       const fd=fields[key]; if(!fd||(!fd.x&&!fd.y)) return;
+      if(fd.enabled === false) return; // Skip disabled fields
       const x=(fd.x/100)*canvas.width;
       const y=(fd.y/100)*canvas.height;
       const size=Math.round((fd.size||36)*(canvas.width/800));
