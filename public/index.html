@@ -964,9 +964,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
       <!-- Questions -->
       <div class="a-panel" id="ap-questions">
-        <div class="a-hdr"><div><div class="a-title">❓ Suallar</div></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <select class="flt-sel" id="qExamFilter" onchange="loadAdminQuestions()"><option value="">İmtahan seçin</option></select>
+        <div class="a-hdr"><div>
+          <div class="a-title">❓ Suallar</div>
+          <div id="qPanelBreadcrumb" style="font-size:12px;color:var(--blue);margin-top:2px;display:none"></div>
+        </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select class="flt-sel" id="qExamFilter" onchange="loadAdminQuestions();updateQBreadcrumb()"><option value="">İmtahan seçin</option></select>
             <button class="btn btn-primary btn-sm" onclick="openAddQuestion()">+ Sual əlavə et</button>
             <button class="btn btn-outline btn-sm" onclick="openModal('csvModal')">📤 CSV Import</button>
           </div>
@@ -3403,6 +3406,7 @@ async function loadAdminExams(){
 
   function examRow(e, isChild=false){
     const subs = subMap[e.id] || [];
+    const isGroup = subs.length > 0;
     return `
       <div class="a-t-row" style="${cols};${isChild?'background:rgba(19,85,160,.04);padding-left:28px;border-left:3px solid var(--blue)':''}">
         <div>
@@ -3419,13 +3423,35 @@ async function loadAdminExams(){
         <div style="font-size:12px">${e.section||'—'}</div>
         <div>${e.question_count||0}</div>
         <div style="font-weight:600">${e.price} ₼</div>
-        <div style="display:flex;gap:3px">
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
           <button class="btn btn-outline btn-sm" title="Redaktə" onclick="editExam(${JSON.stringify(e).replace(/"/g,'&quot;')})">✏</button>
-          <button class="btn btn-outline btn-sm" title="Alt-imtahan əlavə et" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳</button>
+          ${isGroup
+            ? `<button class="btn btn-sm" style="background:rgba(124,58,237,.1);color:var(--purple);border:1px solid rgba(124,58,237,.2);font-size:11px" title="Alt-imtahanların sualları" onclick="toggleSubQView('${e.id}')">📝 Suallar</button>
+               <button class="btn btn-outline btn-sm" title="Alt-imtahan əlavə et" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳</button>`
+            : `<button class="btn btn-sm" style="background:rgba(19,85,160,.1);color:var(--blue);border:1px solid rgba(19,85,160,.2);font-size:11px" title="Sualları redaktə et" onclick="openQuestionsFor('${e.id}','${e.title.replace(/'/g,"\\'")}')">📝 Suallar</button>
+               <button class="btn btn-outline btn-sm" title="Alt-imtahan əlavə et" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳</button>`
+          }
           <button class="btn btn-red btn-sm" onclick="deleteExam('${e.id}')">✗</button>
         </div>
       </div>
-      ${subs.map(s => examRow(s, true)).join('')}`;
+      ${isGroup ? `<div id="subQView_${e.id}" style="display:none;background:rgba(124,58,237,.03);border-left:4px solid rgba(124,58,237,.3);margin:0;padding:10px 14px 10px 28px">
+        <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📚 Alt-imtahanlar — Sual Redaktəsi</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${subs.map(s=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 14px">
+              <div>
+                <span style="font-weight:600;font-size:13px">${s.title}</span>
+                <span style="margin-left:8px;font-size:11px;color:var(--muted)">${s.class||'?'}-ci sinif · ${s.section||'?'} bölmə</span>
+                <span class="tag tag-gray" style="margin-left:6px;font-size:11px">${s.question_count||0} sual</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openQuestionsFor('${s.id}','${s.title.replace(/'/g,"\\'")}')">📝 Sualları Aç</button>
+                <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏ Redaktə</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+      ${!isGroup ? subs.map(s => examRow(s, true)).join('') : ''}`;
   }
 
   html += topLevel.map(e => examRow(e)).join('');
@@ -3541,17 +3567,101 @@ async function deleteExam(id){
   loadAdminExams();
 }
 
-async function loadQExamSelect(){
-  const r=await GET('/exams');
-  const sel=document.getElementById('qExamFilter');
-  const csvSel=document.getElementById('csvExamSel');
-  sel.innerHTML='<option value="">İmtahan seçin</option>';
-  csvSel.innerHTML='<option value="">İmtahan seçin</option>';
-  (r.data||[]).forEach(e=>{
-    [sel,csvSel].forEach(s=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.title; s.appendChild(o); });
+// Open questions editor for a specific exam — switch to Questions tab and pre-select
+function openQuestionsFor(examId, examTitle){
+  // Switch to questions panel
+  document.querySelectorAll('.a-panel').forEach(x=>x.classList.remove('active'));
+  document.getElementById('ap-questions')?.classList.add('active');
+  document.querySelectorAll('.as-lnk').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.as-lnk[onclick*="questions"]')?.classList.add('active');
+  // Load exam select, then select this exam and load its questions
+  loadQExamSelect().then(()=>{
+    const sel = document.getElementById('qExamFilter');
+    if(sel){
+      // Find and select this exam
+      let found = false;
+      for(const opt of sel.options){ if(opt.value===examId){ sel.value=examId; found=true; break; } }
+      if(!found){
+        // Exam might not be in select (sub-exams hidden) — add it manually
+        const opt = document.createElement('option');
+        opt.value = examId; opt.textContent = examTitle; opt.selected = true;
+        sel.appendChild(opt);
+      }
+      loadAdminQuestions();
+    }
   });
 }
+
+// Toggle inline sub-exam question view panel
+function toggleSubQView(parentId){
+  const el = document.getElementById('subQView_'+parentId);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+async function loadQExamSelect(){
+  const r = await GET('/exams?admin=1');
+  const all = r.data||[];
+  const sel = document.getElementById('qExamFilter');
+  const csvSel = document.getElementById('csvExamSel');
+  if(!sel) return;
+
+  // Group: parents first, then subs indented
+  const parents = all.filter(e=>!e.parent_exam_id);
+  const subMap  = {};
+  all.filter(e=>e.parent_exam_id).forEach(e=>{
+    if(!subMap[e.parent_exam_id]) subMap[e.parent_exam_id]=[];
+    subMap[e.parent_exam_id].push(e);
+  });
+
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">İmtahan seçin</option>';
+  if(csvSel) csvSel.innerHTML = '<option value="">İmtahan seçin</option>';
+
+  parents.forEach(p=>{
+    const subs = subMap[p.id]||[];
+    if(subs.length){
+      // Group exam — add optgroup with sub-exams
+      const grp = document.createElement('optgroup');
+      grp.label = `🗂 ${p.title}`;
+      subs.forEach(s=>{
+        const o = document.createElement('option');
+        o.value = s.id;
+        o.textContent = `↳ ${s.class||'?'} sinif · ${s.section||'?'} · ${s.title}`;
+        grp.appendChild(o);
+        if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
+      });
+      sel.appendChild(grp);
+    } else {
+      // Regular exam
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.title;
+      sel.appendChild(o);
+      if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
+    }
+  });
+
+  // Restore selection if still valid
+  if(currentVal) sel.value = currentVal;
+}
+function updateQBreadcrumb(){
+  const sel = document.getElementById('qExamFilter');
+  const bc  = document.getElementById('qPanelBreadcrumb');
+  if(!sel||!bc) return;
+  const opt = sel.options[sel.selectedIndex];
+  if(opt&&opt.value){
+    bc.style.display = 'block';
+    const grpLabel = opt.parentElement?.label;
+    bc.innerHTML = grpLabel
+      ? `📂 ${grpLabel} &nbsp;›&nbsp; 📝 ${opt.textContent.replace('↳ ','')}`
+      : `📝 ${opt.textContent}`;
+  } else {
+    bc.style.display = 'none';
+  }
+}
+
 async function loadAdminQuestions(){
+  updateQBreadcrumb();
   const examId=document.getElementById('qExamFilter').value;
   if(!examId){ document.getElementById('adminQsTable').innerHTML='<div class="a-empty">İmtahan seçin</div>'; return; }
   const r=await GET('/questions?exam_id='+examId);
