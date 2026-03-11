@@ -14,7 +14,6 @@ router.get('/', optionalAuth, (req, res) => {
   const params = [];
 
   if (!admin) {
-    // Students only see active exams within date range, no sub-exams
     sql += ' AND e.is_active=1';
     const now = new Date().toISOString().slice(0,10);
     sql += ` AND (e.is_unlimited=1 OR (
@@ -24,7 +23,6 @@ router.get('/', optionalAuth, (req, res) => {
     params.push(now, now);
     sql += " AND (e.parent_exam_id='' OR e.parent_exam_id IS NULL)";
   }
-  // Admin sees ALL exams (active + hidden) — no is_active filter
 
   if (category)    { sql += ' AND e.category=?';   params.push(category); }
   if (subject)     { sql += ' AND e.subject=?';    params.push(subject); }
@@ -37,7 +35,51 @@ router.get('/', optionalAuth, (req, res) => {
   res.json({ success:true, data: db.prepare(sql).all(...params) });
 });
 
-// ── GET /:id/subs  (MUST be before /:id) ─────────────────
+// ── GET /:id/tree — full nested tree for buy modal (BEFORE /:id) ──
+router.get('/:id/tree', optionalAuth, (req, res) => {
+  // Level 1: language groups (direct children of root exam)
+  const langGroups = db.prepare(`
+    SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 ORDER BY section, title
+  `).all(req.params.id);
+
+  if (!langGroups.length) {
+    // Flat group (old-style) — return direct children as grades
+    const subs = db.prepare(`
+      SELECT class, section FROM exams
+      WHERE parent_exam_id=? AND is_active=1 ORDER BY class, section
+    `).all(req.params.id);
+    return res.json({ success:true, type:'flat', data:subs,
+      classes:[...new Set(subs.map(s=>s.class).filter(Boolean))],
+      sections:[...new Set(subs.map(s=>s.section).filter(Boolean))] });
+  }
+
+  // Check if level-1 children themselves have children (3-level)
+  const firstChild = langGroups[0];
+  const gradeCheck = db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(firstChild.id);
+
+  if (gradeCheck?.c > 0) {
+    // 3-level: root → language → grade
+    const tree = langGroups.map(lang => {
+      const grades = db.prepare(`
+        SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 ORDER BY CAST(class AS INTEGER), class
+      `).all(lang.id);
+      return { id: lang.id, label: lang.section||lang.title, title: lang.title, section: lang.section, grades };
+    });
+    const allGrades = [...new Set(tree.flatMap(l=>l.grades.map(g=>g.class)).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+    return res.json({ success:true, type:'multilevel', languages: tree, allGrades });
+  }
+
+  // 2-level: root → direct subs with class/section
+  const subs = db.prepare(`
+    SELECT class, section FROM exams
+    WHERE parent_exam_id=? AND is_active=1 ORDER BY class, section
+  `).all(req.params.id);
+  res.json({ success:true, type:'flat', data:subs,
+    classes:[...new Set(subs.map(s=>s.class).filter(Boolean))],
+    sections:[...new Set(subs.map(s=>s.section).filter(Boolean))] });
+});
+
+// ── GET /:id/subs (MUST be before /:id) ──────────────────
 router.get('/:id/subs', optionalAuth, (req, res) => {
   const subs = db.prepare(`
     SELECT class, section FROM exams
@@ -48,7 +90,7 @@ router.get('/:id/subs', optionalAuth, (req, res) => {
   res.json({ success:true, data:subs, classes, sections });
 });
 
-// ── GET /:id/questions  (MUST be before /:id) ─────────────
+// ── GET /:id/questions (MUST be before /:id) ─────────────
 router.get('/:id/questions', authMiddleware, (req, res) => {
   const user = req.user;
   if (user.role !== 'admin') {
@@ -97,7 +139,7 @@ router.post('/', adminMiddleware, (req, res) => {
   res.status(201).json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(id) });
 });
 
-// ── PATCH /:id/toggle-active  (quick publish toggle) ─────
+// ── PATCH /:id/toggle-active ──────────────────────────────
 router.patch('/:id/toggle-active', adminMiddleware, (req, res) => {
   const exam = db.prepare('SELECT id, is_active FROM exams WHERE id=?').get(req.params.id);
   if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });

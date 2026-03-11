@@ -1245,16 +1245,24 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <input class="phone-inp" id="buyWa" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('buyWa')">
         </div>
     </div>
-    <div id="buyClassSectionWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>Sinif</label>
-        <select class="inp" id="buyClass" onchange="filterBuySectionByCls(window._buySubs||[])">
-          <option value="">Sinif seçin</option>
-        </select>
+    <div id="buyClassSectionWrap">
+      <!-- Multilevel (language + grade) -->
+      <div id="buyLangWrap" style="display:none;margin-bottom:10px">
+        <div class="field"><label>📖 Tədris dili</label>
+          <div id="buyLangBtns" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
       </div>
-      <div class="field"><label>Bölmə</label>
-        <select class="inp" id="buySection">
-          <option value="">Bölmə seçin</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label>Sinif</label>
+          <select class="inp" id="buyClass" onchange="onBuyClassChange()">
+            <option value="">Sinif seçin</option>
+          </select>
+        </div>
+        <div class="field" id="buySectionField"><label>Bölmə</label>
+          <select class="inp" id="buySection">
+            <option value="">Bölmə seçin</option>
+          </select>
+        </div>
       </div>
     </div>
     <div style="background:rgba(19,85,160,.06);border:1px solid rgba(19,85,160,.12);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--blue)">
@@ -2487,13 +2495,9 @@ async function handleGroupExamBtn(examId, examTitle, price){
     if(cr.status==='cancelled'){ toast('Bu imtahan üçün əvvəllər qeydiyyat etdiniz. Adminlə əlaqə saxlayın.','err'); return; }
     if(cr.status==='completed'){ toast('Bu imtahanı artıq bitirdiniz. Nəticələrə baxın.','info'); goTo('myresults'); return; }
   }
-  // Fetch available subs for this parent exam
-  const subsR = await GET('/exams/'+examId+'/subs');
-  const subs  = subsR.data || [];
-  if(!subs.length){
-    toast('Bu imtahan üçün hazırda aktiv sinif tapılmadı.','err'); return;
-  }
-  await openBuyModal(examId, examTitle, price, true, subs);
+  const treeR = await GET('/exams/'+examId+'/tree');
+  if(!treeR.success){ toast('İmtahan məlumatları yüklənmədi.','err'); return; }
+  await openBuyModal(examId, examTitle, price, true, treeR);
 }
 
 async function handleExamBtn(examId, examTitle, price){
@@ -2511,10 +2515,9 @@ async function handleExamBtn(examId, examTitle, price){
   await openBuyModal(examId, examTitle, price, false, []);
 }
 
-async function openBuyModal(examId, examTitle, price, isGroup, subs){
+async function openBuyModal(examId, examTitle, price, isGroup, treeData){
   document.getElementById('buyExamTitle').textContent = '💰 '+examTitle+(price?' — '+price+' AZN':'');
 
-  // Split stored name into first/last
   const nameParts = (STATE.user.name||'').trim().split(' ');
   document.getElementById('buyFirstName').value = nameParts[0]||'';
   document.getElementById('buyLastName').value  = nameParts.slice(1).join(' ')||'';
@@ -2524,24 +2527,45 @@ async function openBuyModal(examId, examTitle, price, isGroup, subs){
   document.getElementById('buyPhone').value = fmt(uPhone);
   document.getElementById('buyWa').value    = fmt(uPhone);
 
-  // Store subs globally for onchange handler
-  window._buySubs = subs||[];
+  window._buyTree    = treeData || null;
   window._buyIsGroup = isGroup;
 
   const userCls = STATE.user.class  ||'';
   const userSec = STATE.user.section||'';
 
-  if(isGroup && subs && subs.length){
+  const langWrap = document.getElementById('buyLangWrap');
+  const secField = document.getElementById('buySectionField');
+
+  if(isGroup && treeData){
     document.getElementById('buySmartNotice').style.display = 'block';
-    // Build selects from actual sub-exam data
-    const classes = [...new Set(subs.map(s=>s.class).filter(Boolean))].sort();
-    document.getElementById('buyClass').innerHTML =
-      '<option value="">Sinif seçin</option>' +
-      classes.map(c=>`<option value="${c}" ${c===userCls?'selected':''}>${c}-ci sinif</option>`).join('');
-    filterBuySectionByCls(subs);
+
+    if(treeData.type === 'multilevel'){
+      // 3-level: show language buttons + grade select
+      langWrap.style.display = 'block';
+      secField.style.display = 'none';
+      // Build language buttons
+      const langBtns = document.getElementById('buyLangBtns');
+      langBtns.innerHTML = treeData.languages.map((l,i)=>
+        `<button type="button" class="btn ${i===0?'btn-primary':'btn-outline'} btn-sm" style="font-size:13px;padding:6px 16px;border-radius:8px"
+          data-lang="${l.section}" onclick="selectBuyLang(this,'${l.section}',${JSON.stringify(treeData).replace(/"/g,'&quot;')})">${l.label||l.section}</button>`
+      ).join('');
+      window._buySelectedLang = treeData.languages[0]?.section || '';
+      buildBuyGrades(treeData, window._buySelectedLang, userCls);
+    } else {
+      // 2-level flat: class + section
+      langWrap.style.display = 'none';
+      secField.style.display = 'block';
+      const subs = treeData.data||[];
+      const classes = [...new Set(subs.map(s=>s.class).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+      document.getElementById('buyClass').innerHTML =
+        '<option value="">Sinif seçin</option>' +
+        classes.map(c=>`<option value="${c}" ${c===userCls?'selected':''}>${c}-ci sinif</option>`).join('');
+      filterBuySectionByCls(subs, userSec);
+    }
   } else {
+    langWrap.style.display = 'none';
+    secField.style.display = 'block';
     document.getElementById('buySmartNotice').style.display = 'none';
-    // Non-group exam — load all classes/sections from categories
     await loadCatSelect('buyClass',   'class',   userCls, 'Sinif seçin');
     await loadCatSelect('buySection', 'section', userSec, 'Bölmə seçin');
   }
@@ -2552,21 +2576,36 @@ async function openBuyModal(examId, examTitle, price, isGroup, subs){
   openModal('buyModal');
 }
 
-function filterBuySectionByCls(subs){
+function selectBuyLang(btn, lang, treeData){
+  document.querySelectorAll('#buyLangBtns .btn').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-outline'); });
+  btn.classList.remove('btn-outline'); btn.classList.add('btn-primary');
+  window._buySelectedLang = lang;
+  buildBuyGrades(treeData, lang, document.getElementById('buyClass').value||STATE.user?.class||'');
+}
+
+function buildBuyGrades(treeData, lang, selectedClass){
+  const langObj = treeData.languages?.find(l=>l.section===lang) || treeData.languages?.[0];
+  const grades  = langObj ? [...new Set(langObj.grades.map(g=>g.class).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b)) : [];
+  document.getElementById('buyClass').innerHTML =
+    '<option value="">Sinif seçin</option>' +
+    grades.map(c=>`<option value="${c}" ${c===selectedClass?'selected':''}>${c}-ci sinif</option>`).join('');
+  if(grades.length===1) document.getElementById('buyClass').value=grades[0];
+}
+
+function onBuyClassChange(){
+  const tree = window._buyTree;
+  if(!tree || tree.type==='multilevel') return; // grades don't filter sections in multilevel
+  filterBuySectionByCls(tree.data||[], STATE.user?.section||'');
+}
+
+function filterBuySectionByCls(subs, userSec){
   const cls    = document.getElementById('buyClass').value;
   const secSel = document.getElementById('buySection');
-  const userSec = STATE.user?.section||'';
-  let available;
-  if(window._buyIsGroup && subs && subs.length){
-    available = cls
-      ? [...new Set(subs.filter(s=>s.class===cls).map(s=>s.section).filter(Boolean))].sort()
-      : [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
-  } else {
-    // For non-group exams don't filter by class — keep all sections
-    return;
-  }
+  const available = cls
+    ? [...new Set(subs.filter(s=>s.class===cls).map(s=>s.section).filter(Boolean))].sort()
+    : [...new Set(subs.map(s=>s.section).filter(Boolean))].sort();
   secSel.innerHTML = '<option value="">Bölmə seçin</option>' +
-    available.map(s=>`<option value="${s}" ${s===userSec?'selected':''}>${s}</option>`).join('');
+    available.map(s=>`<option value="${s}" ${s===(userSec||STATE.user?.section||'')?'selected':''}>${s}</option>`).join('');
   if(available.length===1) secSel.value = available[0];
 }
 
@@ -2578,18 +2617,20 @@ async function doBuyTicket(){
   const fullName  = (firstName+' '+lastName).trim();
   const cls = document.getElementById('buyClass').value;
   const sec = document.getElementById('buySection').value;
+  const lang = window._buySelectedLang||'';
 
   if(!firstName||!lastName){ showMsg('buyMsg','Ad və soyad daxil edin.','err'); return; }
   if(!cls){ showMsg('buyMsg','Sinifnizi seçin.','err'); return; }
 
   const btn=document.getElementById('buyBtn'); btn.disabled=true; btn.textContent='Göndərilir...';
   const r=await POST('/registrations',{
-    exam_id: examId,
-    name:    fullName,
-    phone:   getFullPhone('buyPhone'),
-    whatsapp:getFullPhone('buyWa'),
-    class:   cls,
-    section: sec
+    exam_id:  examId,
+    name:     fullName,
+    phone:    getFullPhone('buyPhone'),
+    whatsapp: getFullPhone('buyWa'),
+    class:    cls,
+    section:  sec,
+    language: lang
   });
   btn.disabled=false; btn.textContent='Bilet Al';
   if(!r.success){ showMsg('buyMsg', r.message||'Xəta baş verdi.', 'err'); return; }
@@ -3422,98 +3463,133 @@ async function deleteIcaze(id){
 async function loadAdminExams(){
   const r = await GET('/exams?admin=1');
   const data = r.data||[];
-  // Group: top-level + sub-exams
-  const topLevel = data.filter(e => !e.parent_exam_id);
-  const subMap   = {};
-  data.filter(e => e.parent_exam_id).forEach(e => {
-    if(!subMap[e.parent_exam_id]) subMap[e.parent_exam_id] = [];
-    subMap[e.parent_exam_id].push(e);
+
+  // Build parent→children map
+  const childMap = {};
+  data.forEach(e => {
+    const p = e.parent_exam_id||'';
+    if(!childMap[p]) childMap[p] = [];
+    childMap[p].push(e);
   });
+  const topLevel = childMap['']||[];
 
   const now = new Date().toISOString().slice(0,10);
-  function dateStatus(e){
+  function dateTag(e){
     if(e.is_unlimited) return '<span class="tag tag-green" style="font-size:10px">∞ Müddətsiz</span>';
-    const s = e.start_date||'', f = e.end_date||'';
-    if(f && now > f) return '<span class="tag tag-red" style="font-size:10px">⏰ Bitmişdir</span>';
-    if(s && now < s) return '<span class="tag tag-gold" style="font-size:10px">🕒 Gözləyir</span>';
+    const s=e.start_date||'',f=e.end_date||'';
+    if(f && now>f) return '<span class="tag tag-red" style="font-size:10px">⏰ Bitmişdir</span>';
+    if(s && now<s) return '<span class="tag tag-gold" style="font-size:10px">🕒 Gözləyir</span>';
     return '<span class="tag tag-blue" style="font-size:10px">📅 Tarixli</span>';
   }
+  function saleTag(e){ return e.is_active
+    ? '<span class="tag tag-green" style="font-size:10px">Satışda</span>'
+    : '<span class="tag tag-red"   style="font-size:10px">Satışda deyil</span>'; }
+  function toggle(e){ return `<label class="pub-toggle"><input type="checkbox" ${e.is_active?'checked':''} onchange="toggleExamActive('${e.id}',this)"><span class="pub-slider"></span></label>`; }
 
-  let html = `<div class="a-t-title">İmtahanlar
-    <div style="display:flex;gap:6px">
-      <span class="tag tag-blue">${topLevel.length} əsas</span>
-      <span class="tag tag-purple">${data.filter(e=>e.parent_exam_id).length} alt</span>
-      <button class="btn btn-primary btn-sm" onclick="openAddExamModal()">+ Yeni</button>
-    </div>
-  </div>`;
-
-  const cols = 'grid-template-columns:1fr 80px 55px 50px 60px 64px 120px';
-  html += `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Kateqoriya</div><div>Sinif</div><div>Sual</div><div>Qiymət</div><div>Satışda</div><div>Əməliyyat</div></div>`;
-
-  function examRow(e, isChild=false){
-    const subs = subMap[e.id] || [];
-    const isGroup = subs.length > 0;
-    const toggleId = 'tog_'+e.id;
+  /* ── GRADE ROW (leaf — sinif imtahanı) ──────────────── */
+  function gradeRow(g){
+    const ej = JSON.stringify(g).replace(/"/g,'&quot;');
     return `
-      <div class="a-t-row" id="erow_${e.id}" style="${cols};${isChild?'background:rgba(19,85,160,.04);padding-left:28px;border-left:3px solid var(--blue);opacity:'+( e.is_active?1:.65)+';':' opacity:'+(e.is_active?1:.65)+';'}">
+      <div id="erow_${g.id}" style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;opacity:${g.is_active?1:.6};flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <span style="font-weight:600;font-size:13px">${g.class||'?'}-ci sinif</span>
+          ${g.title ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${g.title}</span>` : ''}
+          <span class="tag tag-gray" style="margin-left:6px;font-size:10px">${g.question_count||0} sual</span>
+          ${saleTag(g)}
+        </div>
+        ${toggle(g)}
+        <button class="btn btn-sm btn-primary" style="font-size:11px;padding:3px 9px" onclick="openQuestionsFor('${g.id}','${(g.class||'?')}-ci sinif')">📝</button>
+        <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${ej})">✏</button>
+        <button class="btn btn-red btn-sm" onclick="deleteExam('${g.id}')">✗</button>
+      </div>`;
+  }
+
+  /* ── LANGUAGE SECTION (Azərbaycan / Rus / İngilis) ───── */
+  const LANG_COLORS = { AZ:'rgba(0,148,68,.1)', RU:'rgba(21,95,191,.1)', EN:'rgba(180,80,0,.1)' };
+  const LANG_BORDERS= { AZ:'rgba(0,148,68,.4)',  RU:'rgba(21,95,191,.4)',  EN:'rgba(180,80,0,.4)' };
+  const LANG_LABELS = { AZ:'🇦🇿 Azərbaycan', RU:'🇷🇺 Rus', EN:'🇬🇧 İngilis' };
+
+  function langSection(lang, parentId, parentTitle){
+    const grades = (childMap[lang.id]||[]).slice().sort((a,b)=>parseInt(a.class)-parseInt(b.class));
+    const key = lang.section||lang.title||lang.id;
+    const bg  = LANG_COLORS[key]  || 'rgba(124,58,237,.05)';
+    const bdr = LANG_BORDERS[key] || 'rgba(124,58,237,.3)';
+    const lbl = LANG_LABELS[key]  || key;
+    const ej  = JSON.stringify(lang).replace(/"/g,'&quot;');
+    const activeCount = grades.filter(g=>g.is_active).length;
+    return `
+      <div style="background:${bg};border-left:4px solid ${bdr};border-radius:0 10px 10px 0;margin:0 0 6px 12px;padding:8px 10px 10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-weight:700;font-size:12px;color:#333">${lbl}</span>
+          <span class="tag tag-gray" style="font-size:10px">${activeCount}/${grades.length} aktiv sinif</span>
+          ${saleTag(lang)}
+          ${toggle(lang)}
+          <span style="flex:1"></span>
+          <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 8px" onclick="openAddSubExam('${lang.id}','${lang.title.replace(/'/g,"\\'")} — Sinif')">+ Sinif</button>
+          <button class="btn btn-outline btn-sm" style="font-size:10px" onclick="editExam(${ej})">✏</button>
+          <button class="btn btn-red btn-sm" onclick="deleteExam('${lang.id}')">✗</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${grades.length ? grades.map(g=>gradeRow(g)).join('') : '<span style="font-size:12px;color:var(--muted);padding:4px 8px">Hələ sinif yoxdur</span>'}
+        </div>
+      </div>`;
+  }
+
+  /* ── ROOT EXAM ROW ───────────────────────────────────── */
+  const cols = 'grid-template-columns:1fr 80px 60px 64px 130px';
+  function rootRow(e){
+    const langs = (childMap[e.id]||[]).slice();
+    // Detect: does first child have its own children? → 3-level
+    const firstChild = langs[0];
+    const has3Levels = firstChild && (childMap[firstChild.id]||[]).length > 0;
+    // Flat 2-level: children are leaf grades
+    const isFlat2 = langs.length > 0 && !has3Levels;
+    const ej = JSON.stringify(e).replace(/"/g,'&quot;');
+    const totalLeaves = has3Levels
+      ? langs.reduce((acc,l)=>acc+(childMap[l.id]||[]).length,0)
+      : langs.length;
+
+    return `
+      <div class="a-t-row" id="erow_${e.id}" style="${cols};opacity:${e.is_active?1:.7}">
         <div>
-          ${isChild ? '<span style="color:var(--blue);font-size:11px;margin-right:4px">↳</span>' : ''}
-          <span style="font-weight:600;font-size:13px">${e.title}</span>
-          <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">
-            ${!e.is_active ? '<span class="tag tag-red" style="font-size:10px">Satışda deyil</span>' : '<span class="tag tag-green" style="font-size:10px">Satışda</span>'}
-            ${dateStatus(e)}
-            ${subs.length ? `<span class="tag tag-purple" style="font-size:10px">${subs.length} alt-imtahan</span>` : ''}
+          <span style="font-weight:700;font-size:14px">${e.title}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
+            ${saleTag(e)} ${dateTag(e)}
+            ${has3Levels  ? `<span class="tag tag-purple" style="font-size:10px">${langs.length} dil · ${totalLeaves} sinif</span>` : ''}
+            ${isFlat2     ? `<span class="tag tag-purple" style="font-size:10px">${langs.length} bölmə</span>` : ''}
           </div>
         </div>
         <div><span class="tag tag-blue" style="font-size:10px">${e.category||'—'}</span></div>
-        <div style="font-size:12px">${e.class||'—'}</div>
-        <div>${e.question_count||0}</div>
         <div style="font-weight:600">${e.price} ₼</div>
-        <div>
-          <label class="pub-toggle" title="${e.is_active?'Satışdan çıxar':'Satışa çıxar'}">
-            <input type="checkbox" ${e.is_active?'checked':''} onchange="toggleExamActive('${e.id}',this)">
-            <span class="pub-slider"></span>
-          </label>
-        </div>
+        <div>${toggle(e)}</div>
         <div style="display:flex;gap:3px;flex-wrap:wrap">
-          <button class="btn btn-outline btn-sm" title="Redaktə" onclick="editExam(${JSON.stringify(e).replace(/"/g,'&quot;')})">✏</button>
-          ${isGroup
-            ? `<button class="btn btn-sm" style="background:rgba(124,58,237,.1);color:var(--purple);border:1px solid rgba(124,58,237,.2);font-size:11px" title="Alt-imtahanların sualları" onclick="toggleSubQView('${e.id}')">📝 Suallar</button>
-               <button class="btn btn-outline btn-sm" title="Alt-imtahan əlavə et" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳</button>`
-            : `<button class="btn btn-sm" style="background:rgba(19,85,160,.1);color:var(--blue);border:1px solid rgba(19,85,160,.2);font-size:11px" title="Sualları redaktə et" onclick="openQuestionsFor('${e.id}','${e.title.replace(/'/g,"\\'")}')">📝 Suallar</button>
-               <button class="btn btn-outline btn-sm" title="Alt-imtahan əlavə et" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳</button>`
-          }
+          <button class="btn btn-outline btn-sm" onclick="editExam(${ej})">✏</button>
+          <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳ Dil</button>
           <button class="btn btn-red btn-sm" onclick="deleteExam('${e.id}')">✗</button>
         </div>
       </div>
-      ${isGroup ? `<div id="subQView_${e.id}" style="display:none;background:rgba(124,58,237,.03);border-left:4px solid rgba(124,58,237,.3);margin:0;padding:10px 14px 10px 28px">
-        <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📚 Alt-imtahanlar — Satış / Sual Redaktəsi</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${subs.map(s=>`
-            <div id="erow_${s.id}" style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 14px;opacity:${s.is_active?1:.6}">
-              <div style="display:flex;align-items:center;gap:10px">
-                <label class="pub-toggle" title="${s.is_active?'Satışdan çıxar':'Satışa çıxar'}">
-                  <input type="checkbox" ${s.is_active?'checked':''} onchange="toggleExamActive('${s.id}',this)">
-                  <span class="pub-slider"></span>
-                </label>
-                <div>
-                  <span style="font-weight:600;font-size:13px">${s.title}</span>
-                  <span style="margin-left:8px;font-size:11px;color:var(--muted)">${s.class||'?'}-ci sinif · ${s.section||'?'} bölmə</span>
-                  <span class="tag tag-gray" style="margin-left:6px;font-size:11px">${s.question_count||0} sual</span>
-                  ${!s.is_active?'<span class="tag tag-red" style="margin-left:4px;font-size:10px">Satışda deyil</span>':'<span class="tag tag-green" style="margin-left:4px;font-size:10px">Satışda</span>'}
-                </div>
-              </div>
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openQuestionsFor('${s.id}','${s.title.replace(/'/g,"\\'")}')">📝 Suallar</button>
-                <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏</button>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>` : ''}
-      ${!isGroup ? subs.map(s => examRow(s, true)).join('') : ''}`;
+      ${langs.length ? `
+        <div style="background:rgba(124,58,237,.02);border-left:4px solid rgba(124,58,237,.2);padding:10px 12px 12px;margin-bottom:6px">
+          <div style="font-size:10.5px;font-weight:700;color:var(--purple);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+            📚 Təhsil Bölmələri
+            <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 8px" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+ Dil bölməsi</button>
+          </div>
+          ${has3Levels
+            ? langs.map(l=>langSection(l, e.id, e.title)).join('')
+            : `<div style="display:flex;flex-direction:column;gap:5px">${langs.map(s=>gradeRow(s)).join('')}</div>`
+          }
+        </div>` : ''}`;
   }
 
-  html += topLevel.map(e => examRow(e)).join('');
+  let html = `<div class="a-t-title">İmtahanlar
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="tag tag-blue">${topLevel.length} əsas</span>
+      <span class="tag tag-purple">${data.length-topLevel.length} alt</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddExamModal()">+ Yeni</button>
+    </div>
+  </div>`;
+  html += `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Kateqoriya</div><div>Qiymət</div><div>Satışda</div><div>Əməliyyat</div></div>`;
+  html += topLevel.map(e=>rootRow(e)).join('');
   if(!topLevel.length) html += '<div class="a-empty">İmtahan yoxdur.</div>';
   document.getElementById('adminExamsTable').innerHTML = html;
 }

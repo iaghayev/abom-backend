@@ -79,19 +79,50 @@ router.post('/', authMiddleware, (req, res) => {
   let targetExam = db.prepare('SELECT * FROM exams WHERE id=? AND is_active=1').get(exam_id);
   if (!targetExam) return res.status(404).json({ success: false, message: 'İmtahan tapılmadı.' });
 
-  // Smart sub-exam assignment
+  // Smart sub-exam assignment — supports up to 3 levels deep
+  // level 1: root→children (flat: class+section)
+  // level 2: root→language→grade  (req.body.language + class)
   const subCount = db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(exam_id)?.c || 0;
   if (subCount > 0) {
-    const studentClass   = cls || req.user.class || '';
-    const studentSection = section || req.user.section || '';
-    let subExam = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=? AND section=?").get(exam_id, studentClass, studentSection);
-    if (!subExam) subExam = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?").get(exam_id, studentClass);
-    if (!subExam) subExam = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?").get(exam_id, studentSection);
-    if (!subExam) return res.status(400).json({
-      success: false,
-      message: `"${targetExam.title}" imtahanında ${studentClass} sinif ${studentSection} bölməsi üçün alt imtahan tapılmadı.`
-    });
-    targetExam = subExam;
+    const studentClass    = cls || req.user.class || '';
+    const studentSection  = section || req.user.section || '';
+    const studentLanguage = req.body.language || '';
+
+    // Check if first-level children have children (3-level tree)
+    const firstChild = db.prepare("SELECT id FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(exam_id);
+    const grandchildCount = firstChild
+      ? db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(firstChild.id)?.c || 0
+      : 0;
+
+    let targetLeaf = null;
+
+    if (grandchildCount > 0) {
+      // 3-level: find language group first, then grade within it
+      let langGroup = null;
+      if (studentLanguage) {
+        langGroup = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?").get(exam_id, studentLanguage);
+      }
+      if (!langGroup) langGroup = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(exam_id);
+
+      if (langGroup) {
+        targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?").get(langGroup.id, studentClass);
+        if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(langGroup.id);
+      }
+      if (!targetLeaf) return res.status(400).json({
+        success: false,
+        message: `"${targetExam.title}" imtahanında ${studentLanguage||'?'} dili, ${studentClass||'?'}-ci sinif üçün imtahan tapılmadı.`
+      });
+    } else {
+      // 2-level: class + section
+      targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=? AND section=?").get(exam_id, studentClass, studentSection);
+      if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?").get(exam_id, studentClass);
+      if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?").get(exam_id, studentSection);
+      if (!targetLeaf) return res.status(400).json({
+        success: false,
+        message: `"${targetExam.title}" imtahanında ${studentClass}-ci sinif ${studentSection} bölməsi üçün alt imtahan tapılmadı.`
+      });
+    }
+    targetExam = targetLeaf;
   }
 
   // Check if already registered (any status — including cancelled)
