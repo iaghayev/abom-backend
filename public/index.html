@@ -2800,6 +2800,34 @@ function downloadCert(){
   }).catch(()=>downloadCertHTML(r,l));
 }
 
+async function downloadCertById(resultId){
+  const btn=event?.target;
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  try{
+    const rr=await GET('/results/'+resultId);
+    const result=rr.data; if(!result){toast('Nəticə tapılmadı','err');return;}
+    const er=await GET('/exams/'+result.exam_id);
+    const exam=er.data;
+    const certResp=await GET('/certs/check/'+resultId);
+    if(certResp.hasCert&&certResp.data?.template_url){
+      const fields=typeof certResp.data.template_fields==='string'
+        ?JSON.parse(certResp.data.template_fields||'{}')
+        :(certResp.data.template_fields||{});
+      generateCertPDF(certResp.data,fields,result);
+    } else {
+      const certLevels=await GET('/certs/config/'+result.exam_id);
+      const levels=certLevels.data||[];
+      const level=levels.find(l=>result.score>=l.min_score&&result.score<=l.max_score)||null;
+      if(!level){toast('Bu imtahan üçün sertifikat mövcud deyil','err');return;}
+      const prev={r:STATE.currentResult,l:STATE.currentCertLevel,e:STATE.currentExam};
+      STATE.currentResult=result;STATE.currentCertLevel=level;STATE.currentExam=exam;
+      downloadCertHTML(result,level);
+      STATE.currentResult=prev.r;STATE.currentCertLevel=prev.l;STATE.currentExam=prev.e;
+    }
+  }catch(e){toast('Sertifikat yüklənmədi','err');}
+  finally{if(btn){btn.textContent='🏅 Yüklə';btn.disabled=false;}}
+}
+
 function downloadCertHTML(r, l){
   const u=STATE.user; const ex=STATE.currentExam;
   if(!r||!l){ toast('Sertifikat mövcud deyil','err'); return; }
@@ -2940,17 +2968,18 @@ function drawChart(trend){
 async function loadMyResults(){
   const r=await GET('/results');
   const data=r.data||[];
-  const cols='grid-template-columns:1fr 80px 100px 70px 80px 80px';
+  const cols='grid-template-columns:1fr 70px 100px 110px 80px';
   document.getElementById('myResultsList').innerHTML=
-    `<div class="a-t-hdr" style="${cols}"><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Sertifikat</div><div>Tarix</div><div>İcmal</div></div>`+
-    (data.length?data.map(r=>`
+    `<div class="a-t-hdr" style="${cols}"><div>İmtahan</div><div>Bal</div><div>Nəticə</div><div>Sertifikat</div><div>İcmal</div></div>`+
+    (data.length?data.map(res=>`
       <div class="a-t-row" style="${cols}">
-        <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.exam_title||'—'}</div>
-        <div><span style="font-weight:700;color:${scoreColor(r.score)}">${r.score}%</span></div>
-        <div style="font-size:12px;color:var(--muted)">${r.correct}/${r.total} düzgün</div>
-        <div>${r.score>=41?'<span class="tag tag-gold">🏅</span>':'<span class="tag tag-gray">—</span>'}</div>
-        <div style="font-size:12px;color:var(--muted)">${fmtDate(r.created_at)}</div>
-        <div><button class="btn btn-outline btn-sm" onclick="loadReview('${r.id}')">🔍 Bax</button></div>
+        <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${res.exam_title||'—'}</div>
+        <div><span style="font-weight:700;color:${scoreColor(res.score)}">${res.score}%</span></div>
+        <div style="font-size:12px;color:var(--muted)">${res.correct}/${res.total} düzgün</div>
+        <div>${res.score>=41
+          ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;font-size:11px;padding:4px 8px" onclick="downloadCertById('${res.id}')">🏅 Yüklə</button>`
+          : '<span class="tag tag-gray" style="font-size:11px">—</span>'}</div>
+        <div><button class="btn btn-outline btn-sm" onclick="loadReview('${res.id}')">🔍 Bax</button></div>
       </div>`).join(''):'<div class="a-empty">Hələ nəticə yoxdur.</div>');
 }
 

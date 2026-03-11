@@ -35,7 +35,12 @@ router.get('/', authMiddleware, (req, res) => {
     LEFT JOIN exams e ON e.id = r.exam_id
     WHERE r.user_id = ?`;
   const params = [req.user.id];
-  if (status) { sql += ' AND r.status = ?'; params.push(status); }
+  // Default: exclude completed exams from student's active list
+  if (status) {
+    sql += ' AND r.status = ?'; params.push(status);
+  } else {
+    sql += " AND r.status NOT IN ('completed','cancelled')";
+  }
   sql += ' ORDER BY r.created_at DESC';
   const rows = db.prepare(sql).all(...params);
   res.json({ success: true, data: rows });

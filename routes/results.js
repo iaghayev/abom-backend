@@ -15,6 +15,17 @@ router.get('/', authMiddleware, (req, res) => {
   res.json({ success: true, data: rows });
 });
 
+// GET /api/results/:id — single result (own)
+router.get('/:id', authMiddleware, (req, res) => {
+  const row = db.prepare(`
+    SELECT r.*, e.title as exam_title, e.subject, e.duration
+    FROM results r JOIN exams e ON r.exam_id = e.id
+    WHERE r.id = ? AND r.user_id = ?
+  `).get(req.params.id, req.user.id);
+  if(!row) return res.status(404).json({ success: false, message: 'Nəticə tapılmadı.' });
+  res.json({ success: true, data: row });
+});
+
 // GET /api/results/my/stats — dashboard stats
 router.get('/my/stats', authMiddleware, (req, res) => {
   const rows = db.prepare(`
@@ -135,6 +146,9 @@ router.post('/submit', authMiddleware, (req, res) => {
 
   db.prepare(`INSERT INTO results (id,user_id,exam_id,score,correct,total,answers,time_spent,created_at)
     VALUES (?,?,?,?,?,?,?,?,?)`).run(id, req.user.id, exam_id, score, correct, questions.length, JSON.stringify(answers || {}), time_spent || 0, now);
+
+  // Mark registration as completed so it no longer appears in active list
+  db.prepare("UPDATE registrations SET status='completed' WHERE user_id=? AND exam_id=?").run(req.user.id, exam_id);
 
   // Get cert level
   const certLevels = db.prepare('SELECT * FROM cert_configs WHERE exam_id=? ORDER BY min_score ASC').all(exam_id);

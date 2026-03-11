@@ -13,10 +13,10 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const limiter = rateLimit({ windowMs: 15*60*1000, max: 300,
-  message: { success:false, message:'Çox sayda sorğu.' } });
-const authLimiter = rateLimit({ windowMs: 60*1000, max: 15,
-  message: { success:false, message:'Çox sayda cəhd. Bir dəqiqə gözləyin.' } });
+const limiter = rateLimit({ windowMs: 15*60*1000, max: 1000,
+  message: { success:false, message:'Çox sayda sorğu. Bir az gözləyin.' } });
+const authLimiter = rateLimit({ windowMs: 60*1000, max: 30,
+  message: { success:false, message:'Çox sayda giriş cəhdi. Bir dəqiqə gözləyin.' } });
 
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
