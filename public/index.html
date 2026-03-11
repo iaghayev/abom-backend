@@ -383,6 +383,68 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .a-empty{padding:48px;text-align:center;color:var(--muted);font-size:13px}
 .a-empty .ico{font-size:40px;display:block;margin-bottom:8px}
 
+/* ── Admin Exam Cards ── */
+.eac-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.eac-toolbar-title{font-size:15px;font-weight:700;color:var(--navy)}
+.exam-admin-list{display:flex;flex-direction:column;gap:14px}
+.exam-admin-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;transition:box-shadow .2s}
+.exam-admin-card:hover{box-shadow:0 4px 24px rgba(19,85,160,.08)}
+.exam-admin-card-off{opacity:.65}
+.eac-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 20px 16px;flex-wrap:wrap}
+.eac-left{flex:1;min-width:0}
+.eac-title{font-size:15px;font-weight:800;color:var(--navy);margin-bottom:7px}
+.eac-tags{display:flex;gap:5px;flex-wrap:wrap}
+.eac-right{display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.eac-price{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--navy);min-width:52px;text-align:right}
+.eac-actions{display:flex;gap:6px;flex-wrap:wrap}
+.eac-body{border-top:1px solid var(--border);padding:16px 20px 18px;background:rgba(248,250,252,.7)}
+.eac-body-label{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+/* Language block */
+.lang-block{background:#fff;border:1.5px solid var(--border);border-left:4px solid var(--lang-accent,#1355a0);border-radius:0 12px 12px 0;margin-bottom:10px;overflow:hidden}
+.lang-block:last-child{margin-bottom:0}
+.lang-block-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(0,0,0,.02);flex-wrap:wrap}
+.lang-flag{font-size:18px;line-height:1}
+.lang-name{font-size:13px;font-weight:700;color:var(--navy)}
+.lang-stat{font-size:11px;color:var(--muted);background:var(--off);padding:2px 8px;border-radius:20px}
+/* Grade chips */
+.grade-chips-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
+.grade-chip{background:var(--off);border:1.5px solid var(--border);border-radius:12px;padding:10px 12px;min-width:90px;transition:all .18s;position:relative}
+.grade-chip-on{border-color:rgba(19,85,160,.2)}
+.grade-chip-off{opacity:.55}
+.grade-chip-top{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.grade-num{font-size:20px;font-weight:800;color:var(--navy);line-height:1}
+.grade-sinif{font-size:11px;color:var(--muted)}
+.grade-chip-mid{margin-bottom:8px}
+.grade-chip-actions{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.gca-btn{border:none;border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.4}
+.gca-blue{background:rgba(19,85,160,.1);color:var(--blue)}
+.gca-blue:hover{background:var(--blue);color:#fff}
+.gca-gray{background:var(--off);color:var(--muted);border:1px solid var(--border)}
+.gca-gray:hover{background:var(--border);color:var(--navy)}
+.gca-red{background:rgba(220,38,38,.08);color:#dc2626}
+.gca-red:hover{background:#dc2626;color:#fff}
+/* xbadge */
+.xbadge{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px}
+.xbadge-green{background:rgba(22,163,74,.1);color:#16a34a}
+.xbadge-red{background:rgba(220,38,38,.08);color:#dc2626}
+.xbadge-blue{background:rgba(19,85,160,.08);color:var(--blue)}
+.xbadge-gold{background:rgba(180,83,9,.08);color:#b45309}
+.xbadge-purple{background:rgba(124,58,237,.08);color:var(--purple)}
+/* xbtn */
+.xbtn{display:inline-flex;align-items:center;gap:4px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .18s;white-space:nowrap;border:none;font-family:inherit}
+.xbtn-sm{font-size:12px;padding:6px 13px}
+.xbtn-xs{font-size:11px;padding:3px 10px}
+.xbtn-primary{background:var(--blue);color:#fff}.xbtn-primary:hover{background:var(--navy)}
+.xbtn-outline{background:transparent;color:var(--navy);border:1.5px solid var(--border)}.xbtn-outline:hover{border-color:var(--blue);color:var(--blue)}
+.xbtn-purple{background:rgba(124,58,237,.1);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)}.xbtn-purple:hover{background:var(--purple);color:#fff}
+.xbtn-red{background:rgba(220,38,38,.08);color:#dc2626;border:1.5px solid rgba(220,38,38,.15)}.xbtn-red:hover{background:#dc2626;color:#fff}
+.xbtn-ghost{background:transparent;color:var(--muted)}.xbtn-ghost:hover{background:var(--off);color:var(--navy)}
+/* smaller toggles */
+.pub-toggle-sm{width:32px;height:18px}.pub-toggle-sm .pub-slider:before{width:12px;height:12px;left:3px;top:3px}
+.pub-toggle-sm input:checked+.pub-slider:before{transform:translateX(14px)}
+.pub-toggle-xs{width:26px;height:15px}.pub-toggle-xs .pub-slider:before{width:9px;height:9px;left:3px;top:3px}
+.pub-toggle-xs input:checked+.pub-slider:before{transform:translateX(11px)}
+
 /* CTA & FOOTER */
 .cta{margin:0 40px 72px;background:linear-gradient(135deg,var(--navy),var(--blue));border-radius:18px;padding:60px 56px;display:flex;align-items:center;justify-content:space-between;gap:36px;position:relative;overflow:hidden}
 .cta::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04)}
@@ -3482,7 +3544,6 @@ async function loadAdminExams(){
   const r = await GET('/exams?admin=1');
   const data = r.data||[];
 
-  // Build parent→children map
   const childMap = {};
   data.forEach(e => {
     const p = e.parent_exam_id||'';
@@ -3492,123 +3553,136 @@ async function loadAdminExams(){
   const topLevel = childMap['']||[];
 
   const now = new Date().toISOString().slice(0,10);
-  function dateTag(e){
-    if(e.is_unlimited) return '<span class="tag tag-green" style="font-size:10px">∞ Müddətsiz</span>';
-    const s=e.start_date||'',f=e.end_date||'';
-    if(f && now>f) return '<span class="tag tag-red" style="font-size:10px">⏰ Bitmişdir</span>';
-    if(s && now<s) return '<span class="tag tag-gold" style="font-size:10px">🕒 Gözləyir</span>';
-    return '<span class="tag tag-blue" style="font-size:10px">📅 Tarixli</span>';
-  }
-  function saleTag(e){ return e.is_active
-    ? '<span class="tag tag-green" style="font-size:10px">Satışda</span>'
-    : '<span class="tag tag-red"   style="font-size:10px">Satışda deyil</span>'; }
-  function toggle(e){ return `<label class="pub-toggle"><input type="checkbox" ${e.is_active?'checked':''} onchange="toggleExamActive('${e.id}',this)"><span class="pub-slider"></span></label>`; }
 
-  /* ── GRADE ROW (leaf — sinif imtahanı) ──────────────── */
-  function gradeRow(g){
+  function dateTag(e){
+    if(e.is_unlimited) return `<span class="xbadge xbadge-green">∞ Müddətsiz</span>`;
+    const s=e.start_date||'', f=e.end_date||'';
+    if(f && now>f) return `<span class="xbadge xbadge-red">⏰ Bitmişdir</span>`;
+    if(s && now<s) return `<span class="xbadge xbadge-gold">🕒 ${s}-dən</span>`;
+    return `<span class="xbadge xbadge-blue">📅 Tarixli</span>`;
+  }
+
+  function toggle(e, size=''){
+    return `<label class="pub-toggle${size?(' pub-toggle-'+size):''}">
+      <input type="checkbox" ${e.is_active?'checked':''} onchange="toggleExamActive('${e.id}',this)">
+      <span class="pub-slider"></span>
+    </label>`;
+  }
+
+  /* ── GRADE CHIP ── */
+  function gradeChip(g){
     const ej = JSON.stringify(g).replace(/"/g,'&quot;');
     return `
-      <div id="erow_${g.id}" style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;opacity:${g.is_active?1:.6};flex-wrap:wrap">
-        <div style="flex:1;min-width:0">
-          <span style="font-weight:600;font-size:13px">${g.class||'?'}-ci sinif</span>
-          ${g.title ? `<span style="font-size:11px;color:var(--muted);margin-left:6px">${g.title}</span>` : ''}
-          <span class="tag tag-gray" style="margin-left:6px;font-size:10px">${g.question_count||0} sual</span>
-          ${saleTag(g)}
+      <div id="erow_${g.id}" class="grade-chip ${g.is_active?'grade-chip-on':'grade-chip-off'}">
+        <div class="grade-chip-top">
+          <span class="grade-num">${g.class||'?'}</span>
+          <span class="grade-sinif">sinif</span>
         </div>
-        ${toggle(g)}
-        <button class="btn btn-sm btn-primary" style="font-size:11px;padding:3px 9px" onclick="openQuestionsFor('${g.id}','${(g.class||'?')}-ci sinif')">📝</button>
-        <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${ej})">✏</button>
-        <button class="btn btn-red btn-sm" onclick="deleteExam('${g.id}')">✗</button>
+        <div class="grade-chip-mid">
+          <span style="font-size:10px;color:var(--muted)">${g.question_count||0} sual</span>
+        </div>
+        <div class="grade-chip-actions">
+          ${toggle(g,'xs')}
+          <button onclick="openQuestionsFor('${g.id}','${(g.class||'?')}-ci sinif')" title="Suallar" class="gca-btn gca-blue">📝</button>
+          <button onclick="editExam(${ej})" title="Redaktə" class="gca-btn gca-gray">✏</button>
+          <button onclick="deleteExam('${g.id}')" title="Sil" class="gca-btn gca-red">✕</button>
+        </div>
       </div>`;
   }
 
-  /* ── LANGUAGE SECTION (Azərbaycan / Rus / İngilis) ───── */
-  const LANG_COLORS = { AZ:'rgba(0,148,68,.1)', RU:'rgba(21,95,191,.1)', EN:'rgba(180,80,0,.1)' };
-  const LANG_BORDERS= { AZ:'rgba(0,148,68,.4)',  RU:'rgba(21,95,191,.4)',  EN:'rgba(180,80,0,.4)' };
-  const LANG_LABELS = { AZ:'🇦🇿 Azərbaycan', RU:'🇷🇺 Rus', EN:'🇬🇧 İngilis' };
+  /* ── LANGUAGE BLOCK ── */
+  const LANG = {
+    AZ:{ label:'Azərbaycan', flag:'🇦🇿', accent:'#00943f' },
+    RU:{ label:'Rus',        flag:'🇷🇺', accent:'#1555bf' },
+    EN:{ label:'İngilis',    flag:'🇬🇧', accent:'#b45000' },
+  };
 
-  function langSection(lang, parentId, parentTitle){
+  function langBlock(lang){
     const grades = (childMap[lang.id]||[]).slice().sort((a,b)=>parseInt(a.class)-parseInt(b.class));
-    const key = lang.section||lang.title||lang.id;
-    const bg  = LANG_COLORS[key]  || 'rgba(124,58,237,.05)';
-    const bdr = LANG_BORDERS[key] || 'rgba(124,58,237,.3)';
-    const lbl = LANG_LABELS[key]  || key;
-    const ej  = JSON.stringify(lang).replace(/"/g,'&quot;');
-    const activeCount = grades.filter(g=>g.is_active).length;
+    const key    = lang.section||lang.title||'';
+    const meta   = LANG[key] || { label:key||lang.title, flag:'📂', accent:'#7c3aed' };
+    const ej     = JSON.stringify(lang).replace(/"/g,'&quot;');
+    const active = grades.filter(g=>g.is_active).length;
     return `
-      <div style="background:${bg};border-left:4px solid ${bdr};border-radius:0 10px 10px 0;margin:0 0 6px 12px;padding:8px 10px 10px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-weight:700;font-size:12px;color:#333">${lbl}</span>
-          <span class="tag tag-gray" style="font-size:10px">${activeCount}/${grades.length} aktiv sinif</span>
-          ${saleTag(lang)}
-          ${toggle(lang)}
-          <span style="flex:1"></span>
-          <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 8px" onclick="openAddSubExam('${lang.id}','${lang.title.replace(/'/g,"\\'")} — Sinif')">+ Sinif</button>
-          <button class="btn btn-outline btn-sm" style="font-size:10px" onclick="editExam(${ej})">✏</button>
-          <button class="btn btn-red btn-sm" onclick="deleteExam('${lang.id}')">✗</button>
+      <div class="lang-block" style="--lang-accent:${meta.accent}">
+        <div class="lang-block-hdr">
+          <span class="lang-flag">${meta.flag}</span>
+          <span class="lang-name">${meta.label}</span>
+          <span class="lang-stat">${active}/${grades.length} aktiv</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+            ${toggle(lang,'sm')}
+            <button onclick="openAddSubExam('${lang.id}','${lang.title.replace(/'/g,"\\'")} — Sinif')" class="xbtn xbtn-outline xbtn-xs">+ Sinif</button>
+            <button onclick="editExam(${ej})" class="xbtn xbtn-ghost xbtn-xs">✏</button>
+            <button onclick="deleteExam('${lang.id}')" class="xbtn xbtn-red xbtn-xs">✕</button>
+          </div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">
-          ${grades.length ? grades.map(g=>gradeRow(g)).join('') : '<span style="font-size:12px;color:var(--muted);padding:4px 8px">Hələ sinif yoxdur</span>'}
+        <div class="grade-chips-wrap">
+          ${grades.length
+            ? grades.map(g=>gradeChip(g)).join('')
+            : '<span style="font-size:12px;color:var(--muted);padding:6px 2px">Hələ sinif əlavə edilməyib</span>'}
         </div>
       </div>`;
   }
 
-  /* ── ROOT EXAM ROW ───────────────────────────────────── */
-  const cols = 'grid-template-columns:1fr 80px 60px 64px 130px';
-  function rootRow(e){
-    const langs = (childMap[e.id]||[]).slice();
-    // Detect: does first child have its own children? → 3-level
+  /* ── ROOT EXAM CARD ── */
+  function rootCard(e){
+    const langs      = (childMap[e.id]||[]).slice();
     const firstChild = langs[0];
-    const has3Levels = firstChild && (childMap[firstChild.id]||[]).length > 0;
-    // Flat 2-level: children are leaf grades
-    const isFlat2 = langs.length > 0 && !has3Levels;
-    const ej = JSON.stringify(e).replace(/"/g,'&quot;');
-    const totalLeaves = has3Levels
-      ? langs.reduce((acc,l)=>acc+(childMap[l.id]||[]).length,0)
-      : langs.length;
+    const has3       = firstChild && (childMap[firstChild.id]||[]).length > 0;
+    const totalLeafs = has3 ? langs.reduce((a,l)=>a+(childMap[l.id]||[]).length,0) : langs.length;
+    const ej         = JSON.stringify(e).replace(/"/g,'&quot;');
 
     return `
-      <div class="a-t-row" id="erow_${e.id}" style="${cols};opacity:${e.is_active?1:.7}">
-        <div>
-          <span style="font-weight:700;font-size:14px">${e.title}</span>
-          <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
-            ${saleTag(e)} ${dateTag(e)}
-            ${has3Levels  ? `<span class="tag tag-purple" style="font-size:10px">${langs.length} dil · ${totalLeaves} sinif</span>` : ''}
-            ${isFlat2     ? `<span class="tag tag-purple" style="font-size:10px">${langs.length} bölmə</span>` : ''}
+      <div class="exam-admin-card ${e.is_active?'':'exam-admin-card-off'}" id="erow_${e.id}">
+        <!-- Card header -->
+        <div class="eac-header">
+          <div class="eac-left">
+            <div class="eac-title">${e.title}</div>
+            <div class="eac-tags">
+              ${e.is_active
+                ? '<span class="xbadge xbadge-green">● Satışda</span>'
+                : '<span class="xbadge xbadge-red">● Satışda deyil</span>'}
+              ${dateTag(e)}
+              <span class="xbadge xbadge-blue">${e.category||'—'}</span>
+              ${has3   ? `<span class="xbadge xbadge-purple">${langs.length} dil · ${totalLeafs} sinif</span>` : ''}
+              ${langs.length && !has3 ? `<span class="xbadge xbadge-purple">${langs.length} bölmə</span>` : ''}
+            </div>
+          </div>
+          <div class="eac-right">
+            <div class="eac-price">${e.price > 0 ? e.price+' ₼' : 'Pulsuz'}</div>
+            ${toggle(e)}
+            <div class="eac-actions">
+              <button onclick="editExam(${ej})" class="xbtn xbtn-outline xbtn-sm" title="Redaktə">✏ Redaktə</button>
+              <button onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}');" class="xbtn xbtn-purple xbtn-sm" title="Dil bölməsi əlavə et">+ Bölmə</button>
+              <button onclick="deleteExam('${e.id}')" class="xbtn xbtn-red xbtn-sm" title="Sil">✕</button>
+            </div>
           </div>
         </div>
-        <div><span class="tag tag-blue" style="font-size:10px">${e.category||'—'}</span></div>
-        <div style="font-weight:600">${e.price} ₼</div>
-        <div>${toggle(e)}</div>
-        <div style="display:flex;gap:3px;flex-wrap:wrap">
-          <button class="btn btn-outline btn-sm" onclick="editExam(${ej})">✏</button>
-          <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+↳ Dil</button>
-          <button class="btn btn-red btn-sm" onclick="deleteExam('${e.id}')">✗</button>
-        </div>
-      </div>
-      ${langs.length ? `
-        <div style="background:rgba(124,58,237,.02);border-left:4px solid rgba(124,58,237,.2);padding:10px 12px 12px;margin-bottom:6px">
-          <div style="font-size:10.5px;font-weight:700;color:var(--purple);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px">
-            📚 Təhsil Bölmələri
-            <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 8px" onclick="openAddSubExam('${e.id}','${e.title.replace(/'/g,"\\'")}')">+ Dil bölməsi</button>
-          </div>
-          ${has3Levels
-            ? langs.map(l=>langSection(l, e.id, e.title)).join('')
-            : `<div style="display:flex;flex-direction:column;gap:5px">${langs.map(s=>gradeRow(s)).join('')}</div>`
-          }
-        </div>` : ''}`;
+        <!-- Sections -->
+        ${langs.length ? `
+          <div class="eac-body">
+            <div class="eac-body-label">📚 Təhsil Bölmələri</div>
+            ${has3
+              ? langs.map(l=>langBlock(l)).join('')
+              : `<div class="grade-chips-wrap">${langs.map(s=>gradeChip(s)).join('')}</div>`}
+          </div>` : ''}
+      </div>`;
   }
 
-  let html = `<div class="a-t-title">İmtahanlar
-    <div style="display:flex;gap:6px;align-items:center">
-      <span class="tag tag-blue">${topLevel.length} əsas</span>
-      <span class="tag tag-purple">${data.length-topLevel.length} alt</span>
-      <button class="btn btn-primary btn-sm" onclick="openAddExamModal()">+ Yeni</button>
+  const totalLeafs = data.length - topLevel.length;
+  let html = `
+    <div class="eac-toolbar">
+      <span class="eac-toolbar-title">İmtahanlar</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="xbadge xbadge-blue">${topLevel.length} əsas</span>
+        <span class="xbadge xbadge-purple">${totalLeafs} alt</span>
+        <button class="xbtn xbtn-primary xbtn-sm" onclick="openAddExamModal()">+ Yeni İmtahan</button>
+      </div>
     </div>
-  </div>`;
-  html += `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Kateqoriya</div><div>Qiymət</div><div>Satışda</div><div>Əməliyyat</div></div>`;
-  html += topLevel.map(e=>rootRow(e)).join('');
-  if(!topLevel.length) html += '<div class="a-empty">İmtahan yoxdur.</div>';
+    <div class="exam-admin-list">
+      ${topLevel.length ? topLevel.map(e=>rootCard(e)).join('') : '<div class="a-empty">İmtahan yoxdur.</div>'}
+    </div>`;
+
   document.getElementById('adminExamsTable').innerHTML = html;
 }
 
