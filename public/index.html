@@ -231,21 +231,6 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
 /* CARDS */
 .grid-3{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-/* ── Exam Browse ── */
-.eb-lang-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.eb-lang-card{background:#fff;border:1.5px solid var(--border);border-radius:16px;padding:28px 24px;cursor:pointer;transition:all .22s;display:flex;align-items:center;gap:18px}
-.eb-lang-card:hover{border-color:var(--blue);box-shadow:0 8px 28px rgba(19,85,160,.12);transform:translateY(-3px)}
-.eb-lang-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
-.eb-lang-name{font-size:16px;font-weight:700;color:var(--navy)}
-.eb-lang-sub{font-size:12px;color:var(--muted);margin-top:2px}
-.eb-grade-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.eb-grade-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:22px 20px;cursor:pointer;transition:all .22s;position:relative}
-.eb-grade-card:hover{border-color:var(--blue);box-shadow:0 6px 20px rgba(19,85,160,.1);transform:translateY(-2px)}
-.eb-grade-card.has-exams{border-color:rgba(19,85,160,.25)}
-.eb-grade-card.has-exams::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--sky));border-radius:14px 14px 0 0}
-.eb-grade-num{font-size:18px;font-weight:800;color:var(--navy)}
-.eb-grade-label{font-size:12px;color:var(--muted)}
-.eb-exam-badge{display:inline-flex;align-items:center;gap:4px;background:var(--blue);color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:8px}
 .grid-4{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
 .exam-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:22px;position:relative;overflow:hidden;transition:all .25s}
 .exam-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--sky));transform:scaleX(0);transform-origin:left;transition:transform .3s;border-radius:14px 14px 0 0}
@@ -668,35 +653,26 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <div class="page" id="page-exams" style="padding-top:64px">
   <section class="sec">
     <div class="sec-in">
-      <!-- Breadcrumb navigation -->
-      <div id="examBreadcrumb" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:20px;font-size:13px;color:var(--muted)">
-        <span class="eb-crumb" id="ebCrumb0" onclick="examNavStep(0)" style="cursor:pointer;color:var(--blue);font-weight:600">🏠 Ana səhifə</span>
-        <span id="ebSep1" style="display:none;opacity:.4">›</span>
-        <span class="eb-crumb" id="ebCrumb1" onclick="examNavStep(1)" style="cursor:pointer;display:none;color:var(--blue);font-weight:600"></span>
-        <span id="ebSep2" style="display:none;opacity:.4">›</span>
-        <span id="ebCrumb2" style="display:none;font-weight:600;color:var(--navy)"></span>
-      </div>
-
-      <!-- STEP 0: Language/Category cards -->
-      <div id="examStep0">
-        <h2 style="font-size:22px;font-weight:800;color:var(--navy);margin-bottom:18px">Kateqoriyalar</h2>
-        <div id="examLangCards" class="eb-lang-grid">
-          <div class="a-empty"><span class="spinner" style="margin:0 auto"></span></div>
+      <div class="sec-hdr">
+        <div>
+          <div class="sec-lbl">Sınaq İmtahanları</div>
+          <h2 class="sec-title">Bütün <em>İmtahanlar</em></h2>
         </div>
       </div>
-
-      <!-- STEP 1: Grade grid -->
-      <div id="examStep1" style="display:none">
-        <h2 id="examStep1Title" style="font-size:22px;font-weight:800;color:var(--navy);margin-bottom:18px"></h2>
-        <div id="examGradeGrid" class="eb-grade-grid"></div>
+      <div class="filter-bar">
+        <div class="search-inp"><span>🔍</span><input type="text" id="examSearch" placeholder="İmtahan axtar..." oninput="filterExams()"></div>
+        <select class="flt-sel" id="examCatFilter" onchange="filterExams()">
+          <option value="">Bütün kateqoriyalar</option>
+        </select>
+        <select class="flt-sel" id="examSbjFilter" onchange="filterExams()">
+          <option value="">Bütün fənlər</option>
+        </select>
+        <select class="flt-sel" id="examClsFilter" onchange="filterExams()">
+          <option value="">Bütün siniflər</option>
+        </select>
       </div>
-
-      <!-- STEP 2: Exam list -->
-      <div id="examStep2" style="display:none">
-        <h2 id="examStep2Title" style="font-size:22px;font-weight:800;color:var(--navy);margin-bottom:18px">Mövcud İmtahanlar</h2>
-        <div class="grid-3" id="allExamsList">
-          <div class="a-empty"><span class="spinner" style="margin:0 auto"></span></div>
-        </div>
+      <div class="grid-3" id="allExamsList">
+        <div class="a-empty"><span class="spinner" style="margin:0 auto"></span></div>
       </div>
     </div>
   </section>
@@ -2391,166 +2367,51 @@ function examCardHtml(e){
   </div>`;
 }
 
-// ═══════════════════ EXAMS BROWSE (3-step) ═══════════════════
-let _eb = { step:0, allExams:[], lang:null, langLabel:'', grade:null };
-
+// ═══════════════════ EXAMS PAGE ═══════════════════
+let allExamsData = [];
 async function loadExams(){
   const r = await GET('/exams');
-  _eb.allExams = r.data || [];
-  _eb.step = 0; _eb.lang = null; _eb.grade = null;
-  examNavStep(0);
+  allExamsData = r.data || [];
+  // Dynamically populate filter selects from actual data
+  populateExamFilters(allExamsData);
+  renderExams(allExamsData);
 }
 
-function examNavStep(step){
-  _eb.step = step;
-  document.getElementById('examStep0').style.display = step===0 ? '' : 'none';
-  document.getElementById('examStep1').style.display = step===1 ? '' : 'none';
-  document.getElementById('examStep2').style.display = step===2 ? '' : 'none';
-  updateExamBreadcrumb();
-  if(step===0) renderLangCards();
-  else if(step===1) renderGradeGrid();
-  else if(step===2) renderExamList();
-  initReveal();
-}
-
-function updateExamBreadcrumb(){
-  const c0=document.getElementById('ebCrumb0');
-  const c1=document.getElementById('ebCrumb1');
-  const c2=document.getElementById('ebCrumb2');
-  const s1=document.getElementById('ebSep1');
-  const s2=document.getElementById('ebSep2');
-  const step=_eb.step;
-  // Step 0: just "Ana səhifə" (non-clickable)
-  c0.style.cursor = step>0 ? 'pointer' : 'default';
-  c0.style.color   = step>0 ? 'var(--blue)' : 'var(--muted)';
-  // Step 1
-  s1.style.display = step>=1 ? '' : 'none';
-  c1.style.display = step>=1 ? '' : 'none';
-  c1.textContent   = _eb.langLabel || '';
-  c1.style.color   = step>1 ? 'var(--blue)' : 'var(--navy)';
-  c1.style.cursor  = step>1 ? 'pointer' : 'default';
-  // Step 2
-  s2.style.display = step>=2 ? '' : 'none';
-  c2.style.display = step>=2 ? '' : 'none';
-  c2.textContent   = _eb.grade ? `${_eb.grade}. sinif` : '';
-}
-
-function renderLangCards(){
-  const exams = _eb.allExams;
-  // Build language groups from section field of root exams
-  // Group by section (AZ/RU/EN) — if no section, show "Ümumi"
-  const langMap = {};
-  exams.forEach(e => {
-    const key = e.section || 'ümumi';
-    if(!langMap[key]) langMap[key] = { key, exams:[] };
-    langMap[key].exams.push(e);
-  });
-
-  const LANG_META = {
-    AZ: { label:'Azərbaycan bölməsi', sub:'Azərbaycan dili', icon:'🇦🇿', bg:'rgba(0,148,68,.1)' },
-    RU: { label:'Русский сектор',      sub:'Rus dili',        icon:'🇷🇺', bg:'rgba(21,95,191,.1)' },
-    EN: { label:'English section',     sub:'İngilis dili',    icon:'🇬🇧', bg:'rgba(180,80,0,.1)' },
-    ümumi: { label:'Ümumi',            sub:'Bütün bölmələr',  icon:'📚', bg:'rgba(124,58,237,.1)' }
+function populateExamFilters(data){
+  const cats = [...new Set(data.map(e=>e.category).filter(Boolean))];
+  const sbjs = [...new Set(data.map(e=>e.subject).filter(Boolean))];
+  const clss = [...new Set(data.map(e=>e.class).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+  const CAT_LABELS = {lisey:'Lisey Qəbul',olimpiada:'Olimpiada',beynelxalq:'Beynəlxalq',yarish:'Yarış'};
+  const SBJ_LABELS = {riyaziyyat:'Riyaziyyat',azerbaycan:'Azərbaycan dili',ingilis:'İngilis dili',fizika:'Fizika',kimya:'Kimya',biologiya:'Biologiya',mix:'Kompleks',mentiq:'Məntiq'};
+  const sel = (id, items, labels, placeholder) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cur = el.value;
+    el.innerHTML = `<option value="">${placeholder}</option>` +
+      items.map(v=>`<option value="${v}" ${v===cur?'selected':''}>${labels[v]||v}</option>`).join('');
   };
-
-  // Also check sub-exam structure — get all unique sections from sub-exams
-  // For "root" exams with sub_count>0, detect their sub sections
-  const langs = Object.keys(langMap);
-
-  // If no language sections at root level, detect from sub-exam structure
-  if(langs.length===1 && langs[0]==='ümumi'){
-    // All exams are "flat" — skip lang step, go straight to grades
-    _eb.langLabel = 'Bütün İmtahanlar';
-    _eb.lang = '__all__';
-    _eb.step = 0;
-    renderGradeGridFromExams(exams);
-    document.getElementById('examStep0').style.display = 'none';
-    document.getElementById('examStep1').style.display = '';
-    document.getElementById('examStep1Title').textContent = 'İmtahanlar';
-    return;
-  }
-
-  const html = langs.map(key => {
-    const meta = LANG_META[key] || { label:key, sub:'', icon:'📂', bg:'#f0f4ff' };
-    const count = langMap[key].exams.length;
-    return `<div class="eb-lang-card" onclick="selectExamLang('${key}','${meta.label.replace(/'/g,"\\'")}')">
-      <div class="eb-lang-icon" style="background:${meta.bg}">${meta.icon}</div>
-      <div>
-        <div class="eb-lang-name">${meta.label}</div>
-        <div class="eb-lang-sub">${meta.sub}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('examLangCards').innerHTML = html || '<div class="a-empty">İmtahan yoxdur.</div>';
+  sel('examCatFilter', cats, CAT_LABELS, 'Bütün kateqoriyalar');
+  sel('examSbjFilter', sbjs, SBJ_LABELS, 'Bütün fənlər');
+  sel('examClsFilter', clss, {}, 'Bütün siniflər');
+  // Fix class display
+  const cf = document.getElementById('examClsFilter');
+  if(cf) cf.querySelectorAll('option').forEach(o=>{
+    if(o.value) o.textContent = o.value+'-ci sinif';
+  });
 }
 
-function selectExamLang(langKey, langLabel){
-  _eb.lang = langKey;
-  _eb.langLabel = langLabel;
-  _eb.grade = null;
-  examNavStep(1);
+function filterExams(){
+  const s   = (document.getElementById('examSearch')?.value||'').toLowerCase();
+  const cat = document.getElementById('examCatFilter')?.value||'';
+  const sbj = document.getElementById('examSbjFilter')?.value||'';
+  const cls = document.getElementById('examClsFilter')?.value||'';
+  renderExams(allExamsData.filter(e =>
+    (!s   || (e.title+' '+(e.description||'')).toLowerCase().includes(s)) &&
+    (!cat || e.category === cat) &&
+    (!sbj || e.subject  === sbj) &&
+    (!cls || String(e.class) === String(cls))
+  ));
 }
-
-function renderGradeGrid(){
-  const exams = _eb.lang === '__all__'
-    ? _eb.allExams
-    : _eb.allExams.filter(e => (e.section||'ümumi') === _eb.lang);
-  renderGradeGridFromExams(exams);
-}
-
-function renderGradeGridFromExams(exams){
-  document.getElementById('examStep1Title').textContent = _eb.langLabel || 'İmtahanlar';
-
-  // Collect all grades that appear in these exams (directly or via sub_count)
-  // We show 1–11 always; highlight ones that have exams
-  const examGrades = new Set(exams.map(e=>parseInt(e.class)).filter(Boolean));
-
-  const ORDINALS = {1:'1.',2:'2.',3:'3.',4:'4.',5:'5.',6:'6.',7:'7.',8:'8.',9:'9.',10:'10.',11:'11.'};
-  const GRADE_SUFFIX = {1:'sinif',2:'sinif',3:'sinif',4:'sinif',5:'sinif',6:'sinif',7:'sinif',8:'sinif',9:'sinif',10:'sinif',11:'sinif'};
-
-  // Show grades 1–11 always; "has-exams" if relevant exams exist
-  const grades = Array.from({length:11},(_,i)=>i+1);
-
-  // Also include any grade > 11 from actual data
-  exams.forEach(e=>{ if(e.class && parseInt(e.class)>11) grades.push(parseInt(e.class)); });
-  const uniqueGrades = [...new Set(grades)].sort((a,b)=>a-b);
-
-  const html = uniqueGrades.map(g => {
-    const has = examGrades.has(g);
-    return `<div class="eb-grade-card ${has?'has-exams':''}" onclick="selectExamGrade(${g})">
-      <div class="eb-grade-num">${g}. sinif</div>
-      ${has ? `<div class="eb-exam-badge">📋 İmtahan</div>` : '<div class="eb-grade-label" style="margin-top:8px;font-size:12px;color:var(--muted)">—</div>'}
-    </div>`;
-  }).join('');
-
-  document.getElementById('examGradeGrid').innerHTML = html;
-}
-
-function selectExamGrade(grade){
-  _eb.grade = grade;
-  examNavStep(2);
-}
-
-function renderExamList(){
-  const langKey = _eb.lang;
-  const grade   = String(_eb.grade);
-  document.getElementById('examStep2Title').textContent = `${_eb.langLabel} — ${grade}. sinif`;
-
-  const filtered = _eb.allExams.filter(e =>
-    (langKey==='__all__' || (e.section||'ümumi')===langKey) &&
-    String(e.class) === grade
-  );
-  const list = document.getElementById('allExamsList');
-  if(!filtered.length){
-    list.innerHTML = `<div class="a-empty" style="grid-column:1/-1;padding:48px;background:#fff;border-radius:14px;border:1.5px solid var(--border)">Bu sinif üçün hazırda aktiv imtahan yoxdur.</div>`;
-    return;
-  }
-  list.innerHTML = filtered.map(e=>examCardHtml(e)).join('');
-  initReveal();
-}
-
-function filterExams(){} // legacy no-op — kept for any old refs
 
 // ═══════════════════ VIDEO CARD ═══════════════════
 function vidCardHtml(v){
