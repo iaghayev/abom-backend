@@ -410,11 +410,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .grade-chips-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
 .grade-chip{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;min-width:100px;transition:all .18s;position:relative}
 .grade-chip-on{border-color:rgba(19,85,160,.22);background:#fff}
-.grade-chip-on::after{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,var(--blue),var(--sky));border-radius:12px 12px 0 0}
+.grade-chip-on::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--chip-accent,var(--blue));border-radius:12px 12px 0 0}
 .grade-chip-off{opacity:.5;background:var(--off)}
-.grade-chip-label{font-size:14px;font-weight:800;color:var(--navy);margin-bottom:2px}
+.grade-chip-top{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.grade-chip-num{font-size:22px;font-weight:800;color:var(--navy);line-height:1}
 .grade-chip-sinif{font-size:11px;font-weight:500;color:var(--muted);margin-left:1px}
-.grade-chip-q{font-size:11px;color:var(--muted);margin-bottom:9px}
+.grade-chip-q{font-size:11px;color:var(--muted);margin-bottom:9px;line-height:1.5}
 .grade-chip-actions{display:flex;align-items:center;gap:4px}
 .gca-btn{border:none;border-radius:6px;padding:3px 7px;font-size:11px;cursor:pointer;transition:all .15s;line-height:1.4}
 .gca-blue{background:rgba(19,85,160,.1);color:var(--blue)}
@@ -3572,16 +3573,48 @@ async function loadAdminExams(){
   }
 
   /* ── GRADE CHIP ── */
+  const LANG_META = {
+    AZ:{ label:'Azərbaycan', flag:'🇦🇿', color:'#00943f' },
+    RU:{ label:'Rus',        flag:'🇷🇺', color:'#1555bf' },
+    EN:{ label:'İngilis',    flag:'🇬🇧', color:'#b45000' },
+  };
+
   function gradeChip(g){
     const ej = JSON.stringify(g).replace(/"/g,'&quot;');
-    const cls = g.class||'?';
+
+    // Determine display: grade number or language section
+    const hasClass   = g.class && g.class !== '';
+    const secKey     = g.section || '';
+    const langMeta   = LANG_META[secKey];
+
+    let topLabel, subLabel, accentColor;
+    if(hasClass){
+      // leaf grade chip
+      topLabel    = `<span class="grade-chip-num">${g.class}</span><span class="grade-chip-sinif">-ci sinif</span>`;
+      subLabel    = (langMeta ? langMeta.flag+' ' : '') + (g.question_count||0) + ' sual';
+      accentColor = langMeta?.color || 'var(--blue)';
+    } else {
+      // flat language section chip (no grade)
+      const flag  = langMeta?.flag || '📂';
+      const lname = langMeta?.label || g.title || secKey || 'Bölmə';
+      topLabel    = `<span style="font-size:22px;line-height:1">${flag}</span>`;
+      subLabel    = `<strong style="font-size:12px;color:var(--navy)">${lname}</strong><br><span>${g.question_count||0} sual</span>`;
+      accentColor = langMeta?.color || '#7c3aed';
+    }
+
+    const chipTitle = hasClass ? `${g.class}-ci sinif` : (langMeta?.label || g.title || 'Bölmə');
+
     return `
-      <div id="erow_${g.id}" class="grade-chip ${g.is_active?'grade-chip-on':'grade-chip-off'}">
-        <div class="grade-chip-label">${cls}<span class="grade-chip-sinif">-ci sinif</span></div>
-        <div class="grade-chip-q">${g.question_count||0} sual</div>
+      <div id="erow_${g.id}" class="grade-chip ${g.is_active?'grade-chip-on':'grade-chip-off'}"
+           style="${g.is_active?'--chip-accent:'+accentColor:''}">
+        <div class="grade-chip-top">${topLabel}</div>
+        <div class="grade-chip-q">${subLabel}</div>
         <div class="grade-chip-actions">
           ${toggle(g,'xs')}
-          <button onclick="openQuestionsFor('${g.id}','${cls}-ci sinif')" title="Suallar" class="gca-btn gca-blue">📝</button>
+          ${hasClass
+            ? `<button onclick="openQuestionsFor('${g.id}','${chipTitle.replace(/'/g,"\\'")} ')" title="Suallar" class="gca-btn gca-blue">📝</button>`
+            : `<button onclick="openAddGradeModal('${g.id}')" title="Sinif əlavə et" class="gca-btn gca-blue">+ Sinif</button>`
+          }
           <button onclick="editExam(${ej})" title="Redaktə" class="gca-btn gca-gray">✏</button>
           <button onclick="deleteExam('${g.id}')" title="Sil" class="gca-btn gca-red">✕</button>
         </div>
@@ -3642,7 +3675,7 @@ async function loadAdminExams(){
     window._examReg = window._examReg || {};
     window._examReg[e.id] = e;
     langs.forEach(l => {
-      window._examReg[l.id] = l;
+      window._examReg[l.id] = {...l, _rootTitle: e.title};
       (childMap[l.id]||[]).forEach(g => { window._examReg[g.id] = g; });
     });
 
