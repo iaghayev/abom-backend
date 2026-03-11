@@ -4,24 +4,18 @@ const { v4: uuidv4 } = require('../config/uuid');
 const db = require('../database');
 const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware/auth');
 
-function isDateActive(exam) {
-  if (exam.is_unlimited) return true;
-  const now = new Date().toISOString();
-  if (exam.start_date && now < exam.start_date) return false;
-  if (exam.end_date   && now > exam.end_date + 'T23:59:59') return false;
-  return true;
-}
-
 // ── GET /  ────────────────────────────────────────────────
 router.get('/', optionalAuth, (req, res) => {
   const { category, subject, class: cls, section, search, parent_only, parent_id, admin } = req.query;
   let sql = `SELECT e.*,
     (SELECT COUNT(*) FROM questions q WHERE q.exam_id=e.id) as question_count,
     (SELECT COUNT(*) FROM exams sub WHERE sub.parent_exam_id=e.id) as sub_count
-    FROM exams e WHERE e.is_active=1`;
+    FROM exams e WHERE 1=1`;
   const params = [];
 
   if (!admin) {
+    // Students only see active exams within date range, no sub-exams
+    sql += ' AND e.is_active=1';
     const now = new Date().toISOString().slice(0,10);
     sql += ` AND (e.is_unlimited=1 OR (
       (e.start_date='' OR e.start_date IS NULL OR e.start_date<=?)
@@ -30,6 +24,8 @@ router.get('/', optionalAuth, (req, res) => {
     params.push(now, now);
     sql += " AND (e.parent_exam_id='' OR e.parent_exam_id IS NULL)";
   }
+  // Admin sees ALL exams (active + hidden) — no is_active filter
+
   if (category)    { sql += ' AND e.category=?';   params.push(category); }
   if (subject)     { sql += ' AND e.subject=?';    params.push(subject); }
   if (cls)         { sql += ' AND e.class=?';      params.push(cls); }
@@ -99,6 +95,15 @@ router.post('/', adminMiddleware, (req, res) => {
       .forEach(([l,mn,mx,c]) => icc.run(`cc_${id}_${l}`, id, l, mn, mx, c));
   }
   res.status(201).json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(id) });
+});
+
+// ── PATCH /:id/toggle-active  (quick publish toggle) ─────
+router.patch('/:id/toggle-active', adminMiddleware, (req, res) => {
+  const exam = db.prepare('SELECT id, is_active FROM exams WHERE id=?').get(req.params.id);
+  if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
+  const newVal = exam.is_active ? 0 : 1;
+  db.prepare('UPDATE exams SET is_active=? WHERE id=?').run(newVal, req.params.id);
+  res.json({ success:true, is_active: newVal });
 });
 
 // ── PUT /:id ──────────────────────────────────────────────

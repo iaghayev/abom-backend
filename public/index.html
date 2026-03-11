@@ -87,6 +87,13 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .tag-blue{background:rgba(19,85,160,.08);color:var(--blue);border:1px solid rgba(19,85,160,.15)}
 .tag-green{background:rgba(5,150,105,.08);color:#047857;border:1px solid rgba(5,150,105,.18)}
 .tag-gold{background:rgba(217,119,6,.08);color:var(--gold);border:1px solid rgba(217,119,6,.18)}
+/* Publish toggle switch */
+.pub-toggle{position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex-shrink:0}
+.pub-toggle input{opacity:0;width:0;height:0}
+.pub-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:22px;transition:.25s}
+.pub-slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.pub-toggle input:checked+.pub-slider{background:var(--green)}
+.pub-toggle input:checked+.pub-slider:before{transform:translateX(18px)}
 .tag-red{background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.18)}
 .tag-purple{background:rgba(124,58,237,.08);color:var(--purple);border:1px solid rgba(124,58,237,.18)}
 
@@ -381,11 +388,22 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .cta::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04)}
 .cta-title{font-family:'Playfair Display',serif;font-size:clamp(22px,2.8vw,36px);color:#fff;line-height:1.15;position:relative;z-index:1}
 .cta-sub{font-size:14px;color:rgba(255,255,255,.5);margin-top:8px;position:relative;z-index:1}
-.footer{background:var(--navy);padding:36px 40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-.footer-copy{font-size:12px;color:rgba(255,255,255,.3);font-weight:500}
-.footer-links{display:flex;gap:16px}
-.footer-link{font-size:12.5px;color:rgba(255,255,255,.38);cursor:pointer;font-weight:500;transition:color .18s}
-.footer-link:hover{color:#fff}
+.footer{background:var(--navy);padding:40px 40px 28px;color:#fff}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.footer-brand{display:flex;flex-direction:column;gap:10px}
+.footer-brand-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:.02em}
+.footer-brand-desc{font-size:12.5px;color:rgba(255,255,255,.45);max-width:220px;line-height:1.6}
+.footer-socials{display:flex;gap:10px;margin-top:4px}
+.footer-soc{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);transition:all .2s;cursor:pointer;text-decoration:none;color:#fff;font-size:16px}
+.footer-soc:hover{background:rgba(255,255,255,.18);transform:translateY(-2px)}
+.footer-soc svg{width:18px;height:18px;fill:currentColor}
+.footer-col{display:flex;flex-direction:column;gap:6px}
+.footer-col-title{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.footer-col-link{font-size:13px;color:rgba(255,255,255,.5);cursor:pointer;transition:color .18s;text-decoration:none;display:flex;align-items:center;gap:7px}
+.footer-col-link:hover{color:#fff}
+.footer-divider{border:none;border-top:1px solid rgba(255,255,255,.08);margin:24px 0 16px}
+.footer-bottom{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.footer-copy{font-size:11.5px;color:rgba(255,255,255,.25)}
 
 /* PARENT PANEL */
 .child-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:all .25s}
@@ -452,6 +470,9 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   .exam-topbar{padding:10px 16px}
   .modal{padding:24px 18px}
   .m-title{font-size:20px}
+  .footer{padding:28px 20px 20px}
+  .footer-inner{flex-direction:column;gap:24px}
+  .footer-bottom{flex-direction:column;gap:8px;text-align:center}
 }
 </style>
 </head>
@@ -592,12 +613,38 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   </div>
 
   <footer class="footer">
-    <div class="nav-logo"><div class="nav-badge">A</div><span class="nav-name" style="color:#fff">ABOM</span></div>
-    <div class="footer-copy" data-t="footer_copy">© 2025 ABOM. Bütün hüquqlar qorunur.</div>
-    <div class="footer-links">
-      <span class="footer-link" data-t="contact">Əlaqə</span>
-      <span class="footer-link" data-t="rules">Qaydalar</span>
-      <span class="footer-link" data-t="privacy">Gizlilik</span>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="nav-logo" style="margin-bottom:6px"><div class="nav-badge">A</div><span class="nav-name" style="color:#fff">ABOM</span></div>
+        <div class="footer-brand-desc">Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi — bilik, inkişaf, uğur.</div>
+        <div class="footer-socials">
+          <a class="footer-soc" href="https://www.instagram.com/abom_azerbaycan/" target="_blank" title="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
+          <a class="footer-soc" href="https://www.facebook.com/profile.php?id=61555931402161" target="_blank" title="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+          <a class="footer-soc" href="https://www.tiktok.com/@abom_azerbaycan" target="_blank" title="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></a>
+          <a class="footer-soc" href="https://wa.me/994708880806" target="_blank" title="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Əlaqə</div>
+        <a class="footer-col-link" href="tel:+994708880806">📞 +994 70 888 08 06</a>
+        <a class="footer-col-link" href="https://wa.me/994708880806" target="_blank">💬 WhatsApp</a>
+        <a class="footer-col-link" href="https://www.instagram.com/abom_azerbaycan/" target="_blank">📷 @abom_azerbaycan</a>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Platforma</div>
+        <span class="footer-col-link" onclick="goTo('exams')">📚 İmtahanlar</span>
+        <span class="footer-col-link" onclick="goTo('videos')">🎬 Videolar</span>
+        <span class="footer-col-link" onclick="goTo('rating')">🏆 Reytinq</span>
+        <span class="footer-col-link" onclick="STATE.user?goTo('dashboard'):openModal('authModal')">👤 Şəxsi kabinet</span>
+      </div>
+    </div>
+    <hr class="footer-divider">
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi. Bütün hüquqlar qorunur.</div>
+      <div style="display:flex;gap:14px">
+        <span class="footer-col-link" style="font-size:11.5px" data-t="rules">Qaydalar</span>
+        <span class="footer-col-link" style="font-size:11.5px" data-t="privacy">Gizlilik</span>
+      </div>
     </div>
   </footer>
 </div>
@@ -3400,28 +3447,34 @@ async function loadAdminExams(){
     </div>
   </div>`;
 
-  const cols = 'grid-template-columns:1fr 80px 60px 60px 60px 60px 110px';
-  html += `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Kateqoriya</div><div>Sinif</div><div>Bölmə</div><div>Sual</div><div>Qiymət</div><div>Əməliyyat</div></div>`;
+  const cols = 'grid-template-columns:1fr 80px 55px 50px 60px 64px 120px';
+  html += `<div class="a-t-hdr" style="${cols}"><div>Başlıq</div><div>Kateqoriya</div><div>Sinif</div><div>Sual</div><div>Qiymət</div><div>Satışda</div><div>Əməliyyat</div></div>`;
 
   function examRow(e, isChild=false){
     const subs = subMap[e.id] || [];
     const isGroup = subs.length > 0;
+    const toggleId = 'tog_'+e.id;
     return `
-      <div class="a-t-row" style="${cols};${isChild?'background:rgba(19,85,160,.04);padding-left:28px;border-left:3px solid var(--blue)':''}">
+      <div class="a-t-row" id="erow_${e.id}" style="${cols};${isChild?'background:rgba(19,85,160,.04);padding-left:28px;border-left:3px solid var(--blue);opacity:'+( e.is_active?1:.65)+';':' opacity:'+(e.is_active?1:.65)+';'}">
         <div>
           ${isChild ? '<span style="color:var(--blue);font-size:11px;margin-right:4px">↳</span>' : ''}
           <span style="font-weight:600;font-size:13px">${e.title}</span>
           <div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">
-            ${!e.is_active ? '<span class="tag tag-red" style="font-size:10px">Gizli</span>' : ''}
+            ${!e.is_active ? '<span class="tag tag-red" style="font-size:10px">Satışda deyil</span>' : '<span class="tag tag-green" style="font-size:10px">Satışda</span>'}
             ${dateStatus(e)}
             ${subs.length ? `<span class="tag tag-purple" style="font-size:10px">${subs.length} alt-imtahan</span>` : ''}
           </div>
         </div>
         <div><span class="tag tag-blue" style="font-size:10px">${e.category||'—'}</span></div>
         <div style="font-size:12px">${e.class||'—'}</div>
-        <div style="font-size:12px">${e.section||'—'}</div>
         <div>${e.question_count||0}</div>
         <div style="font-weight:600">${e.price} ₼</div>
+        <div>
+          <label class="pub-toggle" title="${e.is_active?'Satışdan çıxar':'Satışa çıxar'}">
+            <input type="checkbox" ${e.is_active?'checked':''} onchange="toggleExamActive('${e.id}',this)">
+            <span class="pub-slider"></span>
+          </label>
+        </div>
         <div style="display:flex;gap:3px;flex-wrap:wrap">
           <button class="btn btn-outline btn-sm" title="Redaktə" onclick="editExam(${JSON.stringify(e).replace(/"/g,'&quot;')})">✏</button>
           ${isGroup
@@ -3557,6 +3610,33 @@ async function saveExam(){
   toast(id ? 'İmtahan yeniləndi!' : 'İmtahan əlavə edildi!', 'ok');
   closeModal('addExamModal');
   loadAdminExams();
+}
+
+async function toggleExamActive(examId, checkbox){
+  checkbox.disabled = true;
+  const r = await fetch(API+'/exams/'+examId+'/toggle-active', {
+    method:'PATCH',
+    headers:{'Authorization':'Bearer '+STATE.token}
+  }).then(x=>x.json()).catch(()=>({success:false}));
+  checkbox.disabled = false;
+  if(!r.success){ checkbox.checked = !checkbox.checked; toast('Xəta baş verdi.','err'); return; }
+  // Update row opacity and badge without full reload
+  const row = document.getElementById('erow_'+examId);
+  if(row){
+    row.style.opacity = r.is_active ? '1' : '0.65';
+    const badges = row.querySelectorAll('.tag-red, .tag-green');
+    badges.forEach(b=>{ if(b.textContent.includes('Satış')) b.remove(); });
+    const titleDiv = row.querySelector('div > div');
+    if(titleDiv){
+      const badge = document.createElement('span');
+      badge.className = r.is_active ? 'tag tag-green' : 'tag tag-red';
+      badge.style.fontSize = '10px';
+      badge.textContent = r.is_active ? 'Satışda' : 'Satışda deyil';
+      titleDiv.prepend(badge);
+    }
+  }
+  checkbox.title = r.is_active ? 'Satışdan çıxar' : 'Satışa çıxar';
+  toast(r.is_active ? '✅ Satışa çıxarıldı' : '⛔ Satışdan çıxarıldı', r.is_active?'ok':'info');
 }
 
 async function deleteExam(id){
