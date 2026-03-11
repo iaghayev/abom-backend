@@ -116,6 +116,18 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .opt-toolbar{display:flex;gap:2px;flex-shrink:0}
 .opt-tb-btn{padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:#f5f7fa;cursor:pointer;font-size:11px;color:var(--navy)}
 .opt-tb-btn:hover{background:#e2e8f4}
+/* Formula panel */
+.formula-cat{padding:4px 10px;border:1.5px solid var(--border);border-radius:20px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:var(--navy);transition:all .15s;white-space:nowrap}
+.formula-cat:hover{border-color:var(--blue);color:var(--blue)}
+.formula-cat.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.fsym-btn{display:flex;align-items:center;justify-content:center;min-width:44px;height:40px;padding:2px 6px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;transition:all .15s;font-size:15px}
+.fsym-btn:hover{border-color:var(--blue);background:rgba(19,85,160,.06);transform:scale(1.05)}
+.fsym-btn .fsym-render{pointer-events:none}
+.ftpl-btn{padding:5px 10px;border:1.5px solid var(--border);border-radius:7px;background:#fff;cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;gap:4px}
+.ftpl-btn:hover{border-color:var(--blue);background:rgba(19,85,160,.06)}
+.fcat-btn{padding:4px 10px;border:1.5px solid var(--border);border-radius:20px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:var(--navy);transition:all .15s;white-space:nowrap}
+.fcat-btn:hover{border-color:var(--blue);color:var(--blue)}
+.fcat-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 .tag-gray{background:var(--off);color:var(--muted);border:1px solid var(--border)}
 .tag-sky{background:rgba(35,128,232,.08);color:var(--sky);border:1px solid rgba(35,128,232,.18)}
 
@@ -1440,41 +1452,70 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   </div>
 </div>
 
-<!-- FORMULA PANEL -->
+<!-- FORMULA PANEL — International Standard -->
 <div class="overlay" id="formulaPanel" style="z-index:10001">
-  <div class="modal modal-sm">
+  <div class="modal" style="max-width:640px;width:97vw;max-height:90vh;display:flex;flex-direction:column">
     <button class="m-close" onclick="closeModal('formulaPanel')">✕</button>
-    <div class="m-title">∑ Formula Daxil Et</div>
+    <div class="m-title">∑ Formula Redaktoru</div>
 
-    <!-- Quick symbols -->
-    <div style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Tez düymələr</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px" id="formulaQuickBtns">
-        <!-- Populated by JS -->
+    <!-- Category tabs -->
+    <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="fcat-btn active" onclick="switchFormulaCat('greek',this)">α Yunan</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('ops',this)">± Əməliyyat</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('rel',this)">≤ Münasibət</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('struct',this)">⅟ Struktur</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('calc',this)">∫ Analiz</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('func',this)">sin Funksiya</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('sets',this)">∈ Çoxluq</button>
+      <button class="fcat-btn" onclick="switchFormulaCat('arrows',this)">→ Ox/Məntiq</button>
+    </div>
+
+    <!-- Symbol grid -->
+    <div id="formulaSymGrid" style="display:flex;flex-wrap:wrap;gap:4px;padding:10px;background:var(--soft);border-radius:10px;min-height:80px;max-height:160px;overflow-y:auto;margin-bottom:10px">
+    </div>
+
+    <!-- LaTeX input + preview -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="field" style="margin:0">
+        <label style="font-size:11px;font-weight:700;color:var(--muted)">LaTeX</label>
+        <input class="inp" id="formulaLatexInput" placeholder="\frac{a}{b}" style="font-family:monospace;font-size:13px"
+          oninput="previewFormula()">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">Önizləmə</div>
+        <div id="formulaPreview" style="min-height:40px;text-align:center;padding:6px 10px;background:#fff;border-radius:8px;border:1.5px solid var(--border);overflow-x:auto;display:flex;align-items:center;justify-content:center">
+          <span style="color:var(--muted);font-size:12px">Önizləmə...</span>
+        </div>
       </div>
     </div>
 
-    <div class="field">
-      <label>LaTeX formulu yaz <span style="font-size:10px;color:var(--muted)">(məs: \frac{1}{2}, x^2, \sqrt{x})</span></label>
-      <input class="inp" id="formulaLatexInput" placeholder="\frac{a}{b}" style="font-family:monospace;font-size:14px"
-        oninput="previewFormula()">
+    <!-- Common templates -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px">Hazır şablonlar</div>
+      <div id="formulaTemplates" style="display:flex;flex-wrap:wrap;gap:4px"></div>
     </div>
-    <div style="min-height:50px;text-align:center;font-size:22px;padding:10px;background:var(--soft);border-radius:8px;margin-bottom:14px;border:1px solid var(--border)" id="formulaPreview">
-      Önizləmə...
-    </div>
+
     <div style="display:flex;gap:8px">
-      <button class="form-btn" onclick="insertFormula()" style="flex:1">Daxil Et</button>
-      <button class="btn btn-outline" onclick="closeModal('formulaPanel')" style="min-width:80px">Ləğv Et</button>
+      <button class="form-btn" onclick="insertFormula()" style="flex:1">➕ Daxil Et</button>
+      <button class="btn btn-outline" onclick="closeModal('formulaPanel')" style="min-width:80px">Ləğv</button>
     </div>
   </div>
 </div>
 
-<!-- IMAGE RESIZE OVERLAY -->
-<div id="imgResizeBar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(11,31,58,.92);color:#fff;border-radius:10px;padding:8px 14px;z-index:10002;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-  <span>🖼 Ölçü:</span>
-  <input type="range" id="imgResizeSlider" min="10" max="100" value="100" style="width:120px" oninput="applyImgResize(this.value)">
-  <span id="imgResizeVal">100%</span>
-  <button onclick="document.getElementById('imgResizeBar').style.display='none';window._selectedImg=null" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;font-size:12px">✕</button>
+<!-- IMAGE RESIZE POPUP (inline, appears near selected image) -->
+<div id="imgResizePopup" style="display:none;position:absolute;background:#fff;border:1.5px solid var(--blue);border-radius:10px;padding:8px 12px;z-index:10002;box-shadow:0 4px 20px rgba(19,85,160,.18);min-width:220px">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+    <span style="font-size:11px;font-weight:700;color:var(--navy);white-space:nowrap">🖼 Ölçü</span>
+    <input type="range" id="imgResizeSlider" min="10" max="100" value="100" style="flex:1;min-width:80px;accent-color:var(--blue)" oninput="applyImgResize(this.value)">
+    <span id="imgResizeVal" style="font-size:12px;font-weight:700;color:var(--blue);min-width:34px;text-align:right">100%</span>
+    <button onclick="closeImgResize()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0 2px" title="Bağla">✕</button>
+  </div>
+  <div style="display:flex;gap:4px;margin-top:6px">
+    <button onclick="applyImgResize(25)" style="flex:1;padding:3px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:#f5f7fa;cursor:pointer">25%</button>
+    <button onclick="applyImgResize(50)" style="flex:1;padding:3px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:#f5f7fa;cursor:pointer">50%</button>
+    <button onclick="applyImgResize(75)" style="flex:1;padding:3px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:#f5f7fa;cursor:pointer">75%</button>
+    <button onclick="applyImgResize(100)" style="flex:1;padding:3px;border:1px solid var(--border);border-radius:5px;font-size:10px;background:#f5f7fa;cursor:pointer">100%</button>
+  </div>
 </div>
 
 <!-- CSV IMPORT -->
@@ -3417,47 +3458,103 @@ function insertHtmlAtCaret(editorId, html){
 }
 
 // ── Formula panel ─────────────────────────────────
-const FORMULA_QUICK = [
-  {label:'x²',latex:'x^{2}'},  {label:'√x',latex:'\\sqrt{x}'},
-  {label:'½',latex:'\\frac{1}{2}'}, {label:'∫',latex:'\\int'},
-  {label:'∑',latex:'\\sum'}, {label:'∞',latex:'\\infty'},
-  {label:'≠',latex:'\\neq'}, {label:'≤',latex:'\\leq'},
-  {label:'≥',latex:'\\geq'}, {label:'π',latex:'\\pi'},
-  {label:'α',latex:'\\alpha'}, {label:'β',latex:'\\beta'},
-  {label:'γ',latex:'\\gamma'}, {label:'Δ',latex:'\\Delta'},
-  {label:'θ',latex:'\\theta'}, {label:'λ',latex:'\\lambda'},
-  {label:'μ',latex:'\\mu'},   {label:'σ',latex:'\\sigma'},
-  {label:'±',latex:'\\pm'},   {label:'×',latex:'\\times'},
-  {label:'÷',latex:'\\div'},  {label:'→',latex:'\\rightarrow'},
-  {label:'⟺',latex:'\\Leftrightarrow'}, {label:'∈',latex:'\\in'},
-  {label:'aⁿ',latex:'a^{n}'}, {label:'log',latex:'\\log'},
-  {label:'sin',latex:'\\sin'}, {label:'cos',latex:'\\cos'},
-  {label:'tan',latex:'\\tan'}, {label:'lim',latex:'\\lim_{x \\to \\infty}'},
+// ══════════════════════════════════════════════════════════
+//  FORMULA PANEL — International Standard Categories
+// ══════════════════════════════════════════════════════════
+const FORMULA_CATS = {
+  greek:{syms:['\\alpha','\\beta','\\gamma','\\delta','\\epsilon','\\zeta','\\eta','\\theta','\\iota','\\kappa','\\lambda','\\mu','\\nu','\\xi','\\pi','\\rho','\\sigma','\\tau','\\phi','\\chi','\\psi','\\omega','\\Gamma','\\Delta','\\Theta','\\Lambda','\\Xi','\\Pi','\\Sigma','\\Upsilon','\\Phi','\\Psi','\\Omega']},
+  ops:{syms:['\\times','\\div','\\pm','\\mp','\\cdot','\\circ','x^{2}','x^{n}','x^{-1}','\\sqrt{x}','\\sqrt[n]{x}','\\frac{x}{y}','\\dfrac{a}{b}','x_{n}','x_{i}','|x|','\\lfloor x\\rfloor','\\lceil x\\rceil','n!','\\binom{n}{k}','\\%']},
+  rel:{syms:['=','\\neq','<','>','\\leq','\\geq','\\ll','\\gg','\\approx','\\equiv','\\sim','\\simeq','\\cong','\\propto','\\perp','\\parallel','\\angle','\\triangle','\\square']},
+  struct:{syms:['\\frac{a}{b}','\\dfrac{a}{b}','\\cfrac{a}{b}','\\sqrt{x}','\\sqrt[3]{x}','x^{y}','\\overline{AB}','\\vec{v}','\\hat{x}','\\overrightarrow{AB}','\\dot{x}','\\ddot{x}','\\left(\\frac{a}{b}\\right)','\\left[x\\right]','\\left\\{x\\right\\}','\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}']},
+  calc:{syms:['\\int','\\int_{a}^{b}','\\iint','\\oint','\\sum','\\sum_{i=1}^{n}','\\prod','\\prod_{i=1}^{n}','\\lim_{x\\to 0}','\\lim_{x\\to\\infty}','\\frac{d}{dx}','\\frac{dy}{dx}','\\frac{\\partial f}{\\partial x}','\\nabla','\\infty','\\partial',"f'(x)","f''(x)"]},
+  func:{syms:['\\sin','\\cos','\\tan','\\cot','\\sec','\\csc','\\arcsin','\\arccos','\\arctan','\\sinh','\\cosh','\\tanh','\\log','\\log_{a}','\\ln','\\lg','\\exp','\\max','\\min','\\gcd','\\lim','\\sup','\\inf']},
+  sets:{syms:['\\in','\\notin','\\subset','\\supset','\\subseteq','\\supseteq','\\cup','\\cap','\\setminus','\\emptyset','\\mathbb{N}','\\mathbb{Z}','\\mathbb{Q}','\\mathbb{R}','\\mathbb{C}','\\forall','\\exists','\\nexists']},
+  arrows:{syms:['\\rightarrow','\\leftarrow','\\leftrightarrow','\\Rightarrow','\\Leftarrow','\\Leftrightarrow','\\uparrow','\\downarrow','\\to','\\mapsto','\\implies','\\iff','\\land','\\lor','\\lnot','\\oplus','\\because','\\therefore']},
+};
+const FORMULA_TEMPLATES = [
+  {name:'Kəsr',          l:'\\frac{a}{b}'},
+  {name:'Kvadrat kök',   l:'\\sqrt{x}'},
+  {name:'n-ci kök',      l:'\\sqrt[n]{x}'},
+  {name:'Üst dərəcə',   l:'x^{n}'},
+  {name:'Alt indeks',    l:'x_{n}'},
+  {name:'İntegral',      l:'\\int_{a}^{b} f(x)\\,dx'},
+  {name:'Cəm',           l:'\\sum_{i=1}^{n} a_i'},
+  {name:'Limit',         l:'\\lim_{x \\to \\infty} f(x)'},
+  {name:'Törəmə',        l:'\\frac{d}{dx}\\left[f(x)\\right]'},
+  {name:'Kvadrat tənlik',l:'x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}'},
+  {name:'Pitagor',       l:'a^2 + b^2 = c^2'},
+  {name:'Vektor',        l:'\\vec{v} = (v_1, v_2, v_3)'},
+  {name:'Matris 2×2',    l:'\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}'},
+  {name:'Kombinasiya',   l:'\\binom{n}{k}'},
+  {name:'Loqarifm',      l:'\\log_{a} b = \\frac{\\ln b}{\\ln a}'},
 ];
 
 let _formulaTargetEditor = 'qEditor';
+let _formulaCatActive = 'greek';
+
+function switchFormulaCat(cat, btn){
+  _formulaCatActive = cat;
+  document.querySelectorAll('.fcat-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  _renderFormulaSyms(cat);
+}
+
+function _katexSpan(latex){
+  try{ const s=document.createElement('span'); katex.render(latex,s,{throwOnError:false,displayMode:false}); return s.innerHTML; }
+  catch(e){ return latex; }
+}
+
+function _renderFormulaSyms(cat){
+  const syms = FORMULA_CATS[cat]?.syms||[];
+  document.getElementById('formulaSymGrid').innerHTML = syms.map(s=>{
+    const esc = s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<button class="fsym-btn" onclick="pickFormulaSym('${esc}')" title="${s.replace(/"/g,'&quot;')}">${_katexSpan(s)}</button>`;
+  }).join('');
+}
+
+function _renderFormulaTemplates(){
+  document.getElementById('formulaTemplates').innerHTML = FORMULA_TEMPLATES.map(t=>{
+    const esc = t.l.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<button class="ftpl-btn" onclick="pickFormulaSym('${esc}')" title="${t.l}">
+      <span style="pointer-events:none">${_katexSpan(t.l)}</span>
+      <span style="font-size:9px;color:var(--muted);pointer-events:none">${t.name}</span>
+    </button>`;
+  }).join('');
+}
+
+function pickFormulaSym(latex){
+  // unescape the escaped backslashes
+  latex = latex.replace(/\\\\/g,'\\');
+  const inp = document.getElementById('formulaLatexInput');
+  const cur = inp.value.trim();
+  inp.value = cur ? cur + ' ' + latex : latex;
+  previewFormula();
+  inp.focus();
+}
 
 function openFormulaPanel(editorId){
   _formulaTargetEditor = editorId;
   saveEditorSel();
-  // Build quick buttons
-  document.getElementById('formulaQuickBtns').innerHTML = FORMULA_QUICK.map(f=>
-    `<button class="opt-tb-btn" style="font-size:14px;padding:4px 8px;min-width:36px" onclick="pickQuickFormula('${f.latex.replace(/'/g,"\\'")}')" title="${f.latex}">${f.label}</button>`
-  ).join('');
+  _formulaCatActive = 'greek';
+  // reset category tabs
+  setTimeout(()=>{
+    document.querySelectorAll('.fcat-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+    _renderFormulaSyms('greek');
+    _renderFormulaTemplates();
+  },10);
   document.getElementById('formulaLatexInput').value='';
-  document.getElementById('formulaPreview').innerHTML='Önizləmə...';
+  document.getElementById('formulaPreview').innerHTML='<span style="color:var(--muted);font-size:12px">Önizləmə...</span>';
   openModal('formulaPanel');
+  setTimeout(()=>document.getElementById('formulaLatexInput').focus(),200);
 }
 
-function pickQuickFormula(latex){
-  document.getElementById('formulaLatexInput').value = latex;
-  previewFormula();
-}
+// Legacy alias
+function pickQuickFormula(latex){ pickFormulaSym(latex); }
 
 function previewFormula(){
   const latex = document.getElementById('formulaLatexInput').value.trim();
   const prev  = document.getElementById('formulaPreview');
-  if(!latex){ prev.innerHTML='Önizləmə...'; return; }
+  if(!latex){ prev.innerHTML='<span style="color:var(--muted);font-size:12px">Önizləmə...</span>'; return; }
   try{ katex.render(latex, prev, {throwOnError:false, displayMode:true}); }
   catch(e){ prev.textContent = latex; }
 }
@@ -3490,7 +3587,7 @@ function handleEditorImgUpload(editorId, inputId){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const img = `<img src="${e.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this)" data-width="100">`;
+    const img = `<img src="${e.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this,event)" data-width="100">`;
     insertHtmlAtCaret(editorId, img);
     document.getElementById(inputId).value = '';
   };
@@ -3506,7 +3603,7 @@ function handleEditorPaste(e, editorId){
       const blob = item.getAsFile();
       const reader = new FileReader();
       reader.onload = ev => {
-        const img = `<img src="${ev.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this)" data-width="100">`;
+        const img = `<img src="${ev.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this,event)" data-width="100">`;
         document.getElementById(editorId).focus();
         document.execCommand('insertHTML', false, img);
       };
@@ -3518,32 +3615,47 @@ function handleEditorPaste(e, editorId){
 
 function handleEditorKeydown(e){ if(e.key==='Tab'){ e.preventDefault(); document.execCommand('insertText',false,'    '); } }
 
-// ── Image resize ──────────────────────────────────
-function selectEditorImg(imgEl){
+// ── Image resize — inline popup ────────────────────
+function selectEditorImg(imgEl, ev){
+  if(ev) ev.stopPropagation();
   window._selectedImg = imgEl;
-  // remove previous selection
   document.querySelectorAll('.rich-editor img.selected').forEach(i=>i.classList.remove('selected'));
   imgEl.classList.add('selected');
-  const bar = document.getElementById('imgResizeBar');
-  bar.style.display = 'flex';
-  const w = imgEl.dataset.width || '100';
+
+  const popup = document.getElementById('imgResizePopup');
+  popup.style.display = 'block';
+
+  // Position above image, inside viewport
+  const rect = imgEl.getBoundingClientRect();
+  let top  = rect.top + window.scrollY - 70;
+  let left = rect.left + window.scrollX;
+  if(top < 4) top = rect.bottom + window.scrollY + 4;
+  const maxLeft = Math.max(0, window.innerWidth - 250);
+  popup.style.top  = Math.max(4, top)+'px';
+  popup.style.left = Math.min(left, maxLeft)+'px';
+
+  const w = parseInt(imgEl.dataset.width)||100;
   document.getElementById('imgResizeSlider').value = w;
   document.getElementById('imgResizeVal').textContent = w + '%';
 }
 function applyImgResize(val){
+  val = parseInt(val);
   if(!window._selectedImg) return;
   window._selectedImg.style.width = val + '%';
   window._selectedImg.style.maxWidth = '100%';
   window._selectedImg.dataset.width = val;
+  document.getElementById('imgResizeSlider').value = val;
   document.getElementById('imgResizeVal').textContent = val + '%';
 }
-// Click outside deselects image
-document.addEventListener('click', e=>{
-  if(e.target.tagName==='IMG' && e.target.closest('.rich-editor')) return;
-  if(e.target.closest('#imgResizeBar')) return;
-  document.getElementById('imgResizeBar').style.display='none';
+function closeImgResize(){
+  document.getElementById('imgResizePopup').style.display='none';
   document.querySelectorAll('.rich-editor img.selected').forEach(i=>i.classList.remove('selected'));
   window._selectedImg=null;
+}
+document.addEventListener('click', e=>{
+  if(e.target.tagName==='IMG' && e.target.closest('.rich-editor')) return;
+  if(e.target.closest('#imgResizePopup')) return;
+  closeImgResize();
 });
 
 // ── Build MC option rows ───────────────────────────
@@ -3843,16 +3955,16 @@ function buildCertFieldInputs(){
       </div>
       <!-- Content (collapsible) -->
       <div id="cfContent_${f.key}" style="padding:9px 10px;background:#fafbfc;border-top:1px solid var(--border)">
-        <div style="display:grid;grid-template-columns:1fr 1fr 52px 38px;gap:3px;margin-bottom:3px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 66px 38px;gap:3px;margin-bottom:3px">
           <div><div style="font-size:9px;color:var(--muted)">X%</div>
             <input class="inp" id="cf_${f.key}_x" type="number" min="0" max="100" placeholder="50"
               style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
           <div><div style="font-size:9px;color:var(--muted)">Y%</div>
             <input class="inp" id="cf_${f.key}_y" type="number" min="0" max="100" placeholder="50"
               style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
-          <div><div style="font-size:9px;color:var(--muted)">px</div>
+          <div><div style="font-size:9px;color:var(--muted);font-weight:700">Şrift (px)</div>
             <input class="inp" id="cf_${f.key}_size" type="number" min="6" max="200" value="36"
-              style="padding:4px 6px;font-size:12px;width:100%" oninput="updateCertPreview()"></div>
+              style="padding:4px 6px;font-size:12px;width:100%;border-color:var(--blue)" oninput="updateCertPreview()"></div>
           <div><div style="font-size:9px;color:var(--muted)">Rəng</div>
             <input type="color" id="cf_${f.key}_color" value="#0b1f3a"
               style="width:100%;height:28px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer"
