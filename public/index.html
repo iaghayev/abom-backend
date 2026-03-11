@@ -3487,18 +3487,25 @@ async function loadAdminExams(){
         </div>
       </div>
       ${isGroup ? `<div id="subQView_${e.id}" style="display:none;background:rgba(124,58,237,.03);border-left:4px solid rgba(124,58,237,.3);margin:0;padding:10px 14px 10px 28px">
-        <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📚 Alt-imtahanlar — Sual Redaktəsi</div>
+        <div style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📚 Alt-imtahanlar — Satış / Sual Redaktəsi</div>
         <div style="display:flex;flex-direction:column;gap:6px">
           ${subs.map(s=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 14px">
-              <div>
-                <span style="font-weight:600;font-size:13px">${s.title}</span>
-                <span style="margin-left:8px;font-size:11px;color:var(--muted)">${s.class||'?'}-ci sinif · ${s.section||'?'} bölmə</span>
-                <span class="tag tag-gray" style="margin-left:6px;font-size:11px">${s.question_count||0} sual</span>
+            <div id="erow_${s.id}" style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:9px 14px;opacity:${s.is_active?1:.6}">
+              <div style="display:flex;align-items:center;gap:10px">
+                <label class="pub-toggle" title="${s.is_active?'Satışdan çıxar':'Satışa çıxar'}">
+                  <input type="checkbox" ${s.is_active?'checked':''} onchange="toggleExamActive('${s.id}',this)">
+                  <span class="pub-slider"></span>
+                </label>
+                <div>
+                  <span style="font-weight:600;font-size:13px">${s.title}</span>
+                  <span style="margin-left:8px;font-size:11px;color:var(--muted)">${s.class||'?'}-ci sinif · ${s.section||'?'} bölmə</span>
+                  <span class="tag tag-gray" style="margin-left:6px;font-size:11px">${s.question_count||0} sual</span>
+                  ${!s.is_active?'<span class="tag tag-red" style="margin-left:4px;font-size:10px">Satışda deyil</span>':'<span class="tag tag-green" style="margin-left:4px;font-size:10px">Satışda</span>'}
+                </div>
               </div>
               <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openQuestionsFor('${s.id}','${s.title.replace(/'/g,"\\'")}')">📝 Sualları Aç</button>
-                <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏ Redaktə</button>
+                <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="openQuestionsFor('${s.id}','${s.title.replace(/'/g,"\\'")}')">📝 Suallar</button>
+                <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="editExam(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏</button>
               </div>
             </div>`).join('')}
         </div>
