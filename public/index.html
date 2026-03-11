@@ -92,7 +92,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 /* MODAL */
 .overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(11,31,58,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;overflow-y:auto}
 .overlay.open{display:flex}
-.modal{background:#fff;border-radius:var(--radius-lg);padding:32px;width:100%;max-height:92vh;overflow-y:auto;position:relative;animation:mIn .25s cubic-bezier(.2,.8,.3,1);box-shadow:0 24px 80px rgba(11,31,58,.18)}
+.modal{background:#fff;border-radius:var(--radius-lg);padding:32px;width:100%;max-height:92vh;overflow-y:auto;overflow-x:visible;position:relative;animation:mIn .25s cubic-bezier(.2,.8,.3,1);box-shadow:0 24px 80px rgba(11,31,58,.18)}
 .modal-sm{max-width:420px}.modal-md{max-width:500px}.modal-lg{max-width:680px}.modal-xl{max-width:860px}
 @keyframes mIn{from{opacity:0;transform:scale(.93) translateY(12px)}to{opacity:1;transform:none}}
 .m-close{position:absolute;top:14px;right:14px;background:var(--off);border:none;color:var(--muted);font-size:16px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;z-index:1;line-height:1}
@@ -367,9 +367,9 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .country-btn:hover{background:rgba(19,85,160,.11)}
 .country-btn .flag{font-size:16px;line-height:1}
 .country-btn .code{font-size:12px}
-.country-drop{position:absolute;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 28px rgba(11,31,58,.13);z-index:800;width:240px;max-height:280px;overflow-y:auto;top:calc(100% + 4px);left:0}
-.country-drop .cd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
-.country-drop .cd-item:hover{background:var(--off)}
+.country-drop{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(11,31,58,.18);z-index:9500;width:220px;max-height:260px;overflow-y:auto;animation:mIn .15s ease}
+.country-drop .cd-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s;user-select:none}
+.country-drop .cd-item:hover{background:var(--soft)}
 .country-drop .cd-item .flag{font-size:18px}
 .phone-inp{border:none;background:transparent;padding:10px 12px;font-size:14px;font-weight:500;color:var(--navy);outline:none;flex:1;font-family:'Outfit',sans-serif;min-width:0;letter-spacing:.02em}
 .phone-inp::placeholder{color:#b0c4d8;font-weight:400}
@@ -423,10 +423,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <span class="nav-name">ABOM</span>
   </div>
   <div class="nav-links" id="navLinks">
-    <button class="nav-link active" onclick="goTo('home')">Ana Səhifə</button>
-    <button class="nav-link" onclick="goTo('exams')">İmtahanlar</button>
-    <button class="nav-link" onclick="goTo('videos')">Video Dərslər</button>
-    <button class="nav-link" onclick="goTo('rating')">Reytinq</button>
+    <button class="nav-link active" onclick="goTo('home')" data-t="home">Ana Səhifə</button>
+    <button class="nav-link" onclick="goTo('exams')" data-t="exams_nav">İmtahanlar</button>
+    <button class="nav-link" onclick="goTo('videos')" data-t="videos_nav">Video Dərslər</button>
+    <button class="nav-link" onclick="goTo('rating')" data-t="rating_nav">Reytinq</button>
   </div>
   <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
     <div class="lang-sw">
@@ -441,7 +441,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         <div class="user-chip-un" id="navUn">@username</div>
       </div>
     </div>
-    <button id="navLoginBtn" class="btn btn-outline btn-sm" onclick="openModal('authModal')">Daxil ol</button>
+    <button id="navLoginBtn" class="btn btn-outline btn-sm" onclick="openModal('authModal')" data-t="login">Daxil ol</button>
     <button id="navAdminBtn" class="btn btn-primary btn-sm" style="display:none" onclick="goTo('admin')">⚙ Admin</button>
     <div class="hamburger" id="hamBtn" onclick="toggleMobileNav()"><span></span><span></span><span></span></div>
   </div>
@@ -449,14 +449,14 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
 <!-- Mobile nav -->
 <div class="mobile-nav" id="mobileNav">
-  <button class="mob-link" onclick="goTo('home');closeMobileNav()">🏠 Ana Səhifə</button>
+  <button class="mob-link" onclick="goTo('home');closeMobileNav()" data-t="home">🏠 Ana Səhifə</button>
   <button class="mob-link" onclick="goTo('exams');closeMobileNav()">📝 İmtahanlar</button>
   <button class="mob-link" onclick="goTo('videos');closeMobileNav()">🎬 Video Dərslər</button>
   <button class="mob-link" onclick="goTo('rating');closeMobileNav()">🏆 Reytinq</button>
   <button class="mob-link" id="mobDashLink" style="display:none" onclick="goTo('dashboard');closeMobileNav()">👤 Mənim Profilim</button>
   <button class="mob-link" id="mobParentLink" style="display:none" onclick="goTo('parent');closeMobileNav()">👨‍👩‍👧 Valideyn Paneli</button>
   <button class="mob-link" id="mobAdminLink" style="display:none" onclick="goTo('admin');closeMobileNav()">⚙️ Admin Panel</button>
-  <button class="mob-link" id="mobLogout" style="display:none" onclick="logout();closeMobileNav()">🚪 Çıxış</button>
+  <button class="mob-link" id="mobLogout" style="display:none" onclick="logout();closeMobileNav()" data-t="logout">🚪 Çıxış</button>
 </div>
 
 <!-- ═══════════════════════════════════ HOME ═══════════════════════════════════ -->
@@ -467,18 +467,18 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="hero-blob"></div>
     <div class="hero-inner">
       <div>
-        <div class="hero-badge"><span class="pulse"></span> Azərbaycanda lider olimpiada platformu</div>
+        <div class="hero-badge"><span class="pulse"></span> <span data-t="hero_badge">Azərbaycanda lider olimpiada platformu</span></div>
         <h1 class="hero-h1">Olimpiadada <em>qalibiyyəti</em><br>birlikdə qazanaq</h1>
         <p class="hero-p">Peşəkar müəllimlər, keyfiyyətli sınaq imtahanları və real olimpiada sualları ilə uşağınızın gələcəyini birlikdə inşa edək.</p>
         <div class="hero-acts">
-          <button class="btn btn-primary btn-lg" onclick="STATE.user ? goTo('dashboard') : openModal('authModal')">🚀 İndi Başla</button>
-          <button class="btn btn-outline btn-lg" onclick="goTo('exams')">İmtahanlara Bax →</button>
+          <button class="btn btn-primary btn-lg" onclick="STATE.user ? goTo('dashboard') : openModal('authModal')" data-t="start_btn">🚀 İndi Başla</button>
+          <button class="btn btn-outline btn-lg" onclick="goTo('exams')" data-t="view_exams">İmtahanlara Bax →</button>
         </div>
         <div class="hero-stats">
-          <div><div class="hs-num" id="hsSt1"><em>500</em>+</div><div class="hs-label">Şagird</div></div>
-          <div><div class="hs-num" id="hsSt2"><em>50</em>+</div><div class="hs-label">İmtahan</div></div>
-          <div><div class="hs-num" id="hsSt3"><em>95</em>%</div><div class="hs-label">Uğur</div></div>
-          <div><div class="hs-num" id="hsSt4"><em>3</em></div><div class="hs-label">Fənn</div></div>
+          <div><div class="hs-num" id="hsSt1"><em>500</em>+</div><div class="hs-label" data-t="stat_students">Şagird</div></div>
+          <div><div class="hs-num" id="hsSt2"><em>50</em>+</div><div class="hs-label" data-t="stat_exams">İmtahan</div></div>
+          <div><div class="hs-num" id="hsSt3"><em>95</em>%</div><div class="hs-label" data-t="stat_success">Uğur</div></div>
+          <div><div class="hs-num" id="hsSt4"><em>3</em></div><div class="hs-label" data-t="stat_subjects">Fənn</div></div>
         </div>
       </div>
       <div class="hero-card">
@@ -551,11 +551,11 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
   <footer class="footer">
     <div class="nav-logo"><div class="nav-badge">A</div><span class="nav-name" style="color:#fff">ABOM</span></div>
-    <div class="footer-copy">© 2025 ABOM. Bütün hüquqlar qorunur.</div>
+    <div class="footer-copy" data-t="footer_copy">© 2025 ABOM. Bütün hüquqlar qorunur.</div>
     <div class="footer-links">
-      <span class="footer-link">Əlaqə</span>
-      <span class="footer-link">Qaydalar</span>
-      <span class="footer-link">Gizlilik</span>
+      <span class="footer-link" data-t="contact">Əlaqə</span>
+      <span class="footer-link" data-t="rules">Qaydalar</span>
+      <span class="footer-link" data-t="privacy">Gizlilik</span>
     </div>
   </footer>
 </div>
@@ -696,10 +696,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 
     <!-- KPI -->
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-icon" style="background:rgba(19,85,160,.08)">📝</div><div class="kpi-lbl">İmtahan</div><div class="kpi-val" id="kpiExams">0</div></div>
-      <div class="kpi"><div class="kpi-icon" style="background:rgba(5,150,105,.08)">🎯</div><div class="kpi-lbl">Orta Bal</div><div class="kpi-val" id="kpiAvg">—</div></div>
-      <div class="kpi"><div class="kpi-icon" style="background:rgba(217,119,6,.08)">🏅</div><div class="kpi-lbl">Sertifikat</div><div class="kpi-val" id="kpiCerts">0</div></div>
-      <div class="kpi"><div class="kpi-icon" style="background:rgba(124,58,237,.08)">⚡</div><div class="kpi-lbl">Aktiv bilet</div><div class="kpi-val" id="kpiActive">0</div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(19,85,160,.08)">📝</div><div class="kpi-lbl" data-t="kpi_exams">İmtahan</div><div class="kpi-val" id="kpiExams">0</div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(5,150,105,.08)">🎯</div><div class="kpi-lbl" data-t="kpi_avg">Orta Bal</div><div class="kpi-val" id="kpiAvg">—</div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(217,119,6,.08)">🏅</div><div class="kpi-lbl" data-t="kpi_certs">Sertifikat</div><div class="kpi-val" id="kpiCerts">0</div></div>
+      <div class="kpi"><div class="kpi-icon" style="background:rgba(124,58,237,.08)">⚡</div><div class="kpi-lbl" data-t="kpi_active">Aktiv bilet</div><div class="kpi-val" id="kpiActive">0</div></div>
     </div>
 
     <!-- Active exams + chart -->
@@ -707,12 +707,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div>
         <!-- Active exams -->
         <div class="card" style="margin-bottom:14px" id="activeExamsCard">
-          <div class="card-title">⚡ Aktiv İmtahanlar <span id="activeExamsBadge" class="tag tag-green" style="display:none"></span></div>
+          <div class="card-title" data-t="active_exams">⚡ Aktiv İmtahanlar <span id="activeExamsBadge" class="tag tag-green" style="display:none"></span></div>
           <div id="activeExamsList"><div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Aktiv bilet tapılmadı.</div></div>
         </div>
         <!-- Chart -->
         <div class="card">
-          <div class="card-title">📈 Bal Dinamikası</div>
+          <div class="card-title" data-t="score_chart">📈 Bal Dinamikası</div>
           <canvas id="scoreChart" height="160" style="width:100%"></canvas>
         </div>
       </div>
@@ -974,17 +974,17 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <div class="overlay" id="authModal">
   <div class="modal modal-sm">
     <button class="m-close" onclick="closeModal('authModal')">✕</button>
-    <div class="m-title">ABOM Platformuna Xoş Gəldiniz</div>
-    <div class="m-sub">Hesabınıza daxil olun və ya yeni qeydiyyat keçin</div>
+    <div class="m-title" data-t="auth_title">ABOM Platformuna Xoş Gəldiniz</div>
+    <div class="m-sub" data-t="auth_sub">Hesabınıza daxil olun və ya yeni qeydiyyat keçin</div>
     <div class="tab-bar" style="margin-bottom:20px;width:100%">
-      <button class="tab-btn active" onclick="authTab('login')" id="authTabLogin" style="flex:1">Giriş</button>
-      <button class="tab-btn" onclick="authTab('register')" id="authTabReg" style="flex:1">Qeydiyyat</button>
-      <button class="tab-btn" onclick="authTab('parent')" id="authTabParent" style="flex:1">Valideyn</button>
+      <button class="tab-btn active" onclick="authTab('login')" id="authTabLogin" style="flex:1" data-t="tab_login">Giriş</button>
+      <button class="tab-btn" onclick="authTab('register')" id="authTabReg" style="flex:1" data-t="tab_reg">Qeydiyyat</button>
+      <button class="tab-btn" onclick="authTab('parent')" id="authTabParent" style="flex:1" data-t="tab_parent">Valideyn</button>
     </div>
     <!-- Login -->
     <div id="loginPane">
       <div class="msg" id="loginMsg"></div>
-      <div class="field"><label>Telefon nömrəsi</label>
+      <div class="field"><label data-t="field_phone">Telefon nömrəsi</label>
         <div class="phone-wrap" id="loginPhoneWrap">
           <div style="position:relative">
             <button type="button" class="country-btn" id="loginPhoneCountryBtn" onclick="toggleCountryDrop('loginPhone')">
@@ -1003,12 +1003,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       </div>
       <div class="field"><label>Şifrə</label><input class="inp" id="loginPass" type="password" placeholder="••••••"></div>
       <div style="margin-bottom:12px"><button class="btn btn-outline btn-sm" onclick="authTab('adminLogin')">Admin girişi →</button></div>
-      <button class="form-btn" onclick="doLogin()" id="loginBtn">Daxil ol</button>
+      <button class="form-btn" onclick="doLogin()" id="loginBtn" data-t="btn_login">Daxil ol</button>
     </div>
     <!-- Register -->
     <div id="registerPane" style="display:none">
       <div class="msg" id="regMsg"></div>
-      <div class="field"><label>Ad Soyad</label><input class="inp" id="regName" type="text" placeholder="Aytən Həsənova"></div>
+      <div class="field"><label data-t="field_name">Ad Soyad</label><input class="inp" id="regName" type="text" placeholder="Aytən Həsənova"></div>
       <div class="field"><label>Telefon nömrəsi</label>
         <div class="phone-wrap" id="regPhoneWrap">
           <div style="position:relative">
@@ -1023,23 +1023,23 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field"><label>Sinif</label>
+        <div class="field"><label data-t="field_class">Sinif</label>
           <select class="inp" id="regClass">
             <option value="">Sinif</option>
             <option value="4">4</option><option value="5">5</option><option value="6">6</option>
             <option value="7">7</option><option value="8">8</option><option value="9">9</option>
           </select>
         </div>
-        <div class="field"><label>Bölmə</label>
+        <div class="field"><label data-t="field_section">Bölmə</label>
           <select class="inp" id="regSection">
             <option value="">Bölmə</option>
             <option value="az">AZ</option><option value="ru">RU</option><option value="en">EN</option>
           </select>
         </div>
       </div>
-      <div class="field"><label>Şifrə (min 6 simvol)</label><input class="inp" id="regPass" type="password" placeholder="••••••"></div>
-      <div class="field"><label>Şifrəni təkrarlayın</label><input class="inp" id="regPassConfirm" type="password" placeholder="••••••"></div>
-      <button class="form-btn" onclick="doRegister()" id="regBtn">Qeydiyyat</button>
+      <div class="field"><label data-t="field_pass">Şifrə (min 6 simvol)</label><input class="inp" id="regPass" type="password" placeholder="••••••"></div>
+      <div class="field"><label data-t="field_passconf">Şifrəni təkrarlayın</label><input class="inp" id="regPassConfirm" type="password" placeholder="••••••"></div>
+      <button class="form-btn" onclick="doRegister()" id="regBtn" data-t="btn_reg">Qeydiyyat</button>
     </div>
     <!-- Parent -->
     <div id="parentPane" style="display:none">
@@ -1047,7 +1047,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;color:var(--purple)">
         👨‍👩‍👧 Valideyn kodu uşağınızın profilindəki <strong>6 simvollu kod</strong>dur.
       </div>
-      <div class="field"><label>Adınız</label><input class="inp" id="parName" type="text" placeholder="Vüsal Həsənov"></div>
+      <div class="field"><label data-t="field_parname">Adınız</label><input class="inp" id="parName" type="text" placeholder="Vüsal Həsənov"></div>
       <div class="field"><label>Telefon</label>
         <div class="phone-wrap" id="parPhoneWrap">
           <div style="position:relative">
@@ -1061,9 +1061,9 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <input class="phone-inp" id="parPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('parPhone')">
         </div>
       </div>
-      <div class="field"><label>Uşağın kodu</label><input class="inp" id="parCode" type="text" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:.1em"></div>
+      <div class="field"><label data-t="field_childcode">Uşağın kodu</label><input class="inp" id="parCode" type="text" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:.1em"></div>
       <div class="field"><label>Şifrə</label><input class="inp" id="parPass" type="password" placeholder="••••••"></div>
-      <button class="form-btn" onclick="doParentAuth()" id="parAuthBtn">Giriş / Qeydiyyat</button>
+      <button class="form-btn" onclick="doParentAuth()" id="parAuthBtn" data-t="btn_parent">Giriş / Qeydiyyat</button>
     </div>
     <!-- Admin login -->
     <div id="adminLoginPane" style="display:none">
@@ -1080,7 +1080,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <div class="overlay" id="buyModal">
   <div class="modal modal-md">
     <button class="m-close" onclick="closeModal('buyModal')">✕</button>
-    <div class="m-title">🎫 Bilet Al</div>
+    <div class="m-title" data-t="buy_title">🎫 Bilet Al</div>
     <div class="m-sub" id="buyExamTitle">İmtahan</div>
     <div class="msg" id="buyMsg"></div>
     <div class="field"><label>Ad Soyad</label><input class="inp" id="buyName" type="text" placeholder="Aytən Həsənova"></div>
@@ -1145,8 +1145,8 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <div class="overlay" id="profileModal">
   <div class="modal modal-sm">
     <button class="m-close" onclick="closeModal('profileModal')">✕</button>
-    <div class="m-title">✏️ Profilim</div>
-    <div class="m-sub">Məlumatlarınızı yeniləyin</div>
+    <div class="m-title" data-t="profile_title">✏️ Profilim</div>
+    <div class="m-sub" data-t="profile_sub">Məlumatlarınızı yeniləyin</div>
     <div class="msg" id="profMsg"></div>
     <div class="field"><label>Ad Soyad</label><input class="inp" id="profName" type="text"></div>
     <div class="field"><label>Username</label><input class="inp" id="profUsername" type="text" disabled style="background:var(--off);color:var(--muted)"></div>
@@ -1163,13 +1163,13 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         </select>
       </div>
     </div>
-    <button class="form-btn" onclick="saveProfile()">Yadda saxla</button>
+    <button class="form-btn" onclick="saveProfile()" data-t="save">Yadda saxla</button>
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
       <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px">ŞİFRƏ DƏYİŞ</div>
-      <div class="field"><label>Köhnə şifrə</label><input class="inp" id="oldPass" type="password" placeholder="••••••"></div>
-      <div class="field"><label>Yeni şifrə</label><input class="inp" id="newPass" type="password" placeholder="••••••"></div>
-      <div class="field"><label>Yenini təkrarlayın</label><input class="inp" id="newPassConfirm" type="password" placeholder="••••••"></div>
-      <button class="btn btn-outline btn-w" onclick="changePassword()">Şifrəni dəyiş</button>
+      <div class="field"><label data-t="old_pass">Köhnə şifrə</label><input class="inp" id="oldPass" type="password" placeholder="••••••"></div>
+      <div class="field"><label data-t="new_pass">Yeni şifrə</label><input class="inp" id="newPass" type="password" placeholder="••••••"></div>
+      <div class="field"><label data-t="new_passconf">Yenini təkrarlayın</label><input class="inp" id="newPassConfirm" type="password" placeholder="••••••"></div>
+      <button class="btn btn-outline btn-w" onclick="changePassword()" data-t="change_pass_btn">Şifrəni dəyiş</button>
     </div>
   </div>
 </div>
@@ -1394,10 +1394,18 @@ function initPhonePicker(fieldId) {
 function toggleCountryDrop(fieldId) {
   initPhonePicker(fieldId);
   const drop = document.getElementById(fieldId + 'Drop');
+  const btn  = document.getElementById(fieldId + 'CountryBtn');
   const isOpen = drop.style.display !== 'none';
-  // Close all others
+  // Close all others first
   document.querySelectorAll('.country-drop').forEach(d => d.style.display = 'none');
-  if (!isOpen) drop.style.display = 'block';
+  if (!isOpen && btn) {
+    const rect = btn.getBoundingClientRect();
+    drop.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+    drop.style.left = rect.left + 'px';
+    drop.style.display = 'block';
+    // Move to body so it's not clipped by any overflow container
+    if (drop.parentElement !== document.body) document.body.appendChild(drop);
+  }
 }
 
 function selectCountry(fieldId, iso) {
@@ -1419,14 +1427,13 @@ function formatPhoneInput(fieldId) {
   if (!inp) return;
   initPhonePicker(fieldId);
   const c = phoneState[fieldId]?.country || COUNTRIES[0];
-  // Strip non-digits
-  let digits = inp.value.replace(/\D/g, '').slice(0, c.digits);
-  // Apply format pattern
-  let fmt = c.fmt;
-  let out = '', di = 0;
+  const digits = inp.value.replace(/\D/g, '').slice(0, c.digits);
+  if (!digits.length) { inp.value = ''; return; }
+  // Walk through format, fill in digits
+  let out = '', di = 0, fmt = c.fmt;
   for (let i = 0; i < fmt.length && di < digits.length; i++) {
     if (fmt[i] === '#') { out += digits[di++]; }
-    else { if (di > 0) out += fmt[i]; }
+    else if (di > 0)    { out += fmt[i]; }
   }
   inp.value = out;
 }
@@ -1467,21 +1474,167 @@ let STATE = {
 
 // ═══════════════════ LANG ═══════════════════
 const T = {
-  az: { free:'Pulsuz', paid:'Ödənişli', lisey:'Lisey', olimpiada:'Olimpiada',
-        min:'dəq', q:'sual', no_exams:'İmtahan tapılmadı', no_vids:'Video tapılmadı',
-        pending:'Gözləyən', active:'Aktiv', cancelled:'Ləğv edilmiş' },
-  ru: { free:'Бесплатно', paid:'Платно', lisey:'Лицей', olimpiada:'Олимпиада',
-        min:'мин', q:'вопрос', no_exams:'Экзамены не найдены', no_vids:'Видео не найдено',
-        pending:'Ожидает', active:'Активно', cancelled:'Отменено' },
-  en: { free:'Free', paid:'Paid', lisey:'Lyceum', olimpiada:'Olympiad',
-        min:'min', q:'q', no_exams:'No exams found', no_vids:'No videos found',
-        pending:'Pending', active:'Active', cancelled:'Cancelled' }
+  az: {
+    // nav
+    home:'Ana Səhifə', exams_nav:'İmtahanlar', videos_nav:'Video Dərslər', rating_nav:'Reytinq',
+    login:'Daxil ol', logout:'Çıxış',
+    // hero
+    hero_badge:'Azərbaycanda lider olimpiada platformu',
+    hero_h1a:'Olimpiadada', hero_h1b:'qalibiyyəti', hero_h1c:'birlikdə qazanaq',
+    hero_p:'Peşəkar müəllimlər, keyfiyyətli sınaq imtahanları və real olimpiada sualları ilə uşağınızın gələcəyini birlikdə inşa edək.',
+    start_btn:'🚀 İndi Başla', view_exams:'İmtahanlara Bax →',
+    stat_students:'Şagird', stat_exams:'İmtahan', stat_success:'Uğur', stat_subjects:'Fənn',
+    // sections
+    lbl_exams:'Sınaq İmtahanları', title_popular:'Populyar İmtahanlar', see_all:'Hamısına bax →',
+    lbl_videos:'Video Dərslər', title_free:'Pulsuz Dərslər',
+    cta_title:'Uşağınızın olimpiada yoluna bu gün başlayın',
+    cta_sub:'Azərbaycanda 500+ şagird artıq ABOM-la hazırlaşır',
+    reg_free:'Qeydiyyat — Pulsuz',
+    // exam card
+    free:'Pulsuz', paid:'Ödənişli', lisey:'Lisey', olimpiada:'Olimpiada',
+    min:'dəq', q:'sual', class_:'sinif', buy_ticket:'Bilet Al',
+    // auth modal
+    auth_title:'ABOM Platformuna Xoş Gəldiniz', auth_sub:'Hesabınıza daxil olun və ya yeni qeydiyyat keçin',
+    tab_login:'Giriş', tab_reg:'Qeydiyyat', tab_parent:'Valideyn',
+    field_name:'Ad Soyad', field_phone:'Telefon nömrəsi', field_class:'Sinif',
+    field_section:'Bölmə', field_pass:'Şifrə (min 6 simvol)', field_passconf:'Şifrəni təkrarlayın',
+    btn_login:'Daxil ol', btn_reg:'Qeydiyyat', admin_link:'Admin girişi →',
+    parent_hint:'Valideyn kodu uşağınızın profilindəki 6 simvollu koddur.',
+    field_parname:'Adınız', field_childcode:'Uşağın kodu', btn_parent:'Giriş / Qeydiyyat',
+    // dashboard
+    dash_greet:'Uğurlu hazırlıqlar!', edit_profile:'✏️ Profil',
+    parent_code_lbl:'Valideyn kodu', parent_code_hint:'valideyninə ver',
+    rank_lbl:'Reytinq', rank_unit:'yer', best_lbl:'Ən yüksək', best_unit:'bal',
+    kpi_exams:'İmtahan', kpi_avg:'Orta Bal', kpi_certs:'Sertifikat', kpi_active:'Aktiv bilet',
+    active_exams:'⚡ Aktiv İmtahanlar', score_chart:'📈 Bal Dinamikası',
+    recent_results:'📋 Son Nəticələr', see_all_res:'Hamısı',
+    no_active:'Aktiv bilet tapılmadı.', no_results:'Hələ nəticə yoxdur.',
+    start_exam:'▶ Başla',
+    // results
+    lbl_myresults:'Şəxsi Nəticələr', title_myresults:'Bütün Nəticələrim',
+    col_exam:'İmtahan', col_score:'Bal', col_result:'Nəticə', col_cert:'Sertifikat', col_date:'Tarix', col_review:'İcmal',
+    // rating
+    lbl_rating:'Ümumi Reytinq',
+    // buy ticket
+    buy_title:'🎫 Bilet Al', buy_hint:'Ödəniş məlumatı WhatsApp-a göndəriləcək. Admin aktivləşdirdikdən sonra imtahana başlaya bilərsiniz.',
+    field_wa:'WhatsApp',
+    // status
+    pending:'Gözləyən', active:'Aktiv', cancelled:'Ləğv edilmiş',
+    // no data
+    no_exams:'İmtahan tapılmadı', no_vids:'Video tapılmadı',
+    // profile
+    profile_title:'✏️ Profilim', profile_sub:'Məlumatlarınızı yeniləyin',
+    field_username:'Username', change_pass:'ŞİFRƏ DƏYİŞ',
+    old_pass:'Köhnə şifrə', new_pass:'Yeni şifrə', new_passconf:'Yenini təkrarlayın',
+    save:'Yadda saxla', change_pass_btn:'Şifrəni dəyiş',
+    // footer
+    footer_copy:'© 2025 ABOM. Bütün hüquqlar qorunur.',
+    contact:'Əlaqə', rules:'Qaydalar', privacy:'Gizlilik',
+  },
+  ru: {
+    home:'Главная', exams_nav:'Экзамены', videos_nav:'Видеоуроки', rating_nav:'Рейтинг',
+    login:'Войти', logout:'Выход',
+    hero_badge:'Ведущая олимпийская платформа Азербайджана',
+    hero_h1a:'Победу на', hero_h1b:'олимпиаде', hero_h1c:'завоюем вместе',
+    hero_p:'С профессиональными педагогами, качественными пробными экзаменами и реальными олимпийскими задачами мы вместе строим будущее вашего ребёнка.',
+    start_btn:'🚀 Начать', view_exams:'Все экзамены →',
+    stat_students:'Учеников', stat_exams:'Экзаменов', stat_success:'Успех', stat_subjects:'Предметов',
+    lbl_exams:'Пробные Экзамены', title_popular:'Популярные Экзамены', see_all:'Смотреть все →',
+    lbl_videos:'Видеоуроки', title_free:'Бесплатные Уроки',
+    cta_title:'Начните олимпийский путь вашего ребёнка сегодня',
+    cta_sub:'Более 500 учеников Азербайджана уже занимаются с ABOM',
+    reg_free:'Регистрация — Бесплатно',
+    free:'Бесплатно', paid:'Платно', lisey:'Лицей', olimpiada:'Олимпиада',
+    min:'мин', q:'вопрос', class_:'класс', buy_ticket:'Купить билет',
+    auth_title:'Добро пожаловать на платформу ABOM', auth_sub:'Войдите или зарегистрируйтесь',
+    tab_login:'Войти', tab_reg:'Регистрация', tab_parent:'Родитель',
+    field_name:'Имя Фамилия', field_phone:'Номер телефона', field_class:'Класс',
+    field_section:'Секция', field_pass:'Пароль (мин 6 символов)', field_passconf:'Повторите пароль',
+    btn_login:'Войти', btn_reg:'Зарегистрироваться', admin_link:'Вход для администратора →',
+    parent_hint:'Код родителя — это 6-значный код в профиле вашего ребёнка.',
+    field_parname:'Ваше имя', field_childcode:'Код ребёнка', btn_parent:'Войти / Зарегистрироваться',
+    dash_greet:'Удачной подготовки!', edit_profile:'✏️ Профиль',
+    parent_code_lbl:'Код родителя', parent_code_hint:'передайте родителю',
+    rank_lbl:'Рейтинг', rank_unit:'место', best_lbl:'Лучший', best_unit:'балл',
+    kpi_exams:'Экзамены', kpi_avg:'Средний балл', kpi_certs:'Сертификатов', kpi_active:'Активных',
+    active_exams:'⚡ Активные экзамены', score_chart:'📈 Динамика баллов',
+    recent_results:'📋 Последние результаты', see_all_res:'Все',
+    no_active:'Активных билетов нет.', no_results:'Результатов пока нет.',
+    start_exam:'▶ Начать',
+    lbl_myresults:'Мои результаты', title_myresults:'Все мои результаты',
+    col_exam:'Экзамен', col_score:'Балл', col_result:'Результат', col_cert:'Сертификат', col_date:'Дата', col_review:'Обзор',
+    lbl_rating:'Общий рейтинг',
+    buy_title:'🎫 Купить билет', buy_hint:'Данные об оплате будут отправлены на WhatsApp. После активации администратором вы сможете начать экзамен.',
+    field_wa:'WhatsApp',
+    pending:'Ожидает', active:'Активно', cancelled:'Отменено',
+    no_exams:'Экзаменов не найдено', no_vids:'Видео не найдено',
+    profile_title:'✏️ Мой профиль', profile_sub:'Обновите свои данные',
+    field_username:'Username', change_pass:'ИЗМЕНИТЬ ПАРОЛЬ',
+    old_pass:'Старый пароль', new_pass:'Новый пароль', new_passconf:'Повторите новый',
+    save:'Сохранить', change_pass_btn:'Изменить пароль',
+    footer_copy:'© 2025 ABOM. Все права защищены.',
+    contact:'Контакты', rules:'Правила', privacy:'Конфиденциальность',
+  },
+  en: {
+    home:'Home', exams_nav:'Exams', videos_nav:'Video Lessons', rating_nav:'Rankings',
+    login:'Sign In', logout:'Sign Out',
+    hero_badge:'Azerbaijan\'s leading olympiad platform',
+    hero_h1a:'Win', hero_h1b:'olympiad glory', hero_h1c:'together',
+    hero_p:'With professional teachers, quality mock exams and real olympiad questions, let\'s build your child\'s future together.',
+    start_btn:'🚀 Get Started', view_exams:'View Exams →',
+    stat_students:'Students', stat_exams:'Exams', stat_success:'Success', stat_subjects:'Subjects',
+    lbl_exams:'Mock Exams', title_popular:'Popular Exams', see_all:'View all →',
+    lbl_videos:'Video Lessons', title_free:'Free Lessons',
+    cta_title:'Start your child\'s olympiad journey today',
+    cta_sub:'500+ students in Azerbaijan are already learning with ABOM',
+    reg_free:'Register — Free',
+    free:'Free', paid:'Paid', lisey:'Lyceum', olimpiada:'Olympiad',
+    min:'min', q:'q', class_:'grade', buy_ticket:'Buy Ticket',
+    auth_title:'Welcome to ABOM Platform', auth_sub:'Sign in or create a new account',
+    tab_login:'Sign In', tab_reg:'Register', tab_parent:'Parent',
+    field_name:'Full Name', field_phone:'Phone number', field_class:'Grade',
+    field_section:'Section', field_pass:'Password (min 6 chars)', field_passconf:'Confirm password',
+    btn_login:'Sign In', btn_reg:'Register', admin_link:'Admin login →',
+    parent_hint:'The parent code is the 6-character code in your child\'s profile.',
+    field_parname:'Your name', field_childcode:'Child\'s code', btn_parent:'Login / Register',
+    dash_greet:'Good luck with your studies!', edit_profile:'✏️ Profile',
+    parent_code_lbl:'Parent code', parent_code_hint:'share with parent',
+    rank_lbl:'Ranking', rank_unit:'place', best_lbl:'Best', best_unit:'pts',
+    kpi_exams:'Exams', kpi_avg:'Avg Score', kpi_certs:'Certs', kpi_active:'Active',
+    active_exams:'⚡ Active Exams', score_chart:'📈 Score Chart',
+    recent_results:'📋 Recent Results', see_all_res:'All',
+    no_active:'No active tickets.', no_results:'No results yet.',
+    start_exam:'▶ Start',
+    lbl_myresults:'My Results', title_myresults:'All My Results',
+    col_exam:'Exam', col_score:'Score', col_result:'Result', col_cert:'Certificate', col_date:'Date', col_review:'Review',
+    lbl_rating:'Global Rankings',
+    buy_title:'🎫 Buy Ticket', buy_hint:'Payment details will be sent via WhatsApp. You can start the exam once the admin activates it.',
+    field_wa:'WhatsApp',
+    pending:'Pending', active:'Active', cancelled:'Cancelled',
+    no_exams:'No exams found', no_vids:'No videos found',
+    profile_title:'✏️ My Profile', profile_sub:'Update your details',
+    field_username:'Username', change_pass:'CHANGE PASSWORD',
+    old_pass:'Old password', new_pass:'New password', new_passconf:'Confirm new',
+    save:'Save', change_pass_btn:'Change password',
+    footer_copy:'© 2025 ABOM. All rights reserved.',
+    contact:'Contact', rules:'Terms', privacy:'Privacy',
+  }
 };
-function t(k){ return (T[STATE.lang]||T.az)[k]||k; }
+function t(k){ return (T[STATE.lang]||T.az)[k] ?? (T.az[k]??k); }
+
 function setLang(l){
-  STATE.lang=l;
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b.textContent===l.toUpperCase()));
+  STATE.lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.textContent===l.toUpperCase()));
+  // Update all data-t elements
+  document.querySelectorAll('[data-t]').forEach(el=>{
+    const key = el.dataset.t;
+    if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.placeholder = t(key);
+    else el.innerHTML = t(key);
+  });
+  document.querySelectorAll('[data-t-ph]').forEach(el=>{ el.placeholder = t(el.dataset.tPh); });
+  // Re-render dynamic content
   renderHomeExams(); renderHomeVids();
+  loadExamsIfOpen(); loadVideosIfOpen();
 }
 
 // ═══════════════════ API HELPER ═══════════════════
@@ -1527,6 +1680,8 @@ function goTo(pg){
   if(pg==='myresults') loadMyResults();
   if(pg==='parent') loadParentPanel();
 }
+function loadExamsIfOpen(){ if(document.getElementById('page-exams')?.classList.contains('active')) loadExams(); }
+function loadVideosIfOpen(){ if(document.getElementById('page-videos')?.classList.contains('active')) loadVideos(); }
 function toggleMobileNav(){document.getElementById('mobileNav').classList.toggle('open');}
 function closeMobileNav(){document.getElementById('mobileNav').classList.remove('open');}
 
@@ -2337,7 +2492,7 @@ async function loadAdminDashboard(){
 }
 
 async function loadRegs(){
-  const r=await GET('/registrations');
+  const r=await GET('/registrations/admin/all');
   STATE.allRegs=r.data||[];
   filterRegs();
   const cnt=STATE.allRegs.filter(r=>r.status==='pending').length;
