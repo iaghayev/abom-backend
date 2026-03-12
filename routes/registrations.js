@@ -26,6 +26,91 @@ async function notifyActivation(reg, exam) {
   });
 }
 
+// ── WhatsApp helpers (UltraMsg) ──────────────────────────
+// Railway env vars:
+//   ULTRAMSG_INSTANCE — instance ID from ultramsg.com
+//   ULTRAMSG_TOKEN    — token from ultramsg.com
+//   WA_PAYMENT_INFO   — ödəniş rekvizitləri (optional)
+//   PLATFORM_URL      — platform linki (optional)
+
+function normalizeWaPhone(phone) {
+  let p = (phone || '').replace(/\D/g, '');
+  if (p.startsWith('0')) p = '994' + p.slice(1);
+  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
+  return p; // e.g. 994501234567
+}
+
+async function sendWhatsApp(toPhone, message) {
+  const token    = process.env.ULTRAMSG_TOKEN;
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  if (!token || !instance) return; // not configured — skip silently
+  const to = normalizeWaPhone(toPhone);
+  if (!to) return;
+  try {
+    const res = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token, to, body: message, priority: 10 })
+    });
+    const data = await res.json();
+    if (!res.ok) console.error('UltraMsg error:', JSON.stringify(data));
+  } catch(e) { console.error('WhatsApp send error:', e.message); }
+}
+
+async function waNewTicket(reg, exam) {
+  const waPhone = reg.whatsapp || reg.phone;
+  if (!waPhone) return;
+  const price   = exam?.price || 0;
+  const payInfo = process.env.WA_PAYMENT_INFO ||
+    'm10: +994 70 888 08 06\nKapital Bank: 4169 XXXX XXXX XXXX\nAd: ABOM Mərkəzi';
+  const time = new Date().toLocaleString('az-AZ', { timeZone: 'Asia/Baku' });
+  const msg =
+`🎫 ABOM — Bilet Sorğunuz Alındı
+
+Salam, ${reg.name}! 👋
+
+📚 İmtahan: ${exam?.title || '—'}
+🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
+💰 Məbləğ: ${price} AZN
+
+💳 Ödəniş məlumatları:
+${payInfo}
+
+⚠️ Ödənişi etdikdən sonra çek şəklini bu nömrəyə göndərin. Admin ödənişi yoxladıqdan sonra imtahanınız aktivləşdiriləcək.
+
+📌 Sorğu ID: ${reg.id}
+🕐 ${time}
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
+  await sendWhatsApp(waPhone, msg);
+}
+
+async function waActivated(reg, exam) {
+  const waPhone = reg.whatsapp || reg.phone;
+  if (!waPhone) return;
+  // Fetch user credentials to include in message
+  const user = db.prepare('SELECT username, phone, password FROM users WHERE id=?').get(reg.user_id);
+  const username = user?.username || reg.phone;
+  const password = user?.password || '—';
+  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  const msg =
+`✅ İmtahanınız Aktivləşdirildi!
+
+Salam, ${reg.name}! 🎉
+
+📚 İmtahan: ${exam?.title || '—'}
+🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
+
+Aşağıdakı məlumatlarla platforma daxil olun:
+🔗 ${link}
+👤 İstifadəçi adı: ${username}
+🔑 Şifrə: ${password}
+
+İmtahana uğurlar! 💪
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
+  await sendWhatsApp(waPhone, msg);
+}
+
 // ── GET student's own registrations ──────────────────────
 router.get('/', authMiddleware, (req, res) => {
   const { status } = req.query;
@@ -138,6 +223,7 @@ router.post('/', authMiddleware, (req, res) => {
     VALUES (?,?,?,?,?,?,?,?,?,?)`)
     .run(id, req.user.id, targetExam.id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', new Date().toISOString());
   notifyNewRegistration({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, targetExam).catch(()=>{});
+  waNewTicket({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, targetExam).catch(()=>{});
   res.status(201).json({
     success: true,
     message: subCount > 0 ? `"${targetExam.title}" imtahanına qeydiyyatınız qəbul edildi.` : 'Bilet sorğunuz qəbul edildi.',
@@ -206,6 +292,7 @@ router.put('/:id/activate', adminMiddleware, (req, res) => {
       .run('rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id, reg.name, exam?.title||'', exam?.price||0, 'confirmed', now);
   } catch(e) {}
   notifyActivation(reg, exam).catch(()=>{});
+  waActivated(reg, exam).catch(()=>{});
   res.json({ success: true, message: 'Aktivləşdirildi.' });
 });
 

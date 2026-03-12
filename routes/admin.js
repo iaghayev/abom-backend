@@ -4,6 +4,48 @@ const db = require('../database');
 const { adminMiddleware } = require('../middleware/auth');
 const tg = require('../config/telegram');
 
+// ── WhatsApp helper (shared with registrations) ───────────
+function normalizeWaPhone(phone) {
+  let p = (phone || '').replace(/\D/g, '');
+  if (p.startsWith('0')) p = '994' + p.slice(1);
+  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
+  return p;
+}
+async function sendWhatsApp(toPhone, message) {
+  const token   = process.env.ULTRAMSG_TOKEN;
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  if (!token || !instance) return;
+  const to = normalizeWaPhone(toPhone);
+  if (!to) return;
+  try {
+    await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token, to, body: message, priority: 10 })
+    });
+  } catch(e) { console.error('WhatsApp send error:', e.message); }
+}
+async function waPasswordChanged(user, newPassword) {
+  const waPhone = user.whatsapp || user.phone;
+  if (!waPhone) return;
+  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  const msg =
+`🔑 ABOM — Şifrəniz Yeniləndi
+
+Salam, ${user.name}!
+
+Admin tərəfindən hesab məlumatlarınız yeniləndi.
+
+🔗 Platform: ${link}
+👤 İstifadəçi adı: ${user.username || user.phone}
+🔑 Yeni şifrə: ${newPassword}
+
+Zəhmət olmasa daxil olduqdan sonra şifrənizi dəyişdirin.
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
+  await sendWhatsApp(waPhone, msg);
+}
+
 // GET /api/admin/stats — dashboard stats
 router.get('/stats', adminMiddleware, (req, res) => {
   const stats = {
@@ -75,12 +117,10 @@ router.get('/activity', adminMiddleware, (req, res) => {
   res.json({ success: true, data: activity });
 });
 
-module.exports = router;
-
 // PUT /api/admin/users/:id — edit user
-router.put('/users/:id', adminMiddleware, (req, res) => {
-  const { name, phone, class: cls, section, username } = req.body;
-  const user = db.prepare('SELECT id FROM users WHERE id=?').get(req.params.id);
+router.put('/users/:id', adminMiddleware, async (req, res) => {
+  const { name, phone, class: cls, section, username, password } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
   const updates = [], params = [];
   if (name     !== undefined) { updates.push('name=?');     params.push(name.trim()); }
@@ -88,10 +128,21 @@ router.put('/users/:id', adminMiddleware, (req, res) => {
   if (cls      !== undefined) { updates.push('class=?');    params.push(cls); }
   if (section  !== undefined) { updates.push('section=?');  params.push(section); }
   if (username !== undefined) { updates.push('username=?'); params.push(username.trim()); }
+  const newPassword = (password || '').trim();
+  const changingPassword = newPassword.length >= 4;
+  if (changingPassword) {
+    updates.push('password=?');
+    params.push(newPassword);
+  }
   if (!updates.length) return res.json({ success: true });
   params.push(req.params.id);
   try {
     db.prepare(`UPDATE users SET ${updates.join(',')} WHERE id=?`).run(...params);
+    // Send WhatsApp if password was changed
+    if (changingPassword) {
+      const updatedUser = { ...user, name: name||user.name, username: username||user.username, phone: phone||user.phone };
+      waPasswordChanged(updatedUser, newPassword).catch(()=>{});
+    }
     res.json({ success: true });
   } catch(e) {
     res.status(400).json({ success: false, message: 'Username artıq mövcuddur.' });
