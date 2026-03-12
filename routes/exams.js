@@ -8,7 +8,7 @@ const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware
 router.get('/', optionalAuth, (req, res) => {
   const { category, subject, class: cls, section, search, parent_only, parent_id, admin } = req.query;
   let sql = `SELECT e.*,
-    (SELECT COUNT(*) FROM questions q WHERE q.exam_id=e.id) as question_count,
+    (SELECT COUNT(*) FROM questions q WHERE q.exam_id=e.id) as own_question_count,
     (SELECT COUNT(*) FROM exams sub WHERE sub.parent_exam_id=e.id) as sub_count
     FROM exams e WHERE 1=1`;
   const params = [];
@@ -32,7 +32,25 @@ router.get('/', optionalAuth, (req, res) => {
   if (parent_only) { sql += " AND (e.parent_exam_id='' OR e.parent_exam_id IS NULL)"; }
   if (parent_id)   { sql += ' AND e.parent_exam_id=?'; params.push(parent_id); }
   sql += ' ORDER BY e.created_at DESC';
-  res.json({ success:true, data: db.prepare(sql).all(...params) });
+
+  const exams = db.prepare(sql).all(...params);
+
+  // For root exams (no parent), calculate total question count across all descendants
+  const countDescendantQuestions = (examId) => {
+    const direct = db.prepare('SELECT COUNT(*) as c FROM questions WHERE exam_id=?').get(examId).c;
+    const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(examId);
+    return direct + children.reduce((sum, c) => sum + countDescendantQuestions(c.id), 0);
+  };
+
+  const result = exams.map(e => {
+    const isRoot = !e.parent_exam_id || e.parent_exam_id === '';
+    const question_count = (isRoot && e.sub_count > 0)
+      ? countDescendantQuestions(e.id)
+      : e.own_question_count;
+    return { ...e, question_count };
+  });
+
+  res.json({ success:true, data: result });
 });
 
 // ── GET /:id/tree — full nested tree for buy modal (BEFORE /:id) ──

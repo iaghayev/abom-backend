@@ -3712,15 +3712,20 @@ async function loadAdminExams(){
   }
 
   const totalLeafs = data.length - topLevel.length;
+  // Update static header badges
+  const hdr = document.querySelector('#ap-exams .a-hdr');
+  if(hdr){
+    let badges = hdr.querySelector('.eac-counts');
+    if(!badges){
+      badges = document.createElement('div');
+      badges.className = 'eac-counts';
+      badges.style.cssText = 'display:flex;gap:6px;align-items:center';
+      hdr.querySelector('div').appendChild(badges);
+    }
+    badges.innerHTML = `<span class="xbadge xbadge-blue">${topLevel.length} əsas</span><span class="xbadge xbadge-purple">${totalLeafs} alt</span>`;
+  }
+
   let html = `
-    <div class="eac-toolbar">
-      <span class="eac-toolbar-title">İmtahanlar</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span class="xbadge xbadge-blue">${topLevel.length} əsas</span>
-        <span class="xbadge xbadge-purple">${totalLeafs} alt</span>
-        <button class="xbtn xbtn-primary xbtn-sm" onclick="openAddExamModal()">+ Yeni İmtahan</button>
-      </div>
-    </div>
     <div class="exam-admin-list">
       ${topLevel.length ? topLevel.map(e=>rootCard(e)).join('') : '<div class="a-empty">İmtahan yoxdur.</div>'}
     </div>`;
