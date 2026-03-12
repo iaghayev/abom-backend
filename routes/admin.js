@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const db = require('../database');
 const { adminMiddleware } = require('../middleware/auth');
 const tg = require('../config/telegram');
@@ -132,7 +133,7 @@ router.put('/users/:id', adminMiddleware, async (req, res) => {
   const changingPassword = newPassword.length >= 4;
   if (changingPassword) {
     updates.push('password=?');
-    params.push(newPassword);
+    params.push(bcrypt.hashSync(newPassword, 10));
   }
   if (!updates.length) return res.json({ success: true });
   params.push(req.params.id);

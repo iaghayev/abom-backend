@@ -88,11 +88,16 @@ ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
 async function waActivated(reg, exam) {
   const waPhone = reg.whatsapp || reg.phone;
   if (!waPhone) return;
-  // Fetch user credentials to include in message
-  const user = db.prepare('SELECT username, phone, password FROM users WHERE id=?').get(reg.user_id);
-  const username = user?.username || reg.phone;
-  const password = user?.password || '—';
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(reg.user_id);
+  if (!user) return;
   const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+
+  // Generate a readable temp password and save it hashed
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const newPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const bcrypt = require('bcryptjs');
+  db.prepare('UPDATE users SET password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), user.id);
+
   const msg =
 `✅ İmtahanınız Aktivləşdirildi!
 
@@ -103,8 +108,8 @@ Salam, ${reg.name}! 🎉
 
 Aşağıdakı məlumatlarla platforma daxil olun:
 🔗 ${link}
-👤 İstifadəçi adı: ${username}
-🔑 Şifrə: ${password}
+👤 İstifadəçi adı: ${user.username || user.phone}
+🔑 Şifrə: ${newPassword}
 
 İmtahana uğurlar! 💪
 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;

@@ -2707,13 +2707,60 @@ async function checkMultipleAccounts(){
 }
 
 function openForgotPassword(){
-  // Prefill phone if already typed
-  const phone = getFullPhone('loginPhone') || '';
-  const msg = phone
-    ? `Salam, ABOM platformunda şifrəmi unutdum. Telefon nömrəm: ${phone}`
-    : `Salam, ABOM platformunda şifrəmi unutdum. Hesabımı bərpa etməyə kömək edə bilərsiniz?`;
-  const waUrl = `https://wa.me/994708880806?text=${encodeURIComponent(msg)}`;
-  window.open(waUrl, '_blank');
+  // Show inline forgot password form inside auth modal
+  document.getElementById('loginPane').style.display='none';
+  let fp = document.getElementById('forgotPane');
+  if(!fp){
+    fp = document.createElement('div');
+    fp.id = 'forgotPane';
+    fp.innerHTML = `
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:32px;margin-bottom:8px">🔑</div>
+        <div style="font-size:16px;font-weight:700;color:var(--navy)">Şifrəni Bərpa Et</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">Telefon nömrənizi daxil edin, yeni şifrə WhatsApp-a göndəriləcək</div>
+      </div>
+      <div class="msg" id="fpMsg"></div>
+      <div class="field"><label>Telefon nömrəsi</label>
+        <div class="phone-wrap" id="fpPhoneWrap">
+          <div style="position:relative">
+            <button type="button" class="country-btn" id="fpPhoneCountryBtn" onclick="toggleCountryDrop('fpPhone')">
+              <span class="flag" id="fpPhoneFlag">🇦🇿</span>
+              <span class="code" id="fpPhoneCode">+994</span>
+              <span style="font-size:9px;opacity:.5">▼</span>
+            </button>
+            <div class="country-drop" id="fpPhoneDrop" style="display:none"></div>
+          </div>
+          <input class="phone-inp" id="fpPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('fpPhone')">
+        </div>
+      </div>
+      <button class="form-btn" id="fpBtn" onclick="doForgotPassword()">Yeni Şifrə Göndər</button>
+      <button onclick="closeForgotPassword()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px">← Girişə qayıt</button>`;
+    document.getElementById('loginPane').parentNode.insertBefore(fp, document.getElementById('loginPane').nextSibling);
+    initCountryDrop('fpPhone');
+  }
+  fp.style.display='block';
+}
+function closeForgotPassword(){
+  const fp=document.getElementById('forgotPane');
+  if(fp) fp.style.display='none';
+  document.getElementById('loginPane').style.display='block';
+}
+async function doForgotPassword(){
+  const phone = getFullPhone('fpPhone');
+  if(!phone){ toast('Telefon nömrəsini daxil edin.','err'); return; }
+  const btn=document.getElementById('fpBtn');
+  btn.disabled=true; btn.textContent='Göndərilir...';
+  const r = await POST('/auth/forgot-password', { phone });
+  btn.disabled=false; btn.textContent='Yeni Şifrə Göndər';
+  const msg=document.getElementById('fpMsg');
+  if(r.success){
+    msg.className='msg ok'; msg.style.display='flex';
+    msg.textContent='✅ '+r.message;
+    setTimeout(()=>{ closeForgotPassword(); msg.style.display='none'; }, 3500);
+  } else {
+    msg.className='msg err'; msg.style.display='flex';
+    msg.textContent='⚠️ '+(r.message||'Xəta baş verdi.');
+  }
 }
 
 async function doLogin(){

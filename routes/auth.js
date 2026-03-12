@@ -11,6 +11,27 @@ function genToken(id) {
 }
 function uid() { return 'u_' + Date.now() + Math.random().toString(36).slice(2,7); }
 
+function normalizeWaPhone(phone) {
+  let p = (phone || '').replace(/\D/g, '');
+  if (p.startsWith('0')) p = '994' + p.slice(1);
+  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
+  return p;
+}
+async function sendWhatsApp(toPhone, message) {
+  const token    = process.env.ULTRAMSG_TOKEN;
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  if (!token || !instance) return;
+  const to = normalizeWaPhone(toPhone);
+  if (!to) return;
+  try {
+    await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token, to, body: message, priority: 10 })
+    });
+  } catch(e) { console.error('WhatsApp send error:', e.message); }
+}
+
 // POST /api/auth/register
 router.post('/register', (req, res) => {
   const { name, phone, password, confirmPassword, class: cls, section } = req.body;
@@ -146,6 +167,43 @@ router.post('/parent-register', (req, res) => {
     .run(id, un, name.trim(), cleanPhone, hash, JSON.stringify([child.id]), new Date().toISOString());
   const token = jwt.sign({ id, role: 'parent' }, process.env.JWT_SECRET, { expiresIn: '7d' });
   res.status(201).json({ success: true, token, message: `Qeydiyyat uğurlu. ${child.name} uşağınız əlavə edildi.` });
+});
+
+// POST /api/auth/forgot-password — generate new password, send via WhatsApp
+router.post('/forgot-password', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ success: false, message: 'Telefon nömrəsi tələb olunur.' });
+  const cleanPhone = phone.replace(/\D/g, '');
+  const last9 = cleanPhone.slice(-9);
+  const user = db.prepare("SELECT * FROM users WHERE (phone=? OR phone LIKE ?) AND role='student' LIMIT 1")
+    .get(cleanPhone, '%' + last9);
+  if (!user) return res.status(404).json({ success: false, message: 'Bu nömrə ilə istifadəçi tapılmadı.' });
+
+  // Generate 8-char random password (letters + digits)
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const newPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  db.prepare('UPDATE users SET password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), user.id);
+
+  // Send via WhatsApp
+  const waPhone = user.whatsapp || user.phone;
+  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  await sendWhatsApp(waPhone,
+`🔑 ABOM — Şifrə Yeniləndi
+
+Salam, ${user.name}!
+
+Yeni şifrəniz aşağıdadır:
+
+👤 İstifadəçi adı: ${user.username || user.phone}
+🔑 Yeni şifrə: ${newPassword}
+
+🔗 ${link}
+
+Daxil olduqdan sonra şifrənizi dəyişdirməyinizi tövsiyə edirik.
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+
+  res.json({ success: true, message: 'Yeni şifrə WhatsApp nömrənizə göndərildi.' });
 });
 
 module.exports = router;
