@@ -6119,6 +6119,18 @@ function openModal(id){
     // Pre-load class/section for register tab
     loadCatSelect('regClass',   'class',   '', 'Sinif seçin');
     loadCatSelect('regSection', 'section', '', 'Bölmə seçin');
+    // Fill login fields if coming from WhatsApp link
+    if(window._waCreds){
+      const {u, p} = window._waCreds;
+      window._waCreds = null;
+      // Wait for loadCatSelect async to finish, then fill
+      setTimeout(()=>{
+        const uEl=document.getElementById('loginUsername');
+        const pEl=document.getElementById('loginPass');
+        if(uEl) uEl.value=u;
+        if(pEl) pEl.value=p;
+      }, 50);
+    }
   }
 }
 async function saveProfile(){
@@ -6210,17 +6222,8 @@ async function init(){
     const u = params.get('u'), p = params.get('p');
     if(u && p){
       window.history.replaceState({}, '', window.location.pathname);
+      window._waCreds = { u, p };
       openModal('authModal');
-      // Fill immediately + retry after DOM settles
-      function fillLoginFields(){
-        const uEl = document.getElementById('loginUsername');
-        const pEl = document.getElementById('loginPass');
-        if(uEl) uEl.value = u;
-        if(pEl) pEl.value = p;
-      }
-      fillLoginFields();
-      setTimeout(fillLoginFields, 100);
-      setTimeout(fillLoginFields, 500);
     }
   }
 }
