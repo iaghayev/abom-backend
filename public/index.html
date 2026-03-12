@@ -3638,7 +3638,6 @@ async function loadAdminExams(){
             ? `<button onclick="openQuestionsFor('${g.id}','${chipTitle.replace(/'/g,"\\'")} ')" title="Suallar" class="gca-btn gca-blue">📝</button>`
             : `<button onclick="openAddGradeModal('${g.id}')" title="Sinif əlavə et" class="gca-btn gca-blue">+ Sinif</button>`
           }
-          <button onclick="editExam(${ej})" title="Redaktə" class="gca-btn gca-gray">✏</button>
           <button onclick="deleteExam('${g.id}')" title="Sil" class="gca-btn gca-red">✕</button>
         </div>
       </div>`;
@@ -3674,7 +3673,6 @@ async function loadAdminExams(){
           <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
             ${toggle(lang,'sm')}
             <button onclick="openAddGradeModal('${lang.id}')" class="xbtn xbtn-outline xbtn-xs">+ Sinif</button>
-            <button onclick="editExam(${ej})" class="xbtn xbtn-ghost xbtn-xs">✏</button>
             <button onclick="deleteExam('${lang.id}')" class="xbtn xbtn-red xbtn-xs">✕</button>
           </div>
         </div>
@@ -4328,41 +4326,60 @@ async function loadQExamSelect(){
   const csvSel = document.getElementById('csvExamSel');
   if(!sel) return;
 
-  // Group: parents first, then subs indented
-  const parents = all.filter(e=>!e.parent_exam_id);
-  const subMap  = {};
-  all.filter(e=>e.parent_exam_id).forEach(e=>{
-    if(!subMap[e.parent_exam_id]) subMap[e.parent_exam_id]=[];
-    subMap[e.parent_exam_id].push(e);
+  // Build full map of all exams by id
+  const byId = {};
+  all.forEach(e => byId[e.id] = e);
+
+  // Build children map
+  const childMap = {};
+  all.forEach(e=>{
+    const pid = e.parent_exam_id||'';
+    if(pid){ if(!childMap[pid]) childMap[pid]=[]; childMap[pid].push(e); }
   });
+
+  // Recursively collect leaf exams (those with no children = actual question holders)
+  function collectLeaves(id){
+    const kids = childMap[id]||[];
+    if(!kids.length) return [byId[id]].filter(Boolean);
+    return kids.flatMap(k => collectLeaves(k.id));
+  }
+
+  // Build label for a leaf exam showing its full path context
+  function leafLabel(e){
+    const cls = e.class ? `${e.class}-ci sinif` : '';
+    const sec = e.section || '';
+    const parts = [cls, sec].filter(Boolean);
+    return parts.length ? `↳ ${parts.join(' · ')}` : `↳ ${e.title}`;
+  }
+
+  const roots = all.filter(e => !e.parent_exam_id || e.parent_exam_id === '');
+  const standalones = roots.filter(e => !childMap[e.id]); // roots with no children
+  const grouped = roots.filter(e => childMap[e.id]);       // roots with children
 
   const currentVal = sel.value;
   sel.innerHTML = '<option value="">İmtahan seçin</option>';
   if(csvSel) csvSel.innerHTML = '<option value="">İmtahan seçin</option>';
 
-  parents.forEach(p=>{
-    const subs = subMap[p.id]||[];
-    if(subs.length){
-      // Group exam — add optgroup with sub-exams
-      const grp = document.createElement('optgroup');
-      grp.label = `🗂 ${p.title}`;
-      subs.forEach(s=>{
-        const o = document.createElement('option');
-        o.value = s.id;
-        const cls = s.class ? s.class+'-ci sinif' : '';
-        const sec = s.section ? s.section : '';
-        o.textContent = `↳ ${[cls, sec].filter(Boolean).join(' · ')}`;
-        grp.appendChild(o);
-        if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
-      });
-      sel.appendChild(grp);
-    } else {
-      // Regular exam
+  grouped.forEach(p=>{
+    const leaves = collectLeaves(p.id);
+    if(!leaves.length) return;
+    const grp = document.createElement('optgroup');
+    grp.label = `🗂 ${p.title}`;
+    leaves.forEach(leaf=>{
       const o = document.createElement('option');
-      o.value = p.id; o.textContent = p.title;
-      sel.appendChild(o);
+      o.value = leaf.id;
+      o.textContent = leafLabel(leaf);
+      grp.appendChild(o);
       if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
-    }
+    });
+    sel.appendChild(grp);
+  });
+
+  standalones.forEach(p=>{
+    const o = document.createElement('option');
+    o.value = p.id; o.textContent = p.title;
+    sel.appendChild(o);
+    if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
   });
 
   // Restore selection if still valid
@@ -5378,7 +5395,9 @@ function exportRevCsv(){
 async function loadCategories(){
   const r=await GET('/categories');
   const all=r.data||[];
-  renderCatList('catClass',  all.filter(c=>c.type==='class'),   'class');
+  const classes = all.filter(c=>c.type==='class')
+    .sort((a,b)=>parseInt(a.name)-parseInt(b.name));
+  renderCatList('catClass',  classes, 'class');
   renderCatList('catSubject',all.filter(c=>c.type==='subject'), 'subject');
   renderCatList('catSection',all.filter(c=>c.type==='section'), 'section');
 }

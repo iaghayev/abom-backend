@@ -170,8 +170,8 @@ router.patch('/:id/toggle-active', adminMiddleware, (req, res) => {
 router.put('/:id', adminMiddleware, (req, res) => {
   const { title, description, category, subject, class: cls, section,
     duration, price, is_active, start_date, end_date, is_unlimited, parent_exam_id, total_questions } = req.body;
-  if (!db.prepare('SELECT id FROM exams WHERE id=?').get(req.params.id))
-    return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
+  const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(req.params.id);
+  if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
   const unlimited = (is_unlimited===false||is_unlimited===0||is_unlimited==='0') ? 0 : 1;
   db.prepare(`UPDATE exams SET
     title=?,description=?,category=?,subject=?,class=?,section=?,
@@ -181,6 +181,24 @@ router.put('/:id', adminMiddleware, (req, res) => {
          duration||60, price||0, is_active??1,
          start_date||'', end_date||'', unlimited, parent_exam_id||'',
          parseInt(total_questions)||0, req.params.id);
+
+  // If this is a root exam (no parent), cascade shared fields to all descendants
+  const isRoot = !exam.parent_exam_id || exam.parent_exam_id === '';
+  if (isRoot) {
+    function cascadeUpdate(parentId) {
+      const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(parentId);
+      children.forEach(child => {
+        db.prepare(`UPDATE exams SET
+          category=?, subject=?, price=?,
+          is_unlimited=?, start_date=?, end_date=?
+          WHERE id=?`)
+          .run(category, subject, price||0, unlimited, start_date||'', end_date||'', child.id);
+        cascadeUpdate(child.id);
+      });
+    }
+    cascadeUpdate(req.params.id);
+  }
+
   res.json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(req.params.id) });
 });
 
