@@ -588,6 +588,11 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   <button class="mob-link" id="mobDashLink" style="display:none" onclick="goTo('dashboard');closeMobileNav()">👤 Mənim Profilim</button>
   <button class="mob-link" id="mobAdminLink" style="display:none" onclick="goTo('admin');closeMobileNav()">⚙️ Admin Panel</button>
   <button class="mob-link" id="mobLogout" style="display:none" onclick="logout();closeMobileNav()" data-t="logout">🚪 Çıxış</button>
+  <div style="display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--border);margin-top:4px">
+    <button class="lang-btn active" onclick="setLang('az');closeMobileNav()">AZ</button>
+    <button class="lang-btn" onclick="setLang('ru');closeMobileNav()">RU</button>
+    <button class="lang-btn" onclick="setLang('en');closeMobileNav()">EN</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════ HOME ═══════════════════════════════════ -->
@@ -1052,6 +1057,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <select class="flt-sel" id="icazeStatusFilter" onchange="filterIcazeler()">
             <option value="">Bütün statuslar</option>
             <option value="active">✅ Aktiv</option>
+            <option value="completed">🏁 Bitdi</option>
             <option value="cancelled">🚫 Ləğv</option>
           </select>
         </div>
@@ -1073,8 +1079,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <div id="qPanelBreadcrumb" style="font-size:12px;color:var(--blue);margin-top:2px;display:none"></div>
         </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <select class="flt-sel" id="qExamFilter" onchange="loadAdminQuestions();updateQBreadcrumb()"><option value="">İmtahan seçin</option></select>
-            <button class="btn btn-primary btn-sm" onclick="openAddQuestion()">+ Sual əlavə et</button>
+            <select class="flt-sel" id="qExamFilter" onchange="loadAdminQuestions();updateQBreadcrumb()" style="min-width:260px;max-width:340px"><option value="">İmtahan seçin</option></select>
             <button class="btn btn-outline btn-sm" onclick="openModal('csvModal')">📤 CSV Import</button>
           </div>
         </div>
@@ -2151,17 +2156,33 @@ function t(k){ return (T[STATE.lang]||T.az)[k] ?? (T.az[k]??k); }
 
 function setLang(l){
   STATE.lang = l;
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.textContent===l.toUpperCase()));
-  // Update all data-t elements
+  localStorage.setItem('abom_lang', l);
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.textContent.toLowerCase()===l));
+  // Update all static data-t elements
   document.querySelectorAll('[data-t]').forEach(el=>{
     const key = el.dataset.t;
     if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.placeholder = t(key);
     else el.innerHTML = t(key);
   });
   document.querySelectorAll('[data-t-ph]').forEach(el=>{ el.placeholder = t(el.dataset.tPh); });
-  // Re-render dynamic content
+  // Re-render ALL currently visible dynamic content
+  const pg = STATE.currentPage;
   renderHomeExams(); renderHomeVids();
-  loadExamsIfOpen(); loadVideosIfOpen();
+  if(pg==='exams')     loadExams();
+  if(pg==='videos')    loadVideos();
+  if(pg==='rating')    loadRating();
+  if(pg==='dashboard') loadDashboard();
+  if(pg==='myresults') loadMyResults();
+  if(pg==='parent')    loadParentPanel();
+  // Admin panels — re-render whichever is open
+  if(pg==='admin'){
+    loadAdminDashboard();
+    loadAdminExams();
+    loadAdminQuestions();
+    loadIcazeler();
+    loadRegs();
+    loadRevenues();
+  }
 }
 
 // ═══════════════════ API HELPER ═══════════════════
@@ -3279,13 +3300,14 @@ function filterRegs(){
       <div>${r.class||'—'}</div>
       <div>
         <select class="inp" style="padding:3px 6px;font-size:11px;border-radius:6px;
-          border:1.5px solid ${r.status==='active'?'rgba(5,150,105,.4)':r.status==='pending'?'rgba(245,158,11,.4)':'rgba(220,38,38,.4)'};
-          background:${r.status==='active'?'rgba(5,150,105,.06)':r.status==='pending'?'rgba(245,158,11,.06)':'rgba(220,38,38,.06)'};
-          color:${r.status==='active'?'var(--green)':r.status==='pending'?'var(--gold)':'var(--red)'};font-weight:700"
+          border:1.5px solid ${r.status==='active'?'rgba(5,150,105,.4)':r.status==='pending'?'rgba(245,158,11,.4)':r.status==='completed'?'rgba(19,85,160,.4)':'rgba(220,38,38,.4)'};
+          background:${r.status==='active'?'rgba(5,150,105,.06)':r.status==='pending'?'rgba(245,158,11,.06)':r.status==='completed'?'rgba(19,85,160,.06)':'rgba(220,38,38,.06)'};
+          color:${r.status==='active'?'var(--green)':r.status==='pending'?'var(--gold)':r.status==='completed'?'var(--blue)':'var(--red)'};font-weight:700"
           onchange="changeRegStatus('${r.id}',this.value,this,${r.exam_price||0})">
-          <option value="pending"  ${r.status==='pending'  ?'selected':''}>⏳ Gözləyən</option>
-          <option value="active"   ${r.status==='active'   ?'selected':''}>✅ Aktiv</option>
-          <option value="cancelled"${r.status==='cancelled'?'selected':''}>🚫 Ləğv</option>
+          <option value="pending"   ${r.status==='pending'   ?'selected':''}>⏳ Gözləyən</option>
+          <option value="active"    ${r.status==='active'    ?'selected':''}>✅ Aktiv</option>
+          <option value="completed" ${r.status==='completed' ?'selected':''} disabled>🏁 Bitdi</option>
+          <option value="cancelled" ${r.status==='cancelled' ?'selected':''}>🚫 Ləğv</option>
         </select>
       </div>
       <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.exam_title||'—'}">${r.exam_title||'—'}</div>
@@ -3443,8 +3465,8 @@ async function adminViewResult(id, name){
 let allIcazeler = [];
 async function loadIcazeler(){
   const r = await GET('/registrations/admin/all');
-  // Show active + cancelled (not pending — those are in registrations tab)
-  allIcazeler = (r.data||[]).filter(reg => reg.status === 'active' || reg.status === 'cancelled');
+  // Show active + cancelled + completed (not pending — those are in registrations tab)
+  allIcazeler = (r.data||[]).filter(reg => reg.status === 'active' || reg.status === 'cancelled' || reg.status === 'completed');
   // Fill exam filter
   const sel = document.getElementById('icazeExamFilter');
   if(sel){
@@ -3468,27 +3490,36 @@ function renderIcazeler(data){
   const cols = 'grid-template-columns:1fr 110px 1fr 80px 130px';
   document.getElementById('icazelerTable').innerHTML =
     `<div class="a-t-hdr" style="${cols}"><div>Şagird</div><div>Telefon</div><div>İmtahan</div><div>Tarix</div><div>Əməliyyat</div></div>`+
-    (data.length ? data.map(reg=>`<div class="a-t-row" style="${cols};${reg.status==='cancelled'?'opacity:.7;background:rgba(220,38,38,.02)':''}">
-      <div>
-        <div style="font-weight:600">${reg.name}</div>
-        <div style="font-size:10px;margin-top:1px">
-          <span class="tag ${reg.status==='active'?'tag-green':'tag-red'}" style="font-size:9px;padding:1px 6px">
-            ${reg.status==='active'?'✅ Aktiv':'🚫 Ləğv'}
-          </span>
+    (data.length ? data.map(reg=>{
+      const isActive    = reg.status === 'active';
+      const isCancelled = reg.status === 'cancelled';
+      const isCompleted = reg.status === 'completed';
+      const badge = isActive
+        ? '<span class="tag tag-green"  style="font-size:9px;padding:1px 6px">✅ Aktiv</span>'
+        : isCompleted
+        ? '<span class="tag tag-blue"   style="font-size:9px;padding:1px 6px">🏁 Bitdi</span>'
+        : '<span class="tag tag-red"    style="font-size:9px;padding:1px 6px">🚫 Ləğv</span>';
+      const rowBg = isCompleted ? 'background:rgba(19,85,160,.02)' : isCancelled ? 'background:rgba(220,38,38,.02);opacity:.7' : '';
+      const actionBtn = isActive
+        ? `<button class="btn btn-red btn-sm" style="font-size:10px" onclick="softCancelIcaze('${reg.id}')">🚫 Ləğv</button>`
+        : isCompleted
+        ? `<button class="btn btn-outline btn-sm" style="font-size:10px" title="Nəticələrə bax" onclick="aPanel('results')">📊</button>`
+        : `<button class="btn btn-green btn-sm" style="font-size:10px" onclick="reactivateIcaze('${reg.id}',${reg.exam_price||0})">🔄 Bərpa</button>`;
+      return `<div class="a-t-row" style="${cols};${rowBg}">
+        <div>
+          <div style="font-weight:600">${reg.name}</div>
+          <div style="font-size:10px;margin-top:1px">${badge}</div>
         </div>
-      </div>
-      <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
-      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${reg.exam_title||'—'}">${reg.exam_title||'—'}</div>
-      <div style="font-size:11px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
-      <div style="display:flex;gap:4px">
-        ${reg.status==='active'
-          ? `<button class="btn btn-red btn-sm" style="font-size:10px" onclick="softCancelIcaze('${reg.id}')">🚫 Ləğv</button>`
-          : `<button class="btn btn-green btn-sm" style="font-size:10px" onclick="reactivateIcaze('${reg.id}',${reg.exam_price||0})">🔄 Bərpa</button>`
-        }
-        <button class="btn btn-outline btn-sm" onclick='editIcaze(${JSON.stringify(reg).replace(/'/g,"\\'")})'  >✏️</button>
-        <button class="btn btn-red btn-sm" onclick="deleteIcaze('${reg.id}')">✗</button>
-      </div>
-    </div>`).join('') : '<div class="a-empty"><span class="ico">🔑</span>İcazə yoxdur.</div>');
+        <div style="font-size:12px;color:var(--muted)">${reg.phone}</div>
+        <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${reg.exam_title||'—'}">${reg.exam_title||'—'}</div>
+        <div style="font-size:11px;color:var(--muted)">${fmtDate(reg.activated_at||reg.created_at)}</div>
+        <div style="display:flex;gap:4px">
+          ${actionBtn}
+          <button class="btn btn-outline btn-sm" onclick='editIcaze(${JSON.stringify(reg).replace(/'/g,"\\'")})'  >✏️</button>
+          <button class="btn btn-red btn-sm" onclick="deleteIcaze('${reg.id}')">✗</button>
+        </div>
+      </div>`;
+    }).join('') : '<div class="a-empty"><span class="ico">🔑</span>İcazə yoxdur.</div>');
 }
 function editIcaze(reg){
   document.getElementById('icazeEditId').value = reg.id;
@@ -4318,7 +4349,9 @@ async function loadQExamSelect(){
       subs.forEach(s=>{
         const o = document.createElement('option');
         o.value = s.id;
-        o.textContent = `↳ ${s.class||'?'} sinif · ${s.section||'?'} · ${s.title}`;
+        const cls = s.class ? s.class+'-ci sinif' : '';
+        const sec = s.section ? s.section : '';
+        o.textContent = `↳ ${[cls, sec].filter(Boolean).join(' · ')}`;
         grp.appendChild(o);
         if(csvSel){ const oc=o.cloneNode(true); csvSel.appendChild(oc); }
       });
@@ -4360,7 +4393,7 @@ async function loadAdminQuestions(){
   const cols='grid-template-columns:40px 1fr 80px 1fr 80px';
   document.getElementById('adminQsTable').innerHTML=
     `<div class="a-t-title">${data.length} sual <div style="display:flex;gap:6px">
-      <button class="btn btn-outline btn-sm" onclick="openAddQuestion()">+ Sual</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddQuestion()">+ Sual əlavə et</button>
       <button class="btn btn-red btn-sm" onclick="deleteAllQs('${examId}')">Hamısını sil</button>
     </div></div>`+
     `<div class="a-t-hdr" style="${cols}"><div>#</div><div>Sual</div><div>Növ</div><div>Cavab</div><div>Əməliyyat</div></div>`+
@@ -5475,6 +5508,17 @@ document.addEventListener('keydown', e => {
 
 // ═══════════════════ INIT ═══════════════════
 async function init(){
+  // Restore saved language
+  const savedLang = localStorage.getItem('abom_lang');
+  if(savedLang && ['az','ru','en'].includes(savedLang)){
+    STATE.lang = savedLang;
+    document.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active', b.textContent.toLowerCase()===savedLang));
+    document.querySelectorAll('[data-t]').forEach(el=>{
+      const key = el.dataset.t;
+      if(el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.placeholder = t(key);
+      else el.innerHTML = t(key);
+    });
+  }
   await tryAutoLogin();
   renderHomeExams();
   renderHomeVids();
