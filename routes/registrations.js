@@ -131,17 +131,20 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Check if first-level children have children (3-level tree)
     const firstChild = await db.get("SELECT id FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1", [exam_id]);
-    const grandchildCount = firstChild
-      ? await db.get("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1", [firstChild.id])?.c || 0
-      : 0;
+    const grandchildRow = firstChild
+      ? await db.get("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1", [firstChild.id])
+      : null;
+    const grandchildCount = Number(grandchildRow?.c) || 0;
 
     let targetLeaf = null;
 
     if (grandchildCount > 0) {
       // 3-level: find language group first, then grade within it
+      // Frontend sends section ('AZ','RU','EN') — use it as language selector
+      const langKey = studentLanguage || studentSection;
       let langGroup = null;
-      if (studentLanguage) {
-        langGroup = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?", [exam_id, studentLanguage]);
+      if (langKey) {
+        langGroup = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?", [exam_id, langKey]);
       }
       if (!langGroup) langGroup = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1", [exam_id]);
 
