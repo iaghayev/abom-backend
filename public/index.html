@@ -1267,10 +1267,6 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <button class="m-close" onclick="closeModal('buyModal')">✕</button>
     <div class="m-title" data-t="buy_title">🎫 Bilet Al</div>
     <div class="m-sub" id="buyExamTitle">İmtahan</div>
-    <!-- Smart assignment notice -->
-    <div id="buySmartNotice" style="display:none;background:rgba(19,85,160,.07);border:1px solid rgba(19,85,160,.2);border-radius:9px;padding:10px 13px;margin-bottom:12px;font-size:12.5px;color:var(--blue)">
-      🎯 Bu qrup imtahandır. Aşağıdan sinif və bölmənizi seçin — imtahan avtomatik təyin ediləcək.
-    </div>
     <div class="msg" id="buyMsg"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field"><label>Ad</label><input class="inp" id="buyFirstName" type="text" placeholder="Aytən"></div>
@@ -2614,45 +2610,39 @@ async function openBuyModal(examId, examTitle, price, isGroup, treeData){
 
   window._buyTree    = treeData || null;
   window._buyIsGroup = isGroup;
-
-  const userCls = STATE.user.class  ||'';
-  const userSec = STATE.user.section||'';
+  window._buySelectedLang = '';
 
   const langWrap = document.getElementById('buyLangWrap');
   const secField = document.getElementById('buySectionField');
 
   if(isGroup && treeData){
-    document.getElementById('buySmartNotice').style.display = 'block';
-
     if(treeData.type === 'multilevel'){
-      // 3-level: show language buttons + grade select
+      // 3-level: language buttons (none selected) + grade select (empty)
       langWrap.style.display = 'block';
       secField.style.display = 'none';
-      // Build language buttons
       const langBtns = document.getElementById('buyLangBtns');
-      langBtns.innerHTML = treeData.languages.map((l,i)=>
-        `<button type="button" class="btn ${i===0?'btn-primary':'btn-outline'} btn-sm" style="font-size:13px;padding:6px 16px;border-radius:8px"
+      langBtns.innerHTML = treeData.languages.map(l=>
+        `<button type="button" class="btn btn-outline btn-sm" style="font-size:13px;padding:6px 16px;border-radius:8px"
           data-lang="${l.section}" onclick="selectBuyLang(this,'${l.section}',${JSON.stringify(treeData).replace(/"/g,'&quot;')})">${l.label||l.section}</button>`
       ).join('');
-      window._buySelectedLang = treeData.languages[0]?.section || '';
-      buildBuyGrades(treeData, window._buySelectedLang, userCls);
+      // Start with empty grade select
+      document.getElementById('buyClass').innerHTML = '<option value="">Əvvəlcə dil seçin</option>';
     } else {
-      // 2-level flat: class + section
+      // 2-level flat: class + section, no auto-select
       langWrap.style.display = 'none';
       secField.style.display = 'block';
       const subs = treeData.data||[];
       const classes = [...new Set(subs.map(s=>s.class).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
       document.getElementById('buyClass').innerHTML =
         '<option value="">Sinif seçin</option>' +
-        classes.map(c=>`<option value="${c}" ${c===userCls?'selected':''}>${c}-ci sinif</option>`).join('');
-      filterBuySectionByCls(subs, userSec);
+        classes.map(c=>`<option value="${c}">${c}-ci sinif</option>`).join('');
+      document.getElementById('buySection').innerHTML = '<option value="">Bölmə seçin</option>';
     }
   } else {
     langWrap.style.display = 'none';
     secField.style.display = 'block';
-    document.getElementById('buySmartNotice').style.display = 'none';
-    await loadCatSelect('buyClass',   'class',   userCls, 'Sinif seçin');
-    await loadCatSelect('buySection', 'section', userSec, 'Bölmə seçin');
+    await loadCatSelect('buyClass',   'class',   '', 'Sinif seçin');
+    await loadCatSelect('buySection', 'section', '', 'Bölmə seçin');
   }
 
   document.getElementById('buyMsg').style.display='none';
@@ -2665,16 +2655,15 @@ function selectBuyLang(btn, lang, treeData){
   document.querySelectorAll('#buyLangBtns .btn').forEach(b=>{ b.classList.remove('btn-primary'); b.classList.add('btn-outline'); });
   btn.classList.remove('btn-outline'); btn.classList.add('btn-primary');
   window._buySelectedLang = lang;
-  buildBuyGrades(treeData, lang, document.getElementById('buyClass').value||STATE.user?.class||'');
+  buildBuyGrades(treeData, lang);
 }
 
-function buildBuyGrades(treeData, lang, selectedClass){
+function buildBuyGrades(treeData, lang){
   const langObj = treeData.languages?.find(l=>l.section===lang) || treeData.languages?.[0];
   const grades  = langObj ? [...new Set(langObj.grades.map(g=>g.class).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b)) : [];
   document.getElementById('buyClass').innerHTML =
     '<option value="">Sinif seçin</option>' +
-    grades.map(c=>`<option value="${c}" ${c===selectedClass?'selected':''}>${c}-ci sinif</option>`).join('');
-  if(grades.length===1) document.getElementById('buyClass').value=grades[0];
+    grades.map(c=>`<option value="${c}">${c}-ci sinif</option>`).join('');
 }
 
 function onBuyClassChange(){
@@ -2700,11 +2689,17 @@ async function doBuyTicket(){
   const firstName = (document.getElementById('buyFirstName').value||'').trim();
   const lastName  = (document.getElementById('buyLastName').value||'').trim();
   const fullName  = (firstName+' '+lastName).trim();
-  const cls = document.getElementById('buyClass').value;
-  const sec = document.getElementById('buySection').value;
+  const cls  = document.getElementById('buyClass').value;
+  const sec  = document.getElementById('buySection').value;
   const lang = window._buySelectedLang||'';
+  const tree = window._buyTree;
 
   if(!firstName||!lastName){ showMsg('buyMsg','Ad və soyad daxil edin.','err'); return; }
+
+  // Validate language selection for multilevel group
+  if(isGroup && tree?.type==='multilevel' && !lang){
+    showMsg('buyMsg','Tədris dilini seçin.','err'); return;
+  }
   if(!cls){ showMsg('buyMsg','Sinifnizi seçin.','err'); return; }
 
   const btn=document.getElementById('buyBtn'); btn.disabled=true; btn.textContent='Göndərilir...';
@@ -3702,7 +3697,6 @@ async function loadAdminExams(){
             ${toggle(e)}
             <div class="eac-actions">
               <button onclick="editExam(${ej})" class="xbtn xbtn-outline xbtn-sm">✏</button>
-              <button onclick="openAddLangModal('${e.id}')" class="xbtn xbtn-purple xbtn-sm">+ Bölmə</button>
               <button onclick="deleteExam('${e.id}')" class="xbtn xbtn-red xbtn-sm">✕</button>
             </div>
           </div>
