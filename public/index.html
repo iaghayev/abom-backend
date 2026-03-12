@@ -182,7 +182,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .mob-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:#fff;border-top:1.5px solid var(--border);box-shadow:0 -4px 20px rgba(11,31,58,.08);padding-bottom:env(safe-area-inset-bottom,0px)}
 .mob-bottom-nav-inner{display:flex;justify-content:space-around;align-items:stretch}
 .mbn-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px 6px;font-size:9px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;font-family:'Outfit',sans-serif;flex:1;letter-spacing:.03em;border-top:2px solid transparent;transition:all .18s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mbn-btn .mbn-ico{font-size:20px;line-height:1;margin-bottom:1px}
+.mbn-btn .mbn-ico{width:22px;height:22px;margin-bottom:2px;stroke:currentColor}
 .mbn-btn.active{color:var(--blue);border-top-color:var(--blue)}
 
 /* HERO */
@@ -378,7 +378,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .admin-mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--navy);border-top:1px solid rgba(255,255,255,.1);padding:0;overflow-x:auto}
 .admin-mob-nav-inner{display:flex;min-width:max-content;padding:0 4px}
 .amn-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;font-size:9px;font-weight:600;color:rgba(255,255,255,.45);cursor:pointer;border:none;background:none;font-family:'Outfit',sans-serif;letter-spacing:.04em;white-space:nowrap;border-top:2px solid transparent;transition:all .18s}
-.amn-btn .amn-ico{font-size:17px;line-height:1}
+.amn-btn .amn-ico{width:20px;height:20px;margin-bottom:2px;stroke:currentColor;display:block}
 .amn-btn.active,.amn-btn:hover{color:#fff;border-top-color:var(--light)}
 .a-panel{display:none}
 .a-panel.active{display:block}
@@ -520,7 +520,105 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .phone-inp::placeholder{color:#b0c4d8;font-weight:400}
 
 /* RESPONSIVE */
-/* ═══════════════════ RESPONSIVE ═══════════════════ */
+/* ═══════ HERO — EdTech Dynamic ═══════ */
+.hero{min-height:100vh;display:flex;align-items:center;padding:90px 40px 60px;
+  background:linear-gradient(135deg,#050e1f 0%,#0b1f3a 40%,#0d2a52 70%,#091828 100%);
+  position:relative;overflow:hidden}
+/* Animated grid */
+.hero-grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(79,163,247,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(79,163,247,.06) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;animation:gridPan 20s linear infinite}
+@keyframes gridPan{0%{transform:translate(0,0)}100%{transform:translate(48px,48px)}}
+/* Glowing orbs */
+.hero-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(72px)}
+.hero-orb-1{top:-100px;right:-60px;width:520px;height:520px;background:radial-gradient(circle,rgba(35,128,232,.25),transparent 65%)}
+.hero-orb-2{bottom:-140px;left:-80px;width:440px;height:440px;background:radial-gradient(circle,rgba(19,85,160,.2),transparent 65%)}
+.hero-orb-3{top:40%;left:38%;width:300px;height:300px;background:radial-gradient(circle,rgba(79,163,247,.08),transparent 70%)}
+/* Floating tech chips */
+.hero-chip{position:absolute;display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:100px;
+  font-size:12px;font-weight:700;color:#fff;pointer-events:none;backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.1);white-space:nowrap}
+.hero-chip-1{background:rgba(19,85,160,.5);top:18%;right:8%;animation:chipFloat1 6s ease-in-out infinite}
+.hero-chip-2{background:rgba(5,150,105,.45);top:32%;right:4%;animation:chipFloat2 7s ease-in-out infinite 1s}
+.hero-chip-3{background:rgba(124,58,237,.45);bottom:28%;right:12%;animation:chipFloat1 5.5s ease-in-out infinite .5s}
+.hero-chip-4{background:rgba(217,119,6,.4);bottom:18%;right:5%;animation:chipFloat2 8s ease-in-out infinite 1.5s}
+@keyframes chipFloat1{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-12px) rotate(1deg)}}
+@keyframes chipFloat2{0%,100%{transform:translateY(0) rotate(1deg)}50%{transform:translateY(-16px) rotate(-1deg)}}
+/* Circuit lines SVG overlay */
+.hero-circuit{position:absolute;inset:0;pointer-events:none;opacity:.06}
+/* Main inner */
+.hero-inner{display:grid;grid-template-columns:1fr 400px;gap:56px;align-items:center;max-width:1180px;margin:0 auto;position:relative;z-index:1;width:100%}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(79,163,247,.12);border:1px solid rgba(79,163,247,.3);color:var(--light);font-size:11.5px;font-weight:700;padding:5px 14px;border-radius:100px;margin-bottom:20px;width:fit-content;letter-spacing:.04em}
+.pulse{width:7px;height:7px;background:var(--light);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInRight{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,62px);line-height:1.07;letter-spacing:-1.5px;color:#fff}
+.hero-h1 em{background:linear-gradient(90deg,#4fa3f7,#7dd3fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-style:italic}
+.hero-p{font-size:15px;color:rgba(255,255,255,.55);line-height:1.8;margin-top:18px;max-width:480px}
+.hero-acts{display:flex;gap:10px;margin-top:28px;flex-wrap:wrap}
+.hero-acts .btn-primary{background:linear-gradient(135deg,#1355a0,#2380e8);box-shadow:0 8px 32px rgba(35,128,232,.4)}
+.hero-acts .btn-outline{border-color:rgba(255,255,255,.2);color:#fff}
+.hero-acts .btn-outline:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.35)}
+.hero-stats{display:flex;gap:32px;margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);flex-wrap:wrap}
+.hs-num{font-family:'Playfair Display',serif;font-size:32px;line-height:1;color:#fff}
+.hs-num em{background:linear-gradient(90deg,#4fa3f7,#7dd3fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-style:normal}
+.hs-label{font-size:11px;color:rgba(255,255,255,.4);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+/* Hero card — glassy */
+.hero-card{background:rgba(255,255,255,.04);border-radius:20px;border:1px solid rgba(255,255,255,.1);overflow:hidden;backdrop-filter:blur(20px);box-shadow:0 32px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)}
+.hc-head{background:linear-gradient(135deg,rgba(19,85,160,.8),rgba(35,128,232,.6));padding:20px 24px;color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.hc-pre{font-size:10px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.12em}
+.hc-title{font-family:'Playfair Display',serif;font-size:18px;font-style:italic;margin-top:3px;color:#fff}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s}
+.lb-row:last-child{border:none}
+.lb-row:hover{background:rgba(255,255,255,.04)}
+.lb-rank{font-size:14px;width:22px;text-align:center;flex-shrink:0}
+.lb-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff}
+.lb-sub{font-size:11px;color:rgba(255,255,255,.4)}
+.lb-score{font-size:13px;font-weight:700;color:var(--light);flex-shrink:0}
+
+/* ═══════ MARQUEE ═══════ */
+.mq-wrap{overflow:hidden;background:linear-gradient(90deg,#0b1f3a,#1355a0,#0b1f3a);padding:12px 0;border-top:1px solid rgba(79,163,247,.15);border-bottom:1px solid rgba(79,163,247,.15)}
+.mq-track{display:flex;width:max-content;animation:mq 32s linear infinite}
+.mq-item{display:flex;align-items:center;gap:14px;padding:0 36px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);white-space:nowrap}
+.mq-dot{color:var(--light)}
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ═══════ FEATURES SECTION ═══════ */
+.sec-features{padding:80px 40px;background:#fff;position:relative;overflow:hidden}
+.sec-features::before{content:'';position:absolute;top:-1px;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--blue),var(--sky),var(--light))}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+.feat-card{background:var(--off);border-radius:16px;padding:28px 24px;border:1.5px solid var(--border);position:relative;overflow:hidden;transition:all .3s;cursor:default}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--fc-color,linear-gradient(90deg,var(--blue),var(--sky)));border-radius:16px 16px 0 0}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(19,85,160,.12);border-color:rgba(19,85,160,.25)}
+.feat-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
+.feat-title{font-size:16px;font-weight:800;color:var(--navy);margin-bottom:8px}
+.feat-desc{font-size:13.5px;color:var(--muted);line-height:1.65}
+
+/* ═══════ HOW IT WORKS ═══════ */
+.sec-how{padding:80px 40px;background:linear-gradient(160deg,#050e1f 0%,#0b1f3a 100%);position:relative;overflow:hidden}
+.sec-how::before{content:'';position:absolute;inset:0;background-image:radial-gradient(rgba(79,163,247,.04) 1px,transparent 1px);background-size:32px 32px}
+.how-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:48px;position:relative}
+.how-steps::before{content:'';position:absolute;top:36px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,rgba(79,163,247,.3),rgba(79,163,247,.5),rgba(79,163,247,.3),transparent)}
+.how-step{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 16px;position:relative}
+.how-num{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1355a0,#2380e8);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:20px;box-shadow:0 8px 32px rgba(35,128,232,.35);position:relative;z-index:1;border:2px solid rgba(79,163,247,.3)}
+.how-step-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:8px}
+.how-step-desc{font-size:12.5px;color:rgba(255,255,255,.4);line-height:1.6}
+
+/* ═══════ SECTIONS ═══════ */
+.sec{padding:72px 40px}
+.sec-alt{background:var(--off)}
+.sec-in{max-width:1180px;margin:0 auto}
+.sec-lbl{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sky);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-lbl::before{content:'';width:18px;height:2px;background:var(--sky);border-radius:1px}
+.sec-title{font-family:'Playfair Display',serif;font-size:clamp(26px,3.2vw,42px);line-height:1.1;letter-spacing:-.7px;color:var(--navy);margin-bottom:8px}
+.sec-title em{color:var(--blue);font-style:italic}
+.sec-sub{font-size:14.5px;color:var(--muted);line-height:1.7;max-width:500px;margin-bottom:36px}
+.sec-hdr{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:28px}
+
+/* ═══════ RESPONSIVE ═══════════════════ */
 @media(max-width:1024px){
   #nav{padding:0 20px}
   .nav-links{display:none}
@@ -539,8 +637,18 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
   .admin-side{display:none}
   .admin-content{padding:16px}
   .dash{padding:20px 16px}
-  /* Admin mobile bottom nav */
-  .admin-mob-nav{display:flex}
+  /* Hero chips — hide some on tablet */
+  .hero-chip-2,.hero-chip-4{display:none}
+  .hero-chip-1{top:auto;bottom:22%;right:4%}
+  .hero-chip-3{bottom:14%;right:3%}
+  /* Features */
+  .feat-grid{grid-template-columns:repeat(2,1fr)}
+  /* How it works */
+  .how-steps{grid-template-columns:repeat(2,1fr);gap:32px}
+  .how-steps::before{display:none}
+  /* Sections */
+  .sec-features,.sec-how{padding:52px 20px}
+  .sec{padding:52px 20px}
   .admin-content{padding-bottom:72px}
   .mob-bottom-nav{display:block}
   /* Push page content up so bottom nav doesn't overlap */
@@ -613,8 +721,14 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 }
 
 @media(max-width:480px){
-  /* Nav */
-  #nav{padding:0 14px;height:56px}
+  /* Hero chips — all hidden on small */
+  .hero-chip{display:none}
+  /* Features & How */
+  .feat-grid{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr;gap:24px}
+  .sec-features,.sec-how{padding:40px 14px}
+  /* Sections */
+  .sec{padding:36px 14px}
   .nav-badge{width:28px;height:28px;font-size:12px}
 
   /* Hero */
@@ -748,49 +862,86 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <!-- Universal mobile bottom nav -->
 <div class="mob-bottom-nav" id="mobBottomNav">
   <div class="mob-bottom-nav-inner">
-    <button class="mbn-btn active" id="mbn-home" onclick="goTo('home')"><span class="mbn-ico">🏠</span><span data-t="home">Ana Səhifə</span></button>
-    <button class="mbn-btn" id="mbn-exams" onclick="goTo('exams')"><span class="mbn-ico">📝</span><span data-t="exams_nav">İmtahanlar</span></button>
-    <button class="mbn-btn" id="mbn-videos" onclick="goTo('videos')"><span class="mbn-ico">🎬</span><span data-t="videos_nav">Videolar</span></button>
-    <button class="mbn-btn" id="mbn-rating" onclick="goTo('rating')"><span class="mbn-ico">🏆</span><span data-t="rating_nav">Reytinq</span></button>
-    <button class="mbn-btn" id="mbn-dashboard" style="display:none" onclick="goTo('dashboard')"><span class="mbn-ico">👤</span><span>Profil</span></button>
-    <button class="mbn-btn" id="mbn-admin" style="display:none" onclick="goTo('admin')"><span class="mbn-ico">⚙️</span><span>Admin</span></button>
+    <button class="mbn-btn active" id="mbn-home" onclick="goTo('home')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span data-t="home">Ana Səhifə</span>
+    </button>
+    <button class="mbn-btn" id="mbn-exams" onclick="goTo('exams')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span data-t="exams_nav">İmtahanlar</span>
+    </button>
+    <button class="mbn-btn" id="mbn-videos" onclick="goTo('videos')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      <span data-t="videos_nav">Videolar</span>
+    </button>
+    <button class="mbn-btn" id="mbn-rating" onclick="goTo('rating')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+      <span data-t="rating_nav">Reytinq</span>
+    </button>
+    <button class="mbn-btn" id="mbn-dashboard" style="display:none" onclick="goTo('dashboard')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profil</span>
+    </button>
+    <button class="mbn-btn" id="mbn-admin" style="display:none" onclick="goTo('admin')">
+      <svg class="mbn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <span>Admin</span>
+    </button>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════ HOME ═══════════════════════════════════ -->
 <div class="page active" id="page-home">
+  <!-- ══ HERO ══ -->
   <div class="hero">
-    <div class="hero-dots"></div>
-    <div class="hero-blob"></div>
-    <div class="hero-blob"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <!-- Floating tech chips -->
+    <div class="hero-chip hero-chip-1">🏆 IMO Qalibi</div>
+    <div class="hero-chip hero-chip-2">📊 95% Uğur</div>
+    <div class="hero-chip hero-chip-3">⚡ Canlı İmtahan</div>
+    <div class="hero-chip hero-chip-4">🎯 500+ Şagird</div>
+    <!-- Circuit SVG -->
+    <svg class="hero-circuit" viewBox="0 0 1200 700" preserveAspectRatio="none">
+      <path d="M0 200 L200 200 L200 350 L400 350 L400 150 L600 150" stroke="rgba(79,163,247,1)" stroke-width="1" fill="none"/>
+      <circle cx="200" cy="200" r="4" fill="rgba(79,163,247,1)"/>
+      <circle cx="400" cy="350" r="4" fill="rgba(79,163,247,1)"/>
+      <path d="M1200 100 L1000 100 L1000 300 L800 300 L800 500 L1100 500" stroke="rgba(79,163,247,1)" stroke-width="1" fill="none"/>
+      <circle cx="1000" cy="100" r="4" fill="rgba(79,163,247,1)"/>
+      <circle cx="800" cy="300" r="4" fill="rgba(79,163,247,1)"/>
+      <path d="M100 600 L300 600 L300 480 L550 480" stroke="rgba(79,163,247,.7)" stroke-width="1" fill="none"/>
+      <circle cx="300" cy="600" r="3" fill="rgba(79,163,247,.7)"/>
+    </svg>
     <div class="hero-inner">
       <div>
-        <div class="hero-badge"><span class="pulse"></span> <span data-t="hero_badge">Azərbaycanda lider olimpiada platformu</span></div>
-        <h1 class="hero-h1">Olimpiadada <em>qalibiyyəti</em><br>birlikdə qazanaq</h1>
-        <p class="hero-p">Peşəkar müəllimlər, keyfiyyətli sınaq imtahanları və real olimpiada sualları ilə uşağınızın gələcəyini birlikdə inşa edək.</p>
-        <div class="hero-acts">
+        <div class="hero-badge" style="animation:fadeInUp .6s ease both"><span class="pulse"></span> <span data-t="hero_badge">Azərbaycanda lider olimpiada platformu</span></div>
+        <h1 class="hero-h1" style="animation:fadeInUp .7s ease .1s both">Olimpiadada <em>qalibiyyəti</em><br>birlikdə qazanaq</h1>
+        <p class="hero-p" style="animation:fadeInUp .7s ease .2s both" data-t="hero_p">Peşəkar müəllimlər, keyfiyyətli sınaq imtahanları və real olimpiada sualları ilə uşağınızın gələcəyini birlikdə inşa edək.</p>
+        <div class="hero-acts" style="animation:fadeInUp .7s ease .3s both">
           <button class="btn btn-primary btn-lg" onclick="STATE.user ? goTo('dashboard') : openModal('authModal')" data-t="start_btn">🚀 İndi Başla</button>
           <button class="btn btn-outline btn-lg" onclick="goTo('exams')" data-t="view_exams">İmtahanlara Bax →</button>
         </div>
-        <div class="hero-stats">
+        <div class="hero-stats" style="animation:fadeInUp .7s ease .4s both">
           <div><div class="hs-num" id="hsSt1"><em>500</em>+</div><div class="hs-label" data-t="stat_students">Şagird</div></div>
           <div><div class="hs-num" id="hsSt2"><em>50</em>+</div><div class="hs-label" data-t="stat_exams">İmtahan</div></div>
           <div><div class="hs-num" id="hsSt3"><em>95</em>%</div><div class="hs-label" data-t="stat_success">Uğur</div></div>
           <div><div class="hs-num" id="hsSt4"><em>3</em></div><div class="hs-label" data-t="stat_subjects">Fənn</div></div>
         </div>
       </div>
-      <div class="hero-card">
+      <div class="hero-card" style="animation:fadeInRight .8s ease .2s both">
         <div class="hc-head">
           <div class="hc-pre">🏆 Canlı Reytinq</div>
-          <div class="hc-title">Bu həftənin liderleri</div>
+          <div class="hc-title">Bu həftənin liderləri</div>
         </div>
         <div id="heroLbList">
-          <div class="a-empty" style="padding:24px"><span class="spinner" style="margin:0 auto"></span></div>
+          <div class="a-empty" style="padding:24px;color:rgba(255,255,255,.4)"><span class="spinner" style="margin:0 auto"></span></div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ══ MARQUEE ══ -->
   <div class="mq-wrap"><div class="mq-track" id="mqTrack">
     <div class="mq-item">📚 Riyaziyyat Olimpiadası <span class="mq-dot">✦</span></div>
     <div class="mq-item">📖 Azərbaycan Dili <span class="mq-dot">✦</span></div>
@@ -804,7 +955,85 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="mq-item">🥇 IMO Hazırlığı <span class="mq-dot">✦</span></div>
   </div></div>
 
-  <!-- Featured exams -->
+  <!-- ══ FEATURES ══ -->
+  <section class="sec-features">
+    <div class="sec-in">
+      <div class="sec-hdr reveal">
+        <div>
+          <div class="sec-lbl">Niyə ABOM?</div>
+          <h2 class="sec-title">Platformun <em>Üstünlükləri</em></h2>
+        </div>
+      </div>
+      <div class="feat-grid reveal">
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#1355a0,#2380e8)">
+          <div class="feat-icon" style="background:rgba(19,85,160,.1)">🎯</div>
+          <div class="feat-title">Real İmtahan Simulyasiyası</div>
+          <div class="feat-desc">Olimpiada formatına uyğun vaxtlı sınaqlar. Geri sayım, avtomatik qeydiyyat, anlıq nəticə.</div>
+        </div>
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#059669,#34d399)">
+          <div class="feat-icon" style="background:rgba(5,150,105,.1)">📊</div>
+          <div class="feat-title">Detallı Analitika</div>
+          <div class="feat-desc">Hər imtahandan sonra bal dinamikası, zəif mövzular və qlobal reytinqdə mövqe.</div>
+        </div>
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#7c3aed,#a78bfa)">
+          <div class="feat-icon" style="background:rgba(124,58,237,.1)">🎬</div>
+          <div class="feat-title">Pulsuz Video Dərslər</div>
+          <div class="feat-desc">Peşəkar müəllimlərdən hazırlanmış onlarla video dərs. İstənilən vaxt, istənilən cihazdan.</div>
+        </div>
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#d97706,#fbbf24)">
+          <div class="feat-icon" style="background:rgba(217,119,6,.1)">🏅</div>
+          <div class="feat-title">Rəsmi Sertifikat</div>
+          <div class="feat-desc">Hər uğurlu imtahandan sonra ABOM möhürlü rəsmi sertifikat. Portfolio üçün ideal.</div>
+        </div>
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#0891b2,#67e8f9)">
+          <div class="feat-icon" style="background:rgba(8,145,178,.1)">🌍</div>
+          <div class="feat-title">3 Dildə Hazırlıq</div>
+          <div class="feat-desc">Azərbaycan, Rus və İngilis dili sektorlarında ayrı-ayrı imtahan proqramları.</div>
+        </div>
+        <div class="feat-card" style="--fc-color:linear-gradient(90deg,#dc2626,#f87171)">
+          <div class="feat-icon" style="background:rgba(220,38,38,.1)">⚡</div>
+          <div class="feat-title">Anlıq WhatsApp Bildiriş</div>
+          <div class="feat-desc">Bilet alındıqda, imtahan aktivləşdirildikdə WhatsApp-a avtomatik məlumat göndərilir.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ HOW IT WORKS ══ -->
+  <section class="sec-how">
+    <div class="sec-in">
+      <div class="sec-hdr reveal" style="border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:0;margin-bottom:0">
+        <div>
+          <div class="sec-lbl" style="color:var(--light)">Sadədir</div>
+          <h2 class="sec-title" style="color:#fff">Necə <em>İşləyir?</em></h2>
+        </div>
+      </div>
+      <div class="how-steps reveal">
+        <div class="how-step">
+          <div class="how-num">📝</div>
+          <div class="how-step-title">Qeydiyyat</div>
+          <div class="how-step-desc">Pulsuz qeydiyyatdan keç, şəxsi kabinetini aç</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">🎫</div>
+          <div class="how-step-title">Bilet Al</div>
+          <div class="how-step-desc">İstədiyin imtahanı seç, biletini al</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">⚡</div>
+          <div class="how-step-title">İmtahan Ver</div>
+          <div class="how-step-desc">Vaxtlı, real formatda sınaq imtahanını tamamla</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">🏆</div>
+          <div class="how-step-title">Sertifikat Al</div>
+          <div class="how-step-desc">Nəticəni gör, sertifikatını yüklə, irəliləyişini izlə</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ Featured exams ══ -->
   <section class="sec">
     <div class="sec-in">
       <div class="sec-hdr reveal">
@@ -820,7 +1049,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     </div>
   </section>
 
-  <!-- Videos -->
+  <!-- ══ Videos ══ -->
   <section class="sec sec-alt">
     <div class="sec-in">
       <div class="sec-hdr reveal">
@@ -977,26 +1206,26 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     </div>
 
     <!-- Profile card -->
-    <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-        <div class="av av-lg" id="dashAv" style="background:var(--blue)">?</div>
+    <div class="card" style="margin-bottom:14px;padding:16px">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div class="av av-lg" id="dashAv" style="background:var(--blue);flex-shrink:0">?</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:18px;font-weight:700;color:var(--navy)" id="dashName">—</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px">
-            <span id="dashUsername" style="font-weight:600;color:var(--blue)">@—</span>
-            &nbsp;·&nbsp; <span id="dashPhone">—</span>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap" id="dashTags"></div>
+          <div style="font-size:17px;font-weight:700;color:var(--navy);line-height:1.3" id="dashName">—</div>
+          <div style="font-size:12px;color:var(--blue);font-weight:600;margin-top:2px" id="dashUsername">@—</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:1px" id="dashPhone">—</div>
+          <div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap" id="dashTags"></div>
         </div>
-        <div style="background:rgba(19,85,160,.06);border:1.5px solid rgba(19,85,160,.13);border-radius:12px;padding:14px 20px;text-align:center;min-width:100px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Reytinq</div>
-          <div style="font-family:'Playfair Display',serif;font-size:30px;color:var(--navy);line-height:1" id="dashRank">—</div>
-          <div style="font-size:10px;color:var(--muted)">yer</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+        <div style="background:rgba(19,85,160,.06);border:1.5px solid rgba(19,85,160,.13);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Reytinq</div>
+          <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--navy);line-height:1.1;margin:2px 0" id="dashRank">—</div>
+          <div style="font-size:10px;color:var(--muted)" data-t="rank_unit">yer</div>
         </div>
-        <div style="background:rgba(5,150,105,.06);border:1.5px solid rgba(5,150,105,.13);border-radius:12px;padding:14px 20px;text-align:center;min-width:100px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)">Ən yüksək</div>
-          <div style="font-family:'Playfair Display',serif;font-size:30px;color:#047857;line-height:1" id="dashBest">—</div>
-          <div style="font-size:10px;color:var(--muted)">bal</div>
+        <div style="background:rgba(5,150,105,.06);border:1.5px solid rgba(5,150,105,.13);border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)" data-t="best_lbl">Ən yüksək</div>
+          <div style="font-family:'Playfair Display',serif;font-size:26px;color:#047857;line-height:1.1;margin:2px 0" id="dashBest">—</div>
+          <div style="font-size:10px;color:var(--muted)" data-t="best_unit">bal</div>
         </div>
       </div>
     </div>
@@ -1130,19 +1359,18 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 <!-- ═══════════════════════════════════ PARENT PANEL ═══════════════════════════════════ -->
 <!-- ═══════════════════════════════════ ADMIN PANEL ═══════════════════════════════════ -->
 <div class="page" id="page-admin" style="padding-top:64px">
-  <!-- Mobile bottom nav for admin -->
   <nav class="admin-mob-nav" id="adminMobNav">
     <div class="admin-mob-nav-inner">
-      <button class="amn-btn active" onclick="aPanel('dashboard')"><span class="amn-ico">📊</span>Dashboard</button>
-      <button class="amn-btn" onclick="aPanel('regs')"><span class="amn-ico">🎫</span>Qeydiyyat</button>
-      <button class="amn-btn" onclick="aPanel('icazeler')"><span class="amn-ico">🔑</span>İcazələr</button>
-      <button class="amn-btn" onclick="aPanel('exams')"><span class="amn-ico">📝</span>İmtahanlar</button>
-      <button class="amn-btn" onclick="aPanel('questions')"><span class="amn-ico">❓</span>Suallar</button>
-      <button class="amn-btn" onclick="aPanel('results')"><span class="amn-ico">📋</span>Nəticələr</button>
-      <button class="amn-btn" onclick="aPanel('revenues')"><span class="amn-ico">💰</span>Gəlir</button>
-      <button class="amn-btn" onclick="aPanel('videos')"><span class="amn-ico">🎬</span>Videolar</button>
-      <button class="amn-btn" onclick="aPanel('categories')"><span class="amn-ico">🗂️</span>Kateqoriya</button>
-      <button class="amn-btn" onclick="aPanel('users')"><span class="amn-ico">👥</span>İstifadəçi</button>
+      <button class="amn-btn active" onclick="aPanel('dashboard')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</button>
+      <button class="amn-btn" onclick="aPanel('regs')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Qeydiyyat</button>
+      <button class="amn-btn" onclick="aPanel('icazeler')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>İcazələr</button>
+      <button class="amn-btn" onclick="aPanel('exams')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>İmtahanlar</button>
+      <button class="amn-btn" onclick="aPanel('questions')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Suallar</button>
+      <button class="amn-btn" onclick="aPanel('results')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Nəticələr</button>
+      <button class="amn-btn" onclick="aPanel('revenues')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Gəlir</button>
+      <button class="amn-btn" onclick="aPanel('videos')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>Videolar</button>
+      <button class="amn-btn" onclick="aPanel('categories')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Kateqoriya</button>
+      <button class="amn-btn" onclick="aPanel('users')"><svg class="amn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>İstifadəçi</button>
     </div>
   </nav>
   <div class="admin-wrap">
@@ -1450,10 +1678,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <div class="m-title" data-t="buy_title">🎫 Bilet Al</div>
     <div class="m-sub" id="buyExamTitle">İmtahan</div>
     <div class="msg" id="buyMsg"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>Ad</label><input class="inp" id="buyFirstName" type="text" placeholder="Aytən"></div>
-      <div class="field"><label>Soyad</label><input class="inp" id="buyLastName" type="text" placeholder="Həsənova"></div>
-    </div>
+    <!-- Phone + WhatsApp FIRST -->
     <div class="field"><label>Telefon</label>
       <div class="phone-wrap" id="buyPhoneWrap">
           <div style="position:relative">
@@ -1479,6 +1704,11 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           </div>
           <input class="phone-inp" id="buyWa" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('buyWa')">
         </div>
+    </div>
+    <!-- Name below -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Ad</label><input class="inp" id="buyFirstName" type="text" placeholder="Aytən"></div>
+      <div class="field"><label>Soyad</label><input class="inp" id="buyLastName" type="text" placeholder="Həsənova"></div>
     </div>
     <div id="buyClassSectionWrap">
       <!-- Multilevel (language + grade) -->
@@ -3279,7 +3509,12 @@ async function loadDashboard(){
   
   const tags=document.getElementById('dashTags');
   tags.innerHTML='';
-  if(u.class) tags.innerHTML+=`<span class="tag tag-blue">${u.class}-ci sinif</span>`;
+  if(u.class){
+    // Normalize: extract only the number from "5", "5. sinif", "5-ci sinif" etc.
+    const clsNum = (u.class+'').replace(/[^0-9]/g,'');
+    const clsLabel = clsNum ? `${clsNum}-ci sinif` : u.class;
+    tags.innerHTML+=`<span class="tag tag-blue">${clsLabel}</span>`;
+  }
   if(u.section) tags.innerHTML+=`<span class="tag tag-sky">${u.section.toUpperCase()}</span>`;
 
   // Stats
