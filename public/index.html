@@ -440,7 +440,9 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .xbtn-purple{background:rgba(124,58,237,.1);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)}.xbtn-purple:hover{background:var(--purple);color:#fff}
 .xbtn-red{background:rgba(220,38,38,.08);color:#dc2626;border:1.5px solid rgba(220,38,38,.15)}.xbtn-red:hover{background:#dc2626;color:#fff}
 .xbtn-ghost{background:transparent;color:var(--muted)}.xbtn-ghost:hover{background:var(--off);color:var(--navy)}
-/* Grade picker */
+/* Exam creation wizard */
+.wiz-step{margin-bottom:18px}
+.wiz-step-label{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:8px}
 .grade-pick-btn{width:42px;height:42px;border-radius:10px;font-size:15px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;border:1.5px solid var(--border);background:#fff}
 .grade-pick-btn.xbtn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 /* smaller toggles */
@@ -3739,24 +3741,224 @@ function toggleExamDates(){
 }
 
 async function openAddExamModal(){
-  document.getElementById('examFormTitle').textContent = '+ Yeni İmtahan';
-  document.getElementById('examFormId').value = '';
-  document.getElementById('examFTitle').value = '';
-  document.getElementById('examFDesc').value = '';
-  document.getElementById('examFDur').value = '60';
-  document.getElementById('examFPrice').value = '8';
-  document.getElementById('examFActive').value = '1';
-  document.getElementById('examFUnlimited').checked = true;
-  toggleExamDates();
-  document.getElementById('examFStart').value = '';
-  document.getElementById('examFEnd').value = '';
-  await Promise.all([
-    loadParentExamSelect(''),
-    loadCatSelect('examFClass',   'class',   '', '— Ümumi —'),
-    loadCatSelect('examFSection', 'section', '', '— Ümumi —'),
-  ]);
-  openModal('addExamModal');
+  // Load all root exams for the sales name dropdown
+  const r = await GET('/exams?admin=1');
+  const allExams = r.data||[];
+  const roots = allExams.filter(e=>!e.parent_exam_id||e.parent_exam_id==='');
+
+  // Build root options
+  const rootOpts = roots.map(e=>`<option value="${e.id}">${e.title}</option>`).join('');
+
+  const html = `
+    <div class="overlay open" id="newExamWizard" onclick="if(event.target===this)closeNewExamWizard()">
+      <div class="modal modal-sm" onclick="event.stopPropagation()" style="max-width:480px">
+        <button class="m-close" onclick="closeNewExamWizard()">✕</button>
+        <div class="m-title">✏️ Yeni İmtahan Yarat</div>
+
+        <!-- Step 1: Sales name -->
+        <div class="wiz-step">
+          <div class="wiz-step-label">1 — Satış adı</div>
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <button class="xbtn xbtn-sm xbtn-primary" id="wiz-mode-existing" onclick="wizSetMode('existing')">Mövcud qrupa əlavə et</button>
+            <button class="xbtn xbtn-sm xbtn-outline" id="wiz-mode-new" onclick="wizSetMode('new')">Yeni qrup yarat</button>
+          </div>
+
+          <div id="wiz-existing-wrap">
+            <select class="inp" id="wizRootSel" onchange="wizRootChanged()">
+              <option value="">— Satış adı seçin —</option>
+              ${rootOpts}
+            </select>
+          </div>
+          <div id="wiz-new-wrap" style="display:none">
+            <input class="inp" id="wizRootNew" placeholder="məs. Lütfi Zadə Olimpiadası">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+              <div class="field" style="margin:0"><label style="font-size:11px">Kateqoriya</label>
+                <select class="inp" id="wizCat">
+                  <option value="olimpiada">Olimpiada</option>
+                  <option value="lisey">Lisey Qəbul</option>
+                  <option value="yarish">Yarış</option>
+                  <option value="hazirlig">Hazırlıq</option>
+                </select>
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:11px">Fənn</label>
+                <select class="inp" id="wizSubj">
+                  <option value="riyaziyyat">Riyaziyyat</option>
+                  <option value="azerbaycan">Azərbaycan dili</option>
+                  <option value="ingilis">İngilis dili</option>
+                  <option value="fizika">Fizika</option>
+                  <option value="kimya">Kimya</option>
+                  <option value="biologiya">Biologiya</option>
+                  <option value="mix">Kompleks</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Section -->
+        <div class="wiz-step">
+          <div class="wiz-step-label">2 — Tədris bölməsi</div>
+          <div id="wizSectionWrap" style="display:flex;gap:8px;flex-wrap:wrap">
+            ${[['AZ','🇦🇿 Azərbaycan'],['RU','🇷🇺 Rus'],['EN','🇬🇧 İngilis'],['','📂 Ümumi']].map(([v,l],i)=>`
+              <button type="button" class="xbtn xbtn-sm ${i===0?'xbtn-primary':'xbtn-outline'}"
+                data-sec="${v}" onclick="wizSelectSection(this)">${l}</button>`).join('')}
+          </div>
+        </div>
+
+        <!-- Step 3: Grade + details -->
+        <div class="wiz-step">
+          <div class="wiz-step-label">3 — Sinif</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px" id="wizGradeBtns">
+            ${Array.from({length:11},(_,i)=>i+1).map(g=>`
+              <button type="button" class="grade-pick-btn xbtn-outline" data-grade="${g}"
+                onclick="wizSelectGrade(this)">${g}</button>`).join('')}
+            <button type="button" class="xbtn xbtn-sm xbtn-outline" data-grade=""
+              onclick="wizSelectGrade(this)" style="padding:0 12px">Ümumi</button>
+          </div>
+        </div>
+
+        <!-- Details -->
+        <div class="wiz-step">
+          <div class="wiz-step-label">4 — Detallar</div>
+          <div class="field"><label>İmtahanın adı <span style="font-size:10px;color:var(--muted)">(avtomatik doldurulur, dəyişə bilərsiniz)</span></label>
+            <input class="inp" id="wizTitle" placeholder="məs. Lütfi Zadə — AZ — 5-ci sinif">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="field" style="margin:0"><label style="font-size:11px">Qiymət (AZN)</label>
+              <input class="inp" type="number" id="wizPrice" value="8" min="0">
+            </div>
+            <div class="field" style="margin:0"><label style="font-size:11px">Müddət (dəq)</label>
+              <input class="inp" type="number" id="wizDur" value="60" min="5">
+            </div>
+          </div>
+        </div>
+
+        <div class="msg" id="wizMsg"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <button class="form-btn" style="background:var(--navy)" onclick="saveWizardExam(false)">Saxla</button>
+          <button class="form-btn" onclick="saveWizardExam(true)">💾 Saxla + Sual Yaz</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+  // Store roots data globally for wizard
+  window._wizRoots = roots;
+  window._wizAllExams = allExams;
+  wizUpdateTitle();
 }
+
+function closeNewExamWizard(){
+  const el = document.getElementById('newExamWizard');
+  if(el) el.remove();
+}
+
+function wizSetMode(mode){
+  const isNew = mode === 'new';
+  document.getElementById('wiz-existing-wrap').style.display = isNew ? 'none' : '';
+  document.getElementById('wiz-new-wrap').style.display      = isNew ? '' : 'none';
+  document.getElementById('wiz-mode-existing').className = `xbtn xbtn-sm ${isNew?'xbtn-outline':'xbtn-primary'}`;
+  document.getElementById('wiz-mode-new').className      = `xbtn xbtn-sm ${isNew?'xbtn-primary':'xbtn-outline'}`;
+  wizUpdateTitle();
+}
+
+function wizRootChanged(){ wizUpdateTitle(); }
+
+function wizSelectSection(btn){
+  document.querySelectorAll('#wizSectionWrap .xbtn').forEach(b=>{b.classList.remove('xbtn-primary');b.classList.add('xbtn-outline');});
+  btn.classList.remove('xbtn-outline'); btn.classList.add('xbtn-primary');
+  wizUpdateTitle();
+}
+
+function wizSelectGrade(btn){
+  document.querySelectorAll('#wizGradeBtns button').forEach(b=>{
+    b.classList.remove('xbtn-primary'); b.classList.add('xbtn-outline');
+  });
+  btn.classList.remove('xbtn-outline'); btn.classList.add('xbtn-primary');
+  wizUpdateTitle();
+}
+
+function wizUpdateTitle(){
+  const isNew    = document.getElementById('wiz-new-wrap')?.style.display !== 'none';
+  const rootName = isNew
+    ? (document.getElementById('wizRootNew')?.value.trim() || '')
+    : (document.getElementById('wizRootSel')?.selectedOptions[0]?.text || '');
+
+  const secBtn   = document.querySelector('#wizSectionWrap .xbtn-primary');
+  const secVal   = secBtn?.dataset.sec || '';
+  const SECS     = {AZ:'AZ',RU:'RU',EN:'EN','':`Ümumi`};
+  const gradeBtn = document.querySelector('#wizGradeBtns .xbtn-primary');
+  const grade    = gradeBtn?.dataset.grade || '';
+
+  const parts = [rootName, secVal||null, grade ? grade+'-ci sinif' : null].filter(Boolean);
+  const auto  = parts.join(' — ');
+  const titleEl = document.getElementById('wizTitle');
+  if(titleEl) titleEl.value = auto;
+}
+
+async function saveWizardExam(openQuestions){
+  showMsg('wizMsg','','');
+  const isNew = document.getElementById('wiz-new-wrap')?.style.display !== 'none';
+
+  // --- Get or create ROOT ---
+  let rootId, category, subject;
+  if(isNew){
+    const rootName = document.getElementById('wizRootNew').value.trim();
+    if(!rootName){ showMsg('wizMsg','Satış adını yazın.','err'); return; }
+    category = document.getElementById('wizCat').value;
+    subject  = document.getElementById('wizSubj').value;
+    const rr = await POST('/exams',{title:rootName,category,subject,class:'',section:'',
+      price:0,duration:0,is_active:1,is_unlimited:1,parent_exam_id:''});
+    if(!rr.success){ showMsg('wizMsg',rr.message||'Kök imtahan yaradılmadı.','err'); return; }
+    rootId = rr.data.id;
+  } else {
+    rootId = document.getElementById('wizRootSel').value;
+    if(!rootId){ showMsg('wizMsg','Satış adı seçin.','err'); return; }
+    const rootData = (window._wizRoots||[]).find(r=>r.id===rootId);
+    category = rootData?.category || 'olimpiada';
+    subject  = rootData?.subject  || 'riyaziyyat';
+  }
+
+  // --- Get or create SECTION ---
+  const secBtn = document.querySelector('#wizSectionWrap .xbtn-primary');
+  const secVal = secBtn?.dataset.sec || '';
+  let sectionId = rootId; // default: directly under root if no section
+
+  if(secVal !== ''){
+    // Find existing section under root
+    const allExams = window._wizAllExams || [];
+    let existing = allExams.find(e=>e.parent_exam_id===rootId && e.section===secVal);
+    if(!existing){
+      const SECT_TITLES = {AZ:'Azərbaycan bölməsi',RU:'Русский сектор',EN:'English section'};
+      const rs = await POST('/exams',{title:SECT_TITLES[secVal]||secVal, category, subject,
+        class:'',section:secVal,price:0,duration:0,is_active:1,is_unlimited:1,parent_exam_id:rootId});
+      if(!rs.success){ showMsg('wizMsg',rs.message||'Bölmə yaradılmadı.','err'); return; }
+      sectionId = rs.data.id;
+    } else {
+      sectionId = existing.id;
+    }
+  }
+
+  // --- Create GRADE EXAM ---
+  const title    = document.getElementById('wizTitle').value.trim();
+  const gradeBtn = document.querySelector('#wizGradeBtns .xbtn-primary');
+  const grade    = gradeBtn?.dataset.grade || '';
+  const price    = parseFloat(document.getElementById('wizPrice').value)||0;
+  const dur      = parseInt(document.getElementById('wizDur').value)||60;
+
+  if(!title){ showMsg('wizMsg','İmtahanın adını yazın.','err'); return; }
+
+  const re = await POST('/exams',{title,category,subject,
+    class:grade,section:secVal,price,duration:dur,
+    is_active:1,is_unlimited:1,parent_exam_id:sectionId});
+  if(!re.success){ showMsg('wizMsg',re.message||'Xəta baş verdi.','err'); return; }
+
+  closeNewExamWizard();
+  await loadAdminExams();
+  toast(`✅ "${title}" yaradıldı!`,'ok');
+  if(openQuestions && re.data?.id) openQuestionsFor(re.data.id, title);
+}
+
 
 async function openAddSubExam(parentId, parentTitle){
   const parentData = await GET('/exams/'+parentId+'?admin=1');
