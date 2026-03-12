@@ -1624,24 +1624,15 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
     <!-- Login -->
     <div id="loginPane">
       <div class="msg" id="loginMsg"></div>
-      <div class="field"><label data-t="field_phone">Telefon nömrəsi</label>
-        <div class="phone-wrap" id="loginPhoneWrap">
-          <div style="position:relative">
-            <button type="button" class="country-btn" id="loginPhoneCountryBtn" onclick="toggleCountryDrop('loginPhone')">
-              <span class="flag" id="loginPhoneFlag">🇦🇿</span>
-              <span class="code" id="loginPhoneCode">+994</span>
-              <span style="font-size:9px;opacity:.5">▼</span>
-            </button>
-            <div class="country-drop" id="loginPhoneDrop" style="display:none"></div>
-          </div>
-          <input class="phone-inp" id="loginPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('loginPhone'); checkMultipleAccounts()">
+      <div class="field">
+        <label>İstifadəçi adı</label>
+        <div style="position:relative;display:flex;align-items:center">
+          <span style="position:absolute;left:12px;font-size:15px;color:var(--muted)">@</span>
+          <input class="inp" id="loginUsername" type="text" placeholder="username" autocomplete="username"
+            style="padding-left:28px" onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
         </div>
       </div>
-      <div id="multiAccountWrap" style="display:none;margin-bottom:12px">
-        <div class="msg info" style="display:flex">👥 Bu nömrə ilə bir neçə hesab var. Username seçin:</div>
-        <select class="inp" id="multiAccountSel" style="margin-top:6px"><option value="">— Username seçin —</option></select>
-      </div>
-      <div class="field"><label>Şifrə</label><input class="inp" id="loginPass" type="password" placeholder="••••••"></div>
+      <div class="field"><label>Şifrə</label><input class="inp" id="loginPass" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
         <button class="btn btn-outline btn-sm" onclick="authTab('adminLogin')">Admin girişi →</button>
         <button class="btn btn-sm" style="background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;padding:4px 2px;text-decoration:underline;text-decoration-style:dotted" onclick="openForgotPassword()">🔑 Şifrəmi unutdum</button>
@@ -2690,24 +2681,9 @@ function authTab(tab){
   if(tab==='parent') document.getElementById('authTabParent')?.classList.add('active');
 }
 
-async function checkMultipleAccounts(){
-  const phone = getPhoneDigits('loginPhone');
-  const fullPhone = getFullPhone('loginPhone');
-  if(phone.length < 6){ document.getElementById('multiAccountWrap').style.display='none'; return; }
-  const r = await POST('/auth/login',{phone:fullPhone,password:'__CHECK__'});
-  if(r.multipleAccounts){
-    const wrap = document.getElementById('multiAccountWrap');
-    const sel = document.getElementById('multiAccountSel');
-    sel.innerHTML='<option value="">— Username seçin —</option>';
-    r.accounts.forEach(a=>{ const o=document.createElement('option'); o.value=a.username; o.textContent=`${a.name} (@${a.username})`; sel.appendChild(o); });
-    wrap.style.display='block';
-  } else {
-    document.getElementById('multiAccountWrap').style.display='none';
-  }
-}
+
 
 function openForgotPassword(){
-  // Show inline forgot password form inside auth modal
   document.getElementById('loginPane').style.display='none';
   let fp = document.getElementById('forgotPane');
   if(!fp){
@@ -2764,13 +2740,13 @@ async function doForgotPassword(){
 }
 
 async function doLogin(){
-  const phone = getFullPhone('loginPhone');
+  const btn=document.getElementById('loginBtn'); btn.disabled=true; btn.textContent='Yüklənir...';
+  const username = (document.getElementById('loginUsername').value||'').trim().replace(/^@/,'');
   const password = document.getElementById('loginPass').value;
-  const username = document.getElementById('multiAccountSel').value;
-  const body = username ? {username,password} : {phone,password};
-  const r = await POST('/auth/login', body);
+  if(!username){ showMsg('loginMsg','İstifadəçi adını daxil edin.','err'); btn.disabled=false; btn.textContent='Daxil ol'; return; }
+  if(!password){ showMsg('loginMsg','Şifrəni daxil edin.','err'); btn.disabled=false; btn.textContent='Daxil ol'; return; }
+  const r = await POST('/auth/login', {username, password});
   btn.disabled=false; btn.textContent='Daxil ol';
-  if(r.multipleAccounts){ document.getElementById('multiAccountWrap').style.display='block'; showMsg('loginMsg','Hesab seçin:','info'); return; }
   if(!r.success){ showMsg('loginMsg',r.message,'err'); return; }
   loginSuccess(r);
 }
