@@ -296,6 +296,10 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .q-card.answered{border-color:rgba(19,85,160,.25);background:rgba(19,85,160,.02)}
 .q-num{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;display:flex;align-items:center;gap:6px}
 .q-text{font-size:15px;font-weight:600;color:var(--navy);line-height:1.6;margin-bottom:18px}
+.q-text img,.q-opt-text img{max-width:100%;height:auto;display:block;border-radius:6px;margin:6px 0}
+@media(max-width:600px){.q-text{font-size:14px}.q-text img,.q-opt-text img{width:100%!important}}
+@media(min-width:601px) and (max-width:1024px){.q-text img,.q-opt-text img{max-width:90%}}
+@media(min-width:1025px){.q-text img,.q-opt-text img{max-width:80%}}
 .q-opts{display:flex;flex-direction:column;gap:8px}
 .q-opt{display:flex;align-items:center;gap:12px;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:all .18s;user-select:none}
 .q-opt:hover:not(.correct):not(.wrong){border-color:var(--blue);background:rgba(19,85,160,.03)}
@@ -2855,8 +2859,20 @@ function renderRunningExam(){
 }
 
 function renderRichText(html){
-  // html already contains KaTeX-rendered spans from admin editor, just return
-  return html||'';
+  if(!html) return '';
+  // Make images responsive: replace fixed pixel widths, keep % widths capped
+  return html.replace(/<img([^>]*?)>/gi, (match, attrs)=>{
+    // Remove inline width/height px values, keep % based widths from data-width
+    let a = attrs
+      .replace(/\s*width\s*=\s*["']?\d+px["']?/gi, '')
+      .replace(/\s*height\s*=\s*["']?\d+px["']?/gi, '');
+    // Extract data-width % and apply as style
+    const dw = a.match(/data-width\s*=\s*["']?(\d+)["']?/);
+    const pct = dw ? Math.min(100, parseInt(dw[1])) : 100;
+    // Remove existing style width, replace with responsive one
+    a = a.replace(/style\s*=\s*["'][^"']*["']/gi, '');
+    return `<img${a} style="max-width:${pct}%;width:${pct}%;height:auto;border-radius:6px;display:block;margin:6px 0">`;
+  });
 }
 
 function qHtml(q,i){
@@ -4596,9 +4612,16 @@ function handleEditorPaste(e, editorId){
       const blob = item.getAsFile();
       const reader = new FileReader();
       reader.onload = ev => {
-        const img = `<img src="${ev.target.result}" style="max-width:100%;width:auto;cursor:pointer" onclick="selectEditorImg(this,event)" data-width="100">`;
-        document.getElementById(editorId).focus();
+        const tmpId = 'pasted_'+Date.now();
+        const img = `<img src="${ev.target.result}" id="${tmpId}" style="max-width:100%;width:100%;cursor:pointer" onclick="selectEditorImg(this,event)" data-width="100">`;
+        const editor = document.getElementById(editorId);
+        editor.focus();
         document.execCommand('insertHTML', false, img);
+        // Auto-open resize popup for pasted image
+        setTimeout(()=>{
+          const inserted = editor.querySelector(`#${tmpId}`) || editor.querySelector('img:last-of-type');
+          if(inserted){ inserted.removeAttribute('id'); selectEditorImg(inserted, null); }
+        }, 50);
       };
       reader.readAsDataURL(blob);
       return;
