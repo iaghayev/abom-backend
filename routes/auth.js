@@ -58,6 +58,23 @@ router.post('/register', (req, res) => {
   db.prepare('INSERT INTO users (id,username,name,phone,password,class,section,role,parent_code,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
     .run(id, username, name.trim(), cleanPhone, hash, cls||'', section||'', 'student', parentCode, now);
   const user = db.prepare('SELECT id,username,name,phone,class,section,role,parent_code FROM users WHERE id=?').get(id);
+
+  // Send credentials via WhatsApp immediately after registration
+  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  sendWhatsApp(cleanPhone,
+`🎉 ABOM — Qeydiyyat Uğurlu!
+
+Salam, ${name.trim()}! Hesabınız yaradıldı.
+
+Giriş məlumatlarınız:
+👤 İstifadəçi adı: ${username}
+🔑 Şifrə: ${password}
+
+🔗 ${link}
+
+Bu məlumatları yadda saxlayın.
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`).catch(()=>{});
+
   res.status(201).json({ success: true, token: genToken(id), user });
 });
 
