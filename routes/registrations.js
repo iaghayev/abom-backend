@@ -53,7 +53,7 @@ async function waNewTicket(reg, exam) {
 async function waActivated(reg, exam) {
   const waPhone = reg.whatsapp || reg.phone;
   if (!waPhone) return;
-  const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
+  const user = await db.get('SELECT username, plain_password FROM users WHERE id=?', [reg.user_id]);
   if (!user) return;
   const pass = user.plain_password || '—';
   await sendTemplate(waPhone, 'activate', {
@@ -68,7 +68,7 @@ async function waActivated(reg, exam) {
 }
 
 // ── GET student's own registrations ──────────────────────
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   const { status } = req.query;
   let sql = `
     SELECT r.*, e.title as exam_title, e.duration as exam_duration, e.price as exam_price
@@ -83,56 +83,56 @@ router.get('/', authMiddleware, (req, res) => {
     sql += " AND r.status NOT IN ('completed','cancelled')";
   }
   sql += ' ORDER BY r.created_at DESC';
-  const rows = db.prepare(sql).all(...params);
+  const rows = await db.all(sql, params);
   res.json({ success: true, data: rows });
 });
 
 // ── Pending count (admin badge) ──────────────────────────
-router.get('/pending-count', adminMiddleware, (req, res) => {
-  const row = db.prepare("SELECT COUNT(*) as count FROM registrations WHERE status='pending'").get();
+router.get('/pending-count', adminMiddleware, async (req, res) => {
+  const row = await db.get("SELECT COUNT(*) as count FROM registrations WHERE status='pending'", []);
   res.json({ success: true, count: row?.count||0 });
 });
 
 // ── GET all (admin) ──────────────────────────────────────
-router.get('/admin/all', adminMiddleware, (req, res) => {
-  const rows = db.prepare(`
+router.get('/admin/all', adminMiddleware, async (req, res) => {
+  const rows = await db.all(`
     SELECT r.*, e.title as exam_title, e.price as exam_price, u.name as user_name
     FROM registrations r
     LEFT JOIN exams e ON e.id = r.exam_id
     LEFT JOIN users u ON u.id = r.user_id
     ORDER BY r.created_at DESC
-  `).all();
+  `, []);
   res.json({ success: true, data: rows });
 });
 
 // ── Check if user has ticket ─────────────────────────────
-router.get('/check/:examId', authMiddleware, (req, res) => {
-  const reg = db.prepare('SELECT * FROM registrations WHERE user_id=? AND exam_id=?')
-    .get(req.user.id, req.params.examId);
+router.get('/check/:examId', authMiddleware, async (req, res) => {
+  const reg = await db.get('SELECT * FROM registrations WHERE user_id=? AND exam_id=?', [req.user.id, req.params.examId]);
   res.json({ success: true, hasTicket: !!reg, status: reg?.status || null });
 });
 
 // ── Student buys ticket ──────────────────────────────────
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   const { exam_id, name, phone, whatsapp, class: cls, section } = req.body;
   if (!exam_id || !name || !phone) return res.status(400).json({ success: false, message: 'Məlumatlar natamamdır.' });
 
-  let targetExam = db.prepare('SELECT * FROM exams WHERE id=? AND is_active=1').get(exam_id);
+  let targetExam = await db.get('SELECT * FROM exams WHERE id=? AND is_active=1', [exam_id]);
   if (!targetExam) return res.status(404).json({ success: false, message: 'İmtahan tapılmadı.' });
 
   // Smart sub-exam assignment — supports up to 3 levels deep
   // level 1: root→children (flat: class+section)
   // level 2: root→language→grade  (req.body.language + class)
-  const subCount = db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(exam_id)?.c || 0;
+  const _subRow = await db.get("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1", [exam_id]);
+  const subCount = Number(_subRow?.c) || 0;
   if (subCount > 0) {
     const studentClass    = cls || req.user.class || '';
     const studentSection  = section || req.user.section || '';
     const studentLanguage = req.body.language || '';
 
     // Check if first-level children have children (3-level tree)
-    const firstChild = db.prepare("SELECT id FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(exam_id);
+    const firstChild = await db.get("SELECT id FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1", [exam_id]);
     const grandchildCount = firstChild
-      ? db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(firstChild.id)?.c || 0
+      ? await db.get("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1", [firstChild.id])?.c || 0
       : 0;
 
     let targetLeaf = null;
@@ -141,13 +141,13 @@ router.post('/', authMiddleware, (req, res) => {
       // 3-level: find language group first, then grade within it
       let langGroup = null;
       if (studentLanguage) {
-        langGroup = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?").get(exam_id, studentLanguage);
+        langGroup = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?", [exam_id, studentLanguage]);
       }
-      if (!langGroup) langGroup = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(exam_id);
+      if (!langGroup) langGroup = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1", [exam_id]);
 
       if (langGroup) {
-        targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?").get(langGroup.id, studentClass);
-        if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1").get(langGroup.id);
+        targetLeaf = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?", [langGroup.id, studentClass]);
+        if (!targetLeaf) targetLeaf = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 LIMIT 1", [langGroup.id]);
       }
       if (!targetLeaf) return res.status(400).json({
         success: false,
@@ -155,9 +155,9 @@ router.post('/', authMiddleware, (req, res) => {
       });
     } else {
       // 2-level: class + section
-      targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=? AND section=?").get(exam_id, studentClass, studentSection);
-      if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?").get(exam_id, studentClass);
-      if (!targetLeaf) targetLeaf = db.prepare("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?").get(exam_id, studentSection);
+      targetLeaf = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=? AND section=?", [exam_id, studentClass, studentSection]);
+      if (!targetLeaf) targetLeaf = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND class=?", [exam_id, studentClass]);
+      if (!targetLeaf) targetLeaf = await db.get("SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 AND section=?", [exam_id, studentSection]);
       if (!targetLeaf) return res.status(400).json({
         success: false,
         message: `"${targetExam.title}" imtahanında ${studentClass}-ci sinif ${studentSection} bölməsi üçün alt imtahan tapılmadı.`
@@ -167,7 +167,7 @@ router.post('/', authMiddleware, (req, res) => {
   }
 
   // Check if already registered (any status — including cancelled)
-  const existing = db.prepare('SELECT * FROM registrations WHERE user_id=? AND exam_id=?').get(req.user.id, targetExam.id);
+  const existing = await db.get('SELECT * FROM registrations WHERE user_id=? AND exam_id=?', [req.user.id, targetExam.id]);
   if (existing) {
     if (existing.status === 'active') return res.status(409).json({ success: false, message: 'Bu imtahan üçün aktiv biletiniz var.' });
     if (existing.status === 'pending') return res.status(409).json({ success: false, message: 'Biletiniz artıq gözləmə siyahısındadır.' });
@@ -175,9 +175,8 @@ router.post('/', authMiddleware, (req, res) => {
   }
 
   const id = uid();
-  db.prepare(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, req.user.id, targetExam.id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', new Date().toISOString());
+  await db.run(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?)`, [id, req.user.id, targetExam.id, name, phone, whatsapp||phone, cls||'', section||'', 'pending', new Date().toISOString()]);
   notifyNewRegistration({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, targetExam).catch(()=>{});
   waNewTicket({ id, name, phone, whatsapp: whatsapp||phone, class: cls||'', section: section||'' }, targetExam).catch(()=>{});
   res.status(201).json({
@@ -188,24 +187,23 @@ router.post('/', authMiddleware, (req, res) => {
 });
 
 // ── Admin: manually assign ───────────────────────────────
-router.post('/admin/assign', adminMiddleware, (req, res) => {
+router.post('/admin/assign', adminMiddleware, async (req, res) => {
   const { user_id, exam_id, activate, is_paid } = req.body;
   if (!user_id || !exam_id) return res.status(400).json({ success: false, message: 'user_id və exam_id tələb olunur.' });
 
-  const existing = db.prepare('SELECT * FROM registrations WHERE user_id=? AND exam_id=?').get(user_id, exam_id);
+  const existing = await db.get('SELECT * FROM registrations WHERE user_id=? AND exam_id=?', [user_id, exam_id]);
   if (existing) {
     // If cancelled, allow re-activate via this route
     if (existing.status === 'cancelled') {
       const now = new Date().toISOString();
       const status = activate ? 'active' : 'pending';
-      db.prepare("UPDATE registrations SET status=?, activated_at=? WHERE id=?").run(status, activate ? now : null, existing.id);
+      await db.run("UPDATE registrations SET status=?, activated_at=? WHERE id=?", [status, activate ? now : null, existing.id]);
       if (activate && is_paid !== false) {
-        const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(exam_id);
-        const user = db.prepare('SELECT * FROM users WHERE id=?').get(user_id);
+        const exam = await db.get('SELECT * FROM exams WHERE id=?', [exam_id]);
+        const user = await db.get('SELECT * FROM users WHERE id=?', [user_id]);
         try {
-          db.prepare(`INSERT OR IGNORE INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
-            VALUES (?,?,?,?,?,?,?,?,?)`)
-            .run('rev_'+Date.now(), existing.id, exam_id, user_id, user?.name||'', exam?.title||'', exam?.price||0, 'confirmed', now);
+          await db.run(`INSERT INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)`, ['rev_'+Date.now(), existing.id, exam_id, user_id, user?.name||'', exam?.title||'', exam?.price||0, 'confirmed', now]);
         } catch(e) {}
       }
       return res.json({ success: true, message: 'Şagirdin icazəsi bərpa edildi.', reactivated: true });
@@ -213,39 +211,36 @@ router.post('/admin/assign', adminMiddleware, (req, res) => {
     return res.status(409).json({ success: false, message: 'Bu şagird artıq bu imtahana qeydiyyatdadır.' });
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(user_id);
-  const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(exam_id);
+  const user = await db.get('SELECT * FROM users WHERE id=?', [user_id]);
+  const exam = await db.get('SELECT * FROM exams WHERE id=?', [exam_id]);
   if (!user || !exam) return res.status(404).json({ success: false, message: 'Şagird və ya imtahan tapılmadı.' });
 
   const id  = uid();
   const now = new Date().toISOString();
   const status = activate ? 'active' : 'pending';
-  db.prepare(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at,activated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, user_id, exam_id, user.name, user.phone, user.phone, user.class||'', user.section||'', status, now, activate ? now : null);
+  await db.run(`INSERT INTO registrations (id,user_id,exam_id,name,phone,whatsapp,class,section,status,created_at,activated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`, [id, user_id, exam_id, user.name, user.phone, user.phone, user.class||'', user.section||'', status, now, activate ? now : null]);
 
   // Write to revenues only if paid (is_paid !== false, default true)
   if (activate && is_paid !== false) {
     try {
-      db.prepare(`INSERT OR IGNORE INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?)`)
-        .run('rev_'+Date.now(), id, exam_id, user_id, user.name, exam.title, exam.price||0, 'confirmed', now);
+      await db.run(`INSERT INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?)`, ['rev_'+Date.now(), id, exam_id, user_id, user.name, exam.title, exam.price||0, 'confirmed', now]);
     } catch(e) {}
   }
   res.status(201).json({ success: true, message: 'Assign edildi.' });
 });
 
 // ── Admin: activate registration ─────────────────────────
-router.put('/:id/activate', adminMiddleware, (req, res) => {
-  const reg = db.prepare('SELECT * FROM registrations WHERE id=?').get(req.params.id);
+router.put('/:id/activate', adminMiddleware, async (req, res) => {
+  const reg = await db.get('SELECT * FROM registrations WHERE id=?', [req.params.id]);
   if (!reg) return res.status(404).json({ success: false, message: 'Qeydiyyat tapılmadı.' });
   const now = new Date().toISOString();
-  db.prepare("UPDATE registrations SET status='active', activated_at=? WHERE id=?").run(now, req.params.id);
-  const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(reg.exam_id);
+  await db.run("UPDATE registrations SET status='active', activated_at=? WHERE id=?", [now, req.params.id]);
+  const exam = await db.get('SELECT * FROM exams WHERE id=?', [reg.exam_id]);
   try {
-    db.prepare(`INSERT OR IGNORE INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?)`)
-      .run('rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id, reg.name, exam?.title||'', exam?.price||0, 'confirmed', now);
+    await db.run(`INSERT INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?)`, ['rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id, reg.name, exam?.title||'', exam?.price||0, 'confirmed', now]);
   } catch(e) {}
   notifyActivation(reg, exam).catch(()=>{});
   waActivated(reg, exam).catch(()=>{});
@@ -253,44 +248,43 @@ router.put('/:id/activate', adminMiddleware, (req, res) => {
 });
 
 // ── Admin: SOFT cancel — keeps registration, removes revenue only ──
-router.put('/:id/cancel', adminMiddleware, (req, res) => {
-  const reg = db.prepare('SELECT * FROM registrations WHERE id=?').get(req.params.id);
+router.put('/:id/cancel', adminMiddleware, async (req, res) => {
+  const reg = await db.get('SELECT * FROM registrations WHERE id=?', [req.params.id]);
   if (!reg) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
-  db.prepare("UPDATE registrations SET status='cancelled' WHERE id=?").run(req.params.id);
-  db.prepare('DELETE FROM revenues WHERE registration_id=?').run(reg.id);
+  await db.run("UPDATE registrations SET status='cancelled' WHERE id=?", [req.params.id]);
+  await db.run('DELETE FROM revenues WHERE registration_id=?', [reg.id]);
   res.json({ success: true, message: 'İcazə ləğv edildi. Qeydiyyat saxlanıldı.' });
 });
 
 // ── Admin: re-activate a cancelled registration ───────────
-router.put('/:id/reactivate', adminMiddleware, (req, res) => {
+router.put('/:id/reactivate', adminMiddleware, async (req, res) => {
   const { is_paid } = req.body;
-  const reg = db.prepare('SELECT * FROM registrations WHERE id=?').get(req.params.id);
+  const reg = await db.get('SELECT * FROM registrations WHERE id=?', [req.params.id]);
   if (!reg) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
   const now = new Date().toISOString();
-  db.prepare("UPDATE registrations SET status='active', activated_at=? WHERE id=?").run(now, req.params.id);
+  await db.run("UPDATE registrations SET status='active', activated_at=? WHERE id=?", [now, req.params.id]);
   if (is_paid !== false) {
-    const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(reg.exam_id);
+    const exam = await db.get('SELECT * FROM exams WHERE id=?', [reg.exam_id]);
     try {
-      db.prepare(`INSERT OR IGNORE INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?)`)
-        .run('rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id, reg.name, exam?.title||'', exam?.price||0, 'confirmed', now);
+      await db.run(`INSERT INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?)`, ['rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id, reg.name, exam?.title||'', exam?.price||0, 'confirmed', now]);
     } catch(e) {}
   }
   res.json({ success: true, message: 'Yenidən aktivləşdirildi.' });
 });
 
 // ── Admin: change status (generic) ──────────────────────
-router.put('/:id/status', adminMiddleware, (req, res) => {
+router.put('/:id/status', adminMiddleware, async (req, res) => {
   const { status } = req.body;
   if (!['pending','active','cancelled'].includes(status)) return res.status(400).json({ success: false, message: 'Yanlış status.' });
-  db.prepare('UPDATE registrations SET status=? WHERE id=?').run(status, req.params.id);
+  await db.run('UPDATE registrations SET status=? WHERE id=?', [status, req.params.id]);
   res.json({ success: true });
 });
 
 // ── Admin: edit registration details ────────────────────
-router.put('/:id/edit', adminMiddleware, (req, res) => {
+router.put('/:id/edit', adminMiddleware, async (req, res) => {
   const { name, phone, class: cls, section, status } = req.body;
-  const reg = db.prepare('SELECT id FROM registrations WHERE id=?').get(req.params.id);
+  const reg = await db.get('SELECT id FROM registrations WHERE id=?', [req.params.id]);
   if (!reg) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
   const updates = [], params = [];
   if (name    !== undefined) { updates.push('name=?');    params.push(name); }
@@ -300,16 +294,16 @@ router.put('/:id/edit', adminMiddleware, (req, res) => {
   if (status  !== undefined) { updates.push('status=?');  params.push(status); }
   if (!updates.length) return res.json({ success: true });
   params.push(req.params.id);
-  db.prepare(`UPDATE registrations SET ${updates.join(',')} WHERE id=?`).run(...params);
+  await db.run(`UPDATE registrations SET ${updates.join(',')} WHERE id=?`, [...params]);
   res.json({ success: true });
 });
 
 // ── Admin: hard delete registration ─────────────────────
-router.delete('/:id', adminMiddleware, (req, res) => {
-  const reg = db.prepare('SELECT id FROM registrations WHERE id=?').get(req.params.id);
+router.delete('/:id', adminMiddleware, async (req, res) => {
+  const reg = await db.get('SELECT id FROM registrations WHERE id=?', [req.params.id]);
   if (!reg) return res.status(404).json({ success: false, message: 'Tapılmadı.' });
-  db.prepare('DELETE FROM revenues WHERE registration_id=?').run(req.params.id);
-  db.prepare('DELETE FROM registrations WHERE id=?').run(req.params.id);
+  await db.run('DELETE FROM revenues WHERE registration_id=?', [req.params.id]);
+  await db.run('DELETE FROM registrations WHERE id=?', [req.params.id]);
   res.json({ success: true });
 });
 

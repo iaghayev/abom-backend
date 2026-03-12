@@ -5,7 +5,7 @@ const db = require('../database');
 const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware/auth');
 
 // ── GET /  ────────────────────────────────────────────────
-router.get('/', optionalAuth, (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { category, subject, class: cls, section, search, parent_only, parent_id, admin } = req.query;
   let sql = `SELECT e.*,
     (SELECT COUNT(*) FROM questions q WHERE q.exam_id=e.id) as own_question_count,
@@ -33,39 +33,28 @@ router.get('/', optionalAuth, (req, res) => {
   if (parent_id)   { sql += ' AND e.parent_exam_id=?'; params.push(parent_id); }
   sql += ' ORDER BY e.created_at DESC';
 
-  const exams = db.prepare(sql).all(...params);
+  const exams = await db.all(sql, params);
 
-  // For root exams (no parent), calculate total question count across all descendants
-  const countDescendantQuestions = (examId) => {
-    const direct = db.prepare('SELECT COUNT(*) as c FROM questions WHERE exam_id=?').get(examId).c;
-    const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(examId);
-    return direct + children.reduce((sum, c) => sum + countDescendantQuestions(c.id), 0);
-  };
-
-  const result = exams.map(e => {
-    const isRoot = !e.parent_exam_id || e.parent_exam_id === '';
-    const question_count = (isRoot && e.sub_count > 0)
-      ? countDescendantQuestions(e.id)
-      : e.own_question_count;
-    return { ...e, question_count };
-  });
+  const result = await Promise.all(exams.map(async e => {
+    return { ...e, question_count: e.own_question_count };
+  }));
 
   res.json({ success:true, data: result });
 });
 
 // ── GET /:id/tree — full nested tree for buy modal (BEFORE /:id) ──
-router.get('/:id/tree', optionalAuth, (req, res) => {
+router.get('/:id/tree', optionalAuth, async (req, res) => {
   // Level 1: language groups (direct children of root exam)
-  const langGroups = db.prepare(`
+  const langGroups = await db.all(`
     SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 ORDER BY section, title
-  `).all(req.params.id);
+  `, [req.params.id]);
 
   if (!langGroups.length) {
     // Flat group (old-style) — return direct children as grades
-    const subs = db.prepare(`
+    const subs = await db.all(`
       SELECT class, section FROM exams
       WHERE parent_exam_id=? AND is_active=1 ORDER BY class, section
-    `).all(req.params.id);
+    `, [req.params.id]);
     return res.json({ success:true, type:'flat', data:subs,
       classes:[...new Set(subs.map(s=>s.class).filter(Boolean))],
       sections:[...new Set(subs.map(s=>s.section).filter(Boolean))] });
@@ -73,50 +62,49 @@ router.get('/:id/tree', optionalAuth, (req, res) => {
 
   // Check if level-1 children themselves have children (3-level)
   const firstChild = langGroups[0];
-  const gradeCheck = db.prepare("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1").get(firstChild.id);
+  const gradeCheck = await db.get("SELECT COUNT(*) as c FROM exams WHERE parent_exam_id=? AND is_active=1", [firstChild.id]);
 
   if (gradeCheck?.c > 0) {
     // 3-level: root → language → grade
-    const tree = langGroups.map(lang => {
-      const grades = db.prepare(`
+    const tree = await Promise.all(langGroups.map(async lang => {
+      const grades = await db.all(`
         SELECT * FROM exams WHERE parent_exam_id=? AND is_active=1 ORDER BY CAST(class AS INTEGER), class
-      `).all(lang.id);
+      `, [lang.id]);
       return { id: lang.id, label: lang.section||lang.title, title: lang.title, section: lang.section, grades };
-    });
+    }));
     const allGrades = [...new Set(tree.flatMap(l=>l.grades.map(g=>g.class)).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
     return res.json({ success:true, type:'multilevel', languages: tree, allGrades });
   }
 
   // 2-level: root → direct subs with class/section
-  const subs = db.prepare(`
+  const subs = await db.all(`
     SELECT class, section FROM exams
     WHERE parent_exam_id=? AND is_active=1 ORDER BY class, section
-  `).all(req.params.id);
+  `, [req.params.id]);
   res.json({ success:true, type:'flat', data:subs,
     classes:[...new Set(subs.map(s=>s.class).filter(Boolean))],
     sections:[...new Set(subs.map(s=>s.section).filter(Boolean))] });
 });
 
 // ── GET /:id/subs (MUST be before /:id) ──────────────────
-router.get('/:id/subs', optionalAuth, (req, res) => {
-  const subs = db.prepare(`
+router.get('/:id/subs', optionalAuth, async (req, res) => {
+  const subs = await db.all(`
     SELECT class, section FROM exams
     WHERE parent_exam_id=? AND is_active=1 ORDER BY class, section
-  `).all(req.params.id);
+  `, [req.params.id]);
   const classes  = [...new Set(subs.map(s=>s.class).filter(Boolean))];
   const sections = [...new Set(subs.map(s=>s.section).filter(Boolean))];
   res.json({ success:true, data:subs, classes, sections });
 });
 
 // ── GET /:id/questions (MUST be before /:id) ─────────────
-router.get('/:id/questions', authMiddleware, (req, res) => {
+router.get('/:id/questions', authMiddleware, async (req, res) => {
   const user = req.user;
   if (user.role !== 'admin') {
-    const reg = db.prepare("SELECT * FROM registrations WHERE user_id=? AND exam_id=? AND status='active'")
-      .get(user.id, req.params.id);
+    const reg = await db.get("SELECT * FROM registrations WHERE user_id=? AND exam_id=? AND status='active'", [user.id, req.params.id]);
     if (!reg) return res.status(403).json({ success:false, message:'Bu imtahan üçün aktiv biletiniz yoxdur.' });
   }
-  const questions = db.prepare('SELECT * FROM questions WHERE exam_id=? ORDER BY order_num ASC').all(req.params.id);
+  const questions = await db.all('SELECT * FROM questions WHERE exam_id=? ORDER BY order_num ASC', [req.params.id]);
   const safe = questions.map(q => {
     if (user.role==='admin') return q;
     const { correct, ...rest } = q; return rest;
@@ -125,17 +113,17 @@ router.get('/:id/questions', authMiddleware, (req, res) => {
 });
 
 // ── GET /:id ──────────────────────────────────────────────
-router.get('/:id', optionalAuth, (req, res) => {
-  const exam = db.prepare(`SELECT e.*,
+router.get('/:id', optionalAuth, async (req, res) => {
+  const exam = await db.get(`SELECT e.*,
     (SELECT COUNT(*) FROM questions q WHERE q.exam_id=e.id) as question_count,
     (SELECT COUNT(*) FROM exams sub WHERE sub.parent_exam_id=e.id) as sub_count
-    FROM exams e WHERE e.id=?`).get(req.params.id);
+    FROM exams e WHERE e.id=?`, [req.params.id]);
   if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
   res.json({ success:true, data:exam });
 });
 
 // ── POST / ────────────────────────────────────────────────
-router.post('/', adminMiddleware, (req, res) => {
+router.post('/', adminMiddleware, async (req, res) => {
   const { title, description, category, subject, class: cls, section,
     duration, price, start_date, end_date, is_unlimited, parent_exam_id } = req.body;
   if (!title || !category || !subject)
@@ -143,94 +131,83 @@ router.post('/', adminMiddleware, (req, res) => {
   const id  = 'ex_' + uuidv4().slice(0,8);
   const now = new Date().toISOString();
   const unlimited = (is_unlimited===false||is_unlimited===0||is_unlimited==='0') ? 0 : 1;
-  db.prepare(`INSERT INTO exams
+  await db.run(`INSERT INTO exams
     (id,title,description,category,subject,class,section,duration,price,
      start_date,end_date,is_unlimited,parent_exam_id,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(id, title, description||'', category, subject, cls||'', section||'',
-         duration||60, price||0, start_date||'', end_date||'', unlimited, parent_exam_id||'', now);
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [id, title, description||'', category, subject, cls||'', section||'',
+         duration||60, price||0, start_date||'', end_date||'', unlimited, parent_exam_id||'', now]);
   if (!parent_exam_id) {
-    const icc = db.prepare('INSERT INTO cert_configs (id,exam_id,level_name,min_score,max_score,color) VALUES (?,?,?,?,?,?)');
-    [['İştirak',0,40,'#94a3b8'],['Bürünc',41,70,'#b45309'],['Gümüş',71,85,'#64748b'],['Qızıl',86,100,'#d97706']]
-      .forEach(([l,mn,mx,c]) => icc.run(`cc_${id}_${l}`, id, l, mn, mx, c));
+    for (const [l,mn,mx,c] of [['İştirak',0,40,'#94a3b8'],['Bürünc',41,70,'#b45309'],['Gümüş',71,85,'#64748b'],['Qızıl',86,100,'#d97706']])
+      await db.run('INSERT INTO cert_configs (id,exam_id,level_name,min_score,max_score,color) VALUES (?,?,?,?,?,?)', [`cc_${id}_${l}`, id, l, mn, mx, c]);
   }
-  res.status(201).json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(id) });
+  res.status(201).json({ success:true, data: await db.get('SELECT * FROM exams WHERE id=?', [id]) });
 });
 
 // ── PATCH /:id/toggle-active ──────────────────────────────
-router.patch('/:id/toggle-active', adminMiddleware, (req, res) => {
-  const exam = db.prepare('SELECT id, is_active FROM exams WHERE id=?').get(req.params.id);
+router.patch('/:id/toggle-active', adminMiddleware, async (req, res) => {
+  const exam = await db.get('SELECT id, is_active FROM exams WHERE id=?', [req.params.id]);
   if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
   const newVal = exam.is_active ? 0 : 1;
-  db.prepare('UPDATE exams SET is_active=? WHERE id=?').run(newVal, req.params.id);
+  await db.run('UPDATE exams SET is_active=? WHERE id=?', [newVal, req.params.id]);
   res.json({ success:true, is_active: newVal });
 });
 
 // ── PUT /:id ──────────────────────────────────────────────
-router.put('/:id', adminMiddleware, (req, res) => {
+router.put('/:id', adminMiddleware, async (req, res) => {
   const { title, description, category, subject, class: cls, section,
     duration, price, is_active, start_date, end_date, is_unlimited, parent_exam_id, total_questions } = req.body;
-  const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(req.params.id);
+  const exam = await db.get('SELECT * FROM exams WHERE id=?', [req.params.id]);
   if (!exam) return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
   const unlimited = (is_unlimited===false||is_unlimited===0||is_unlimited==='0') ? 0 : 1;
-  db.prepare(`UPDATE exams SET
+  await db.run(`UPDATE exams SET
     title=?,description=?,category=?,subject=?,class=?,section=?,
     duration=?,price=?,is_active=?,start_date=?,end_date=?,is_unlimited=?,parent_exam_id=?,total_questions=?
-    WHERE id=?`)
-    .run(title, description||'', category, subject, cls||'', section||'',
+    WHERE id=?`, [title, description||'', category, subject, cls||'', section||'',
          duration||60, price||0, is_active??1,
          start_date||'', end_date||'', unlimited, parent_exam_id||'',
-         parseInt(total_questions)||0, req.params.id);
+         parseInt(total_questions)||0, req.params.id]);
 
   // If this is a root exam (no parent), cascade shared fields to all descendants
   const isRoot = !exam.parent_exam_id || exam.parent_exam_id === '';
   if (isRoot) {
-    function cascadeUpdate(parentId) {
-      const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(parentId);
-      children.forEach(child => {
-        db.prepare(`UPDATE exams SET
-          category=?, subject=?, price=?,
-          is_unlimited=?, start_date=?, end_date=?
-          WHERE id=?`)
-          .run(category, subject, price||0, unlimited, start_date||'', end_date||'', child.id);
-        cascadeUpdate(child.id);
-      });
+    async function cascadeUpdate(parentId) {
+      const children = await db.all('SELECT id FROM exams WHERE parent_exam_id=?', [parentId]);
+      for (const child of children) {
+        await db.run(`UPDATE exams SET category=?, subject=?, price=?, is_unlimited=?, start_date=?, end_date=? WHERE id=?`, [category, subject, price||0, unlimited, start_date||'', end_date||'', child.id]);
+        await cascadeUpdate(child.id);
+      }
     }
     cascadeUpdate(req.params.id);
   }
 
-  res.json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(req.params.id) });
+  res.json({ success:true, data: await db.get('SELECT * FROM exams WHERE id=?', [req.params.id]) });
 });
 
 // ── DELETE /:id ───────────────────────────────────────────
-router.delete('/:id', adminMiddleware, (req, res) => {
+router.delete('/:id', adminMiddleware, async (req, res) => {
   const id = req.params.id;
-  if (!db.prepare('SELECT id FROM exams WHERE id=?').get(id))
+  if (!await db.get('SELECT id FROM exams WHERE id=?', [id]))
     return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
 
   // Recursive cascade delete: collect all descendant exam ids
-  function collectIds(examId) {
+  async function collectIds(examId) {
     const ids = [examId];
-    const children = db.prepare('SELECT id FROM exams WHERE parent_exam_id=?').all(examId);
-    children.forEach(c => ids.push(...collectIds(c.id)));
+    const children = await db.all('SELECT id FROM exams WHERE parent_exam_id=?', [examId]);
+    for (const c of children) ids.push(...await collectIds(c.id));
     return ids;
   }
-  const allIds = collectIds(id);
+  const allIds = await collectIds(id);
 
   // Delete in dependency order for all collected ids
-  const del = db.transaction(() => {
-    allIds.forEach(eid => {
-      db.prepare('DELETE FROM results        WHERE exam_id=?').run(eid);
-      db.prepare('DELETE FROM registrations  WHERE exam_id=?').run(eid);
-      db.prepare('DELETE FROM questions      WHERE exam_id=?').run(eid);
-      db.prepare('DELETE FROM cert_configs   WHERE exam_id=?').run(eid);
-    });
-    // Delete from leaf to root so FK on parent_exam_id is satisfied
-    allIds.reverse().forEach(eid => {
-      db.prepare('DELETE FROM exams WHERE id=?').run(eid);
-    });
-  });
-  del();
+  for (const eid of allIds) {
+    await db.run('DELETE FROM results        WHERE exam_id=?', [eid]);
+    await db.run('DELETE FROM registrations  WHERE exam_id=?', [eid]);
+    await db.run('DELETE FROM questions      WHERE exam_id=?', [eid]);
+    await db.run('DELETE FROM cert_configs   WHERE exam_id=?', [eid]);
+  }
+  for (const eid of allIds.reverse()) {
+    await db.run('DELETE FROM exams WHERE id=?', [eid]);
+  }
 
   res.json({ success:true, deleted: allIds.length });
 });

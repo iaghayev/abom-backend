@@ -7,7 +7,7 @@ const { authMiddleware, adminMiddleware, optionalAuth } = require('../middleware
 // ─── VIDEOS ──────────────────────────────────────────────────
 
 // GET /api/videos
-router.get('/', optionalAuth, (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { subject, class: cls, type, search } = req.query;
   let sql = 'SELECT * FROM videos WHERE is_active = 1';
   const params = [];
@@ -16,7 +16,7 @@ router.get('/', optionalAuth, (req, res) => {
   if (type)    { sql += ' AND type = ?';    params.push(type); }
   if (search)  { sql += ' AND title LIKE ?'; params.push(`%${search}%`); }
   sql += ' ORDER BY created_at DESC';
-  let videos = db.prepare(sql).all(...params);
+  let videos = await db.all(sql, params);
   // For non-logged-in users, hide youtube_id of paid videos
   if (!req.user) {
     videos = videos.map(v => v.type === 'paid' ? { ...v, youtube_id: null } : v);
@@ -25,8 +25,8 @@ router.get('/', optionalAuth, (req, res) => {
 });
 
 // GET /api/videos/:id
-router.get('/:id', optionalAuth, (req, res) => {
-  const v = db.prepare('SELECT * FROM videos WHERE id = ?').get(req.params.id);
+router.get('/:id', optionalAuth, async (req, res) => {
+  const v = await db.get('SELECT * FROM videos WHERE id = ?', [req.params.id]);
   if (!v) return res.status(404).json({ success: false, message: 'Video tapılmadı.' });
   if (v.type === 'paid' && !req.user) {
     return res.json({ success: true, data: { ...v, youtube_id: null, locked: true } });
@@ -35,7 +35,7 @@ router.get('/:id', optionalAuth, (req, res) => {
 });
 
 // POST /api/videos — admin
-router.post('/', adminMiddleware, (req, res) => {
+router.post('/', adminMiddleware, async (req, res) => {
   const { title, youtube_id, subject, class: cls, type, duration } = req.body;
   if (!title || !youtube_id || !subject || !cls) {
     return res.status(400).json({ success: false, message: 'Başlıq, YouTube ID, fənn, sinif tələb olunur.' });
@@ -44,25 +44,23 @@ router.post('/', adminMiddleware, (req, res) => {
   const ytId = youtube_id.replace(/.*[?&]v=([^&]+).*/,'$1').replace(/.*youtu\.be\//,'').split('?')[0];
   const id = 'v_' + uuidv4().slice(0,8);
   const now = new Date().toISOString();
-  db.prepare('INSERT INTO videos (id,title,youtube_id,subject,class,type,duration,created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run(id, title, ytId, subject, cls, type||'free', duration||'00:00', now);
-  res.status(201).json({ success: true, data: db.prepare('SELECT * FROM videos WHERE id = ?').get(id) });
+  await db.run('INSERT INTO videos (id,title,youtube_id,subject,class,type,duration,created_at) VALUES (?,?,?,?,?,?,?,?)', [id, title, ytId, subject, cls, type||'free', duration||'00:00', now]);
+  res.status(201).json({ success: true, data: await db.get('SELECT * FROM videos WHERE id = ?', [id]) });
 });
 
 // PUT /api/videos/:id — admin
-router.put('/:id', adminMiddleware, (req, res) => {
+router.put('/:id', adminMiddleware, async (req, res) => {
   const { title, youtube_id, subject, class: cls, type, duration, is_active } = req.body;
-  const v = db.prepare('SELECT id FROM videos WHERE id = ?').get(req.params.id);
+  const v = await db.get('SELECT id FROM videos WHERE id = ?', [req.params.id]);
   if (!v) return res.status(404).json({ success: false, message: 'Video tapılmadı.' });
   const ytId = (youtube_id||'').replace(/.*[?&]v=([^&]+).*/,'$1').replace(/.*youtu\.be\//,'').split('?')[0] || youtube_id;
-  db.prepare('UPDATE videos SET title=?,youtube_id=?,subject=?,class=?,type=?,duration=?,is_active=? WHERE id=?')
-    .run(title, ytId, subject, cls, type||'free', duration||'00:00', is_active??1, req.params.id);
-  res.json({ success: true, data: db.prepare('SELECT * FROM videos WHERE id = ?').get(req.params.id) });
+  await db.run('UPDATE videos SET title=?,youtube_id=?,subject=?,class=?,type=?,duration=?,is_active=? WHERE id=?', [title, ytId, subject, cls, type||'free', duration||'00:00', is_active??1, req.params.id]);
+  res.json({ success: true, data: await db.get('SELECT * FROM videos WHERE id = ?', [req.params.id]) });
 });
 
 // DELETE /api/videos/:id — admin
-router.delete('/:id', adminMiddleware, (req, res) => {
-  db.prepare('DELETE FROM videos WHERE id = ?').run(req.params.id);
+router.delete('/:id', adminMiddleware, async (req, res) => {
+  await db.run('DELETE FROM videos WHERE id = ?', [req.params.id]);
   res.json({ success: true, message: 'Video silindi.' });
 });
 

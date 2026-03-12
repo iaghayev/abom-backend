@@ -25,14 +25,14 @@ async function sendWhatsApp(toPhone, message) {
 }
 
 // Fill {{placeholders}} from a vars object
-function fillTemplate(key, vars) {
-  const row = db.prepare('SELECT template FROM wa_templates WHERE key=?').get(key);
+async function fillTemplate(key, vars) {
+  const row = await db.get('SELECT template FROM wa_templates WHERE key=?', [key]);
   if (!row) return null;
   return row.template.replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ''));
 }
 
 async function sendTemplate(toPhone, key, vars) {
-  const msg = fillTemplate(key, vars);
+  const msg = await fillTemplate(key, vars);
   if (!msg) return;
   await sendWhatsApp(toPhone, msg);
 }

@@ -19,35 +19,35 @@ async function waPasswordChanged(user, newPassword) {
 }
 
 // GET /api/admin/stats — dashboard stats
-router.get('/stats', adminMiddleware, (req, res) => {
+router.get('/stats', adminMiddleware, async (req, res) => {
   const stats = {
-    users:         db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'student'").get().c,
-    registrations: db.prepare('SELECT COUNT(*) as c FROM registrations').get().c,
-    pending:       db.prepare("SELECT COUNT(*) as c FROM registrations WHERE status = 'pending'").get().c,
-    active:        db.prepare("SELECT COUNT(*) as c FROM registrations WHERE status = 'active'").get().c,
-    exams:         db.prepare('SELECT COUNT(*) as c FROM exams WHERE is_active = 1').get().c,
-    questions:     db.prepare('SELECT COUNT(*) as c FROM questions').get().c,
-    videos:        db.prepare('SELECT COUNT(*) as c FROM videos WHERE is_active = 1').get().c,
-    results:       db.prepare('SELECT COUNT(*) as c FROM results').get().c,
-    avg_score:     db.prepare('SELECT ROUND(AVG(score),1) as avg FROM results').get().avg || 0,
+    users:         await db.get("SELECT COUNT(*) as c FROM users WHERE role = 'student'", []).c,
+    registrations: await db.get('SELECT COUNT(*) as c FROM registrations', []).c,
+    pending:       await db.get("SELECT COUNT(*) as c FROM registrations WHERE status = 'pending'", []).c,
+    active:        await db.get("SELECT COUNT(*) as c FROM registrations WHERE status = 'active'", []).c,
+    exams:         await db.get('SELECT COUNT(*) as c FROM exams WHERE is_active = 1', []).c,
+    questions:     await db.get('SELECT COUNT(*) as c FROM questions', []).c,
+    videos:        await db.get('SELECT COUNT(*) as c FROM videos WHERE is_active = 1', []).c,
+    results:       await db.get('SELECT COUNT(*) as c FROM results', []).c,
+    avg_score:     await db.get('SELECT ROUND(AVG(score),1) as avg FROM results', []).avg || 0,
     certs_issued:  0 // calculated below
   };
   // Count certs issued
-  const results = db.prepare('SELECT r.score, r.exam_id FROM results r').all();
+  const results = await db.all('SELECT r.score, r.exam_id FROM results r', []);
   let certsIssued = 0;
-  results.forEach(r => {
-    const cfg = db.prepare('SELECT id FROM cert_configs WHERE exam_id = ? AND min_score <= ? AND max_score >= ?').get(r.exam_id, r.score, r.score);
+  for (const r of results) {
+    const cfg = await db.get('SELECT id FROM cert_configs WHERE exam_id = ? AND min_score <= ? AND max_score >= ?', [r.exam_id, r.score, r.score]);
     if (cfg) certsIssued++;
-  });
+  }
   stats.certs_issued = certsIssued;
   // Revenue (registrations * exam price, estimate)
-  const revenue = db.prepare(`SELECT SUM(e.price) as total FROM registrations r JOIN exams e ON r.exam_id = e.id WHERE r.status = 'active'`).get();
+  const revenue = await db.get(`SELECT SUM(e.price) as total FROM registrations r JOIN exams e ON r.exam_id = e.id WHERE r.status = 'active'`, []);
   stats.revenue_azn = revenue.total || 0;
   res.json({ success: true, data: stats });
 });
 
 // GET /api/admin/users — all users
-router.get('/users', adminMiddleware, (req, res) => {
+router.get('/users', adminMiddleware, async (req, res) => {
   const { search, page = 1, limit = 30 } = req.query;
   const offset = (page - 1) * limit;
   let sql = `SELECT u.id, u.name, u.phone, u.class, u.section, u.role, u.created_at,
@@ -58,14 +58,14 @@ router.get('/users', adminMiddleware, (req, res) => {
   if (search) { sql += ' AND (u.name LIKE ? OR u.phone LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
   sql += ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';
   params.push(Number(limit), Number(offset));
-  const users = db.prepare(sql).all(...params);
+  const users = await db.all(sql, params);
   res.json({ success: true, data: users });
 });
 
 // DELETE /api/admin/users/:id
-router.delete('/users/:id', adminMiddleware, (req, res) => {
+router.delete('/users/:id', adminMiddleware, async (req, res) => {
   if (req.params.id === 'admin_001') return res.status(403).json({ success: false, message: 'Admin silinə bilməz.' });
-  db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  await db.run('DELETE FROM users WHERE id = ?', [req.params.id]);
   res.json({ success: true, message: 'İstifadəçi silindi.' });
 });
 
@@ -76,13 +76,13 @@ router.post('/telegram/test', adminMiddleware, async (req, res) => {
 });
 
 // GET /api/admin/activity — recent activity log
-router.get('/activity', adminMiddleware, (req, res) => {
-  const recentRegs = db.prepare(`SELECT 'registration' as type, r.created_at, r.name, e.title as detail, r.status
+router.get('/activity', adminMiddleware, async (req, res) => {
+  const recentRegs = await db.all(`SELECT 'registration' as type, r.created_at, r.name, e.title as detail, r.status
                                   FROM registrations r JOIN exams e ON r.exam_id = e.id
-                                  ORDER BY r.created_at DESC LIMIT 10`).all();
-  const recentResults = db.prepare(`SELECT 'result' as type, r.created_at, u.name, e.title as detail, CAST(r.score as TEXT) as status
+                                  ORDER BY r.created_at DESC LIMIT 10`, []);
+  const recentResults = await db.all(`SELECT 'result' as type, r.created_at, u.name, e.title as detail, CAST(r.score as TEXT) as status
                                      FROM results r JOIN users u ON r.user_id = u.id JOIN exams e ON r.exam_id = e.id
-                                     ORDER BY r.created_at DESC LIMIT 10`).all();
+                                     ORDER BY r.created_at DESC LIMIT 10`, []);
   const activity = [...recentRegs, ...recentResults]
     .sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0,20);
@@ -92,7 +92,7 @@ router.get('/activity', adminMiddleware, (req, res) => {
 // PUT /api/admin/users/:id — edit user
 router.put('/users/:id', adminMiddleware, async (req, res) => {
   const { name, phone, class: cls, section, username, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
+  const user = await db.get('SELECT * FROM users WHERE id=?', [req.params.id]);
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
   const updates = [], params = [];
   if (name     !== undefined) { updates.push('name=?');     params.push(name.trim()); }
@@ -111,7 +111,7 @@ router.put('/users/:id', adminMiddleware, async (req, res) => {
   if (!updates.length) return res.json({ success: true });
   params.push(req.params.id);
   try {
-    db.prepare(`UPDATE users SET ${updates.join(',')} WHERE id=?`).run(...params);
+    await db.run(`UPDATE users SET ${updates.join(',')} WHERE id=?`, [...params]);
     // Send WhatsApp if password was changed
     if (changingPassword) {
       const updatedUser = { ...user, name: name||user.name, username: username||user.username, phone: phone||user.phone };
@@ -125,10 +125,9 @@ router.put('/users/:id', adminMiddleware, async (req, res) => {
 
 // POST /api/admin/users/:id/resend-password — send current plain_password via WhatsApp
 router.post('/users/:id/resend-password', adminMiddleware, async (req, res) => {
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
+  const user = await db.get('SELECT * FROM users WHERE id=?', [req.params.id]);
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
   if (!user.plain_password) return res.status(400).json({ success: false, message: 'Bu istifadəçi üçün şifrə məlumatı yoxdur.' });
-  const { sendTemplate } = require('../config/whatsapp');
   await sendTemplate(user.whatsapp || user.phone, 'resend_password', {
     name:         user.name,
     username:     user.username,
@@ -140,27 +139,27 @@ router.post('/users/:id/resend-password', adminMiddleware, async (req, res) => {
 });
 
 // PUT /api/admin/users/:id/toggle-disable — disable or enable user
-router.put('/users/:id/toggle-disable', adminMiddleware, (req, res) => {
-  const user = db.prepare('SELECT id, is_disabled FROM users WHERE id=?').get(req.params.id);
+router.put('/users/:id/toggle-disable', adminMiddleware, async (req, res) => {
+  const user = await db.get('SELECT id, is_disabled FROM users WHERE id=?', [req.params.id]);
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
   const newState = user.is_disabled ? 0 : 1;
-  db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(newState, req.params.id);
+  await db.run('UPDATE users SET is_disabled=? WHERE id=?', [newState, req.params.id]);
   res.json({ success: true, is_disabled: newState });
 });
 
 // GET /api/admin/wa-templates
-router.get('/wa-templates', adminMiddleware, (req, res) => {
-  const rows = db.prepare('SELECT key, label, template FROM wa_templates ORDER BY key').all();
+router.get('/wa-templates', adminMiddleware, async (req, res) => {
+  const rows = await db.all('SELECT key, label, template FROM wa_templates ORDER BY key', []);
   res.json({ success: true, data: rows });
 });
 
 // PUT /api/admin/wa-templates/:key
-router.put('/wa-templates/:key', adminMiddleware, (req, res) => {
+router.put('/wa-templates/:key', adminMiddleware, async (req, res) => {
   const { template } = req.body;
   if (!template) return res.status(400).json({ success: false, message: 'Şablon boş ola bilməz.' });
-  const row = db.prepare('SELECT key FROM wa_templates WHERE key=?').get(req.params.key);
+  const row = await db.get('SELECT key FROM wa_templates WHERE key=?', [req.params.key]);
   if (!row) return res.status(404).json({ success: false, message: 'Şablon tapılmadı.' });
-  db.prepare('UPDATE wa_templates SET template=? WHERE key=?').run(template, req.params.key);
+  await db.run('UPDATE wa_templates SET template=? WHERE key=?', [template, req.params.key]);
   res.json({ success: true });
 });
 

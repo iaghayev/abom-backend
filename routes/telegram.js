@@ -37,7 +37,7 @@ router.post('/webhook', async (req, res) => {
   // ── activate:REG_ID ──────────────────────────────────────
   if (data.startsWith('activate:')) {
     const regId = data.slice('activate:'.length);
-    const reg   = db.prepare('SELECT * FROM registrations WHERE id=?').get(regId);
+    const reg   = await db.get('SELECT * FROM registrations WHERE id=?', [regId]);
 
     if (!reg) {
       await tgApi('answerCallbackQuery', { callback_query_id: callbackId, text: '⚠️ Qeydiyyat tapılmadı!', show_alert: true });
@@ -50,19 +50,16 @@ router.post('/webhook', async (req, res) => {
 
     // Activate
     const now = new Date().toISOString();
-    db.prepare("UPDATE registrations SET status='active', activated_at=? WHERE id=?").run(now, regId);
+    await db.run("UPDATE registrations SET status='active', activated_at=? WHERE id=?", [now, regId]);
 
-    const exam = db.prepare('SELECT * FROM exams WHERE id=?').get(reg.exam_id);
+    const exam = await db.get('SELECT * FROM exams WHERE id=?', [reg.exam_id]);
     try {
-      db.prepare(`INSERT OR IGNORE INTO revenues
-        (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at)
-        VALUES (?,?,?,?,?,?,?,?,?)`)
-        .run('rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id,
-             reg.name, exam?.title||'', exam?.price||0, 'confirmed', now);
+      await db.run(`INSERT INTO revenues (id,registration_id,exam_id,user_id,student_name,exam_title,amount,status,created_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(registration_id) DO NOTHING`, ['rev_'+Date.now(), reg.id, reg.exam_id, reg.user_id,
+             reg.name, exam?.title||'', exam?.price||0, 'confirmed', now]);
     } catch(e) {}
 
     // WhatsApp to student
-    const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
+    const user = await db.get('SELECT username, plain_password FROM users WHERE id=?', [reg.user_id]);
     if (user) {
       const pass = user.plain_password || '—';
       const waPhone = reg.whatsapp || reg.phone;
