@@ -4617,10 +4617,15 @@ function handleEditorPaste(e, editorId){
         const editor = document.getElementById(editorId);
         editor.focus();
         document.execCommand('insertHTML', false, img);
-        // Auto-open resize popup for pasted image
+        // Auto-open resize popup — set flag so click listener doesn't close it
         setTimeout(()=>{
           const inserted = editor.querySelector(`#${tmpId}`) || editor.querySelector('img:last-of-type');
-          if(inserted){ inserted.removeAttribute('id'); selectEditorImg(inserted, null); }
+          if(inserted){
+            inserted.removeAttribute('id');
+            window._pasteJustDone = true;
+            selectEditorImg(inserted, null);
+            setTimeout(()=>{ window._pasteJustDone = false; }, 300);
+          }
         }, 50);
       };
       reader.readAsDataURL(blob);
@@ -4665,11 +4670,16 @@ function applyImgResize(val){
 }
 function closeImgResize(){
   document.getElementById('imgResizePopup').style.display='none';
-  document.querySelectorAll('.rich-editor img.selected').forEach(i=>i.classList.remove('selected'));
+  document.querySelectorAll('.rich-editor img.selected, .opt-editor img.selected').forEach(i=>i.classList.remove('selected'));
   window._selectedImg=null;
 }
 document.addEventListener('click', e=>{
-  if(e.target.tagName==='IMG' && e.target.closest('.rich-editor')) return;
+  if(window._pasteJustDone) return;
+  // Keep popup open if clicking an image in any editor
+  if(e.target.tagName==='IMG' && (e.target.closest('.rich-editor') || e.target.closest('.opt-editor'))){
+    selectEditorImg(e.target, e);
+    return;
+  }
   if(e.target.closest('#imgResizePopup')) return;
   closeImgResize();
 });
