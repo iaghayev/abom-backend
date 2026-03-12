@@ -33,6 +33,7 @@ app.use('/api/parents',       require('./routes/parents'));
 app.use('/api/categories',    require('./routes/categories'));
 app.use('/api/revenues',      require('./routes/revenues'));
 app.use('/api/telegram',      require('./routes/telegram'));
+app.use('/api/contact',       require('./routes/contact'));
 
 app.get('/api/health', (_req, res) => {
   res.json({ success:true, service:'ABOM API', version:'2.0.0', time: new Date().toISOString() });
