@@ -60,20 +60,16 @@ router.post('/register', (req, res) => {
   const user = db.prepare('SELECT id,username,name,phone,class,section,role,parent_code FROM users WHERE id=?').get(id);
 
   // Send credentials via WhatsApp immediately after registration
-  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
   sendWhatsApp(cleanPhone,
-`🎉 ABOM — Qeydiyyat Uğurlu!
+`😊 *ABOM - Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi* - Aramıza xoş gəldiniz!.
 
-Salam, ${name.trim()}! Hesabınız yaradıldı.
+${name.trim()} haqqında məlumatlara aşağıdakı link vasitəsi ilə baxa bilərsiniz.
+ 
+👉 *İstifadəçi adı:* ${username}
+👉 *Şifrə:* ${password}
 
-Giriş məlumatlarınız:
-👤 İstifadəçi adı: ${username}
-🔑 Şifrə: ${password}
-
-🔗 ${link}
-
-Bu məlumatları yadda saxlayın.
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`).catch(()=>{});
+İdarə panelinə giriş linki: ${link}/login?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`).catch(()=>{});
 
   res.status(201).json({ success: true, token: genToken(id), user });
 });
@@ -98,9 +94,10 @@ router.post('/login', (req, res) => {
     user = users[0];
   }
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+  if (user.is_disabled) return res.status(403).json({ success: false, disabled: true, message: 'Hesabınız bloklanmışdır. Ətraflı məlumat üçün adminlə əlaqə saxlayın: +994 70 888 08 06' });
   if (!bcrypt.compareSync(password, user.password))
     return res.status(401).json({ success: false, message: 'Şifrə yanlışdır.' });
-  const { password: _, ...safe } = user;
+  const { password: _, plain_password: __, ...safe } = user;
   res.json({ success: true, token: genToken(user.id), user: safe });
 });
 
@@ -213,26 +210,26 @@ router.post('/forgot-password', async (req, res) => {
     : users[0];
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
 
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const newPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  db.prepare('UPDATE users SET password=?, plain_password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), newPassword, user.id);
+  // Use existing plain_password — no new password generated
+  const passwordToSend = user.plain_password;
+  if (!passwordToSend) return res.status(400).json({ success: false, message: 'Şifrə məlumatı tapılmadı. Adminlə əlaqə saxlayın.' });
 
   const waPhone = user.whatsapp || user.phone;
   const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
   await sendWhatsApp(waPhone,
-`🔑 ABOM — Şifrə Yeniləndi
+`🔑 ABOM — Şifrə Xatırlatması
 
 Salam, ${user.name}!
 
-Yeni şifrəniz:
+Hesab məlumatlarınız:
 👤 İstifadəçi adı: ${user.username}
-🔑 Yeni şifrə: ${newPassword}
+🔑 Şifrə: ${passwordToSend}
 
 🔗 ${link}
 
 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
 
-  res.json({ success: true, message: `Yeni şifrə @${user.username} hesabına bağlı WhatsApp nömrəsinə göndərildi.` });
+  res.json({ success: true, message: `Şifrəniz @${user.username} hesabına bağlı WhatsApp nömrəsinə göndərildi.` });
 });
 
 module.exports = router;

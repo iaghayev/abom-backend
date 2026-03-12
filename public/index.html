@@ -81,6 +81,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
 .msg.ok{background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.22);color:#047857;display:flex}
 .msg.err{background:rgba(220,38,38,.07);border:1px solid rgba(220,38,38,.2);color:#b91c1c;display:flex}
 .msg.info{background:rgba(19,85,160,.07);border:1px solid rgba(19,85,160,.15);color:var(--blue);display:flex}
+.msg.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);color:#b45309;display:flex}
 
 /* TAGS */
 .tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
@@ -2775,7 +2776,10 @@ async function doLogin(){
   if(!password){ showMsg('loginMsg','Şifrəni daxil edin.','err'); btn.disabled=false; btn.textContent='Daxil ol'; return; }
   const r = await POST('/auth/login', {username, password});
   btn.disabled=false; btn.textContent='Daxil ol';
-  if(!r.success){ showMsg('loginMsg',r.message,'err'); return; }
+  if(!r.success){
+    showMsg('loginMsg', r.message, r.disabled ? 'warn' : 'err');
+    return;
+  }
   loginSuccess(r);
 }
 
@@ -5737,20 +5741,35 @@ function filterAdminUsers(){
   renderAdminUsers(s ? allAdminUsers.filter(u=>(u.name+u.username+u.phone).toLowerCase().includes(s)) : allAdminUsers);
 }
 function renderAdminUsers(data){
-  const cols='grid-template-columns:1fr 100px 110px 60px 60px 80px';
+  const cols='grid-template-columns:1fr 100px 110px 60px 60px 120px';
   document.getElementById('adminUsersTable').innerHTML=
     `<div class="a-t-hdr" style="${cols}"><div>Ad</div><div>Username</div><div>Telefon</div><div>Sinif</div><div>Bilet</div><div>Əməliyyat</div></div>`+
-    (data.length?data.map(u=>`<div class="a-t-row" style="${cols}">
-      <div style="font-weight:600">${u.name}</div>
+    (data.length?data.map(u=>`<div class="a-t-row" style="${cols};${u.is_disabled?'opacity:.5;background:#fef2f2':''}">
+      <div style="font-weight:600">${u.name}${u.is_disabled?' <span style="font-size:10px;color:#ef4444;font-weight:600">(blok)</span>':''}</div>
       <div style="font-size:12px;color:var(--muted)">@${u.username||'—'}</div>
       <div style="font-size:12px">${u.phone}</div>
       <div>${u.class||'—'}</div>
       <div>${u.reg_count||0}</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm" onclick="openUserEdit(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')">✗</button>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="openUserEdit(${JSON.stringify(u).replace(/"/g,'&quot;')})" title="Redaktə et">✏️</button>
+        <button class="btn btn-outline btn-sm" onclick="resendUserPassword('${u.id}')" title="Şifrəni WhatsApp-a göndər">📩</button>
+        <button class="btn btn-sm" style="background:${u.is_disabled?'#22c55e':'#f59e0b'};color:#fff;border:none" onclick="toggleUserDisable('${u.id}',${u.is_disabled?1:0})" title="${u.is_disabled?'Aktivləşdir':'Blokla'}">${u.is_disabled?'✓':'⊘'}</button>
+        <button class="btn btn-red btn-sm" onclick="deleteUser('${u.id}')" title="Sil">✗</button>
       </div>
     </div>`).join(''):'<div class="a-empty">İstifadəçi yoxdur.</div>');
+}
+async function resendUserPassword(id){
+  const r = await POST('/admin/users/'+id+'/resend-password', {});
+  toast(r.success ? '📩 '+r.message : r.message, r.success ? 'ok' : 'err');
+}
+async function toggleUserDisable(id, currentlyDisabled){
+  const action = currentlyDisabled ? 'aktivləşdir' : 'blokla';
+  if(!confirm(`Bu istifadəçini ${action}maq istədiyinizə əminsiniz?`)) return;
+  const r = await PUT('/admin/users/'+id+'/toggle-disable', {});
+  if(r.success){
+    toast(r.is_disabled ? '⊘ İstifadəçi bloklandı.' : '✓ İstifadəçi aktivləşdirildi.', 'ok');
+    loadAdminUsers();
+  } else { toast(r.message, 'err'); }
 }
 async function openUserEdit(u){
   document.getElementById('ueId').value=u.id;
@@ -6104,6 +6123,23 @@ async function init(){
   if(mq) mq.innerHTML+=mq.innerHTML;
   // Auto-refresh leaderboard & pending badge
   setInterval(()=>{ renderHeroLb(); if(STATE.role==='admin') updatePendingBadge(); },10000);
+
+  // Auto-fill login from WhatsApp link (?u=username&p=password)
+  if(!STATE.token){
+    const params = new URLSearchParams(window.location.search);
+    const u = params.get('u'), p = params.get('p');
+    if(u && p){
+      openModal('authModal');
+      setTimeout(()=>{
+        const uEl=document.getElementById('loginUsername');
+        const pEl=document.getElementById('loginPass');
+        if(uEl) uEl.value=u;
+        if(pEl) pEl.value=p;
+        // Clean URL without reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }, 300);
+    }
+  }
 }
 init();
 </script>

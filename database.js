@@ -23,6 +23,7 @@ db.exec(`
     section        TEXT DEFAULT '',
     role           TEXT DEFAULT 'student',
     parent_code    TEXT DEFAULT '',
+    is_disabled    INTEGER DEFAULT 0,
     created_at     TEXT NOT NULL
   );
 
@@ -159,6 +160,7 @@ tryAddCol('exams', 'parent_exam_id',"TEXT DEFAULT ''");
 tryAddCol('exams', 'section',       "TEXT DEFAULT ''");;
 tryAddCol('exams', 'total_questions', "INTEGER DEFAULT 0");
 tryAddCol('users', 'plain_password', "TEXT DEFAULT ''");
+tryAddCol('users', 'is_disabled',   "INTEGER DEFAULT 0");
 // Seed default categories if empty
 if (!db.prepare("SELECT COUNT(*) as c FROM categories").get().c) {
   const insC = db.prepare("INSERT OR IGNORE INTO categories (id,type,name,created_at) VALUES (?,?,?,?)");

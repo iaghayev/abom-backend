@@ -74,27 +74,24 @@ async function waNewTicket(reg, exam) {
   const waPhone = reg.whatsapp || reg.phone;
   if (!waPhone) return;
   const price   = exam?.price || 0;
-  const payInfo = process.env.WA_PAYMENT_INFO ||
-    'm10: +994 70 888 08 06\nKapital Bank: 4169 XXXX XXXX XXXX\nAd: ABOM Mərkəzi';
-  const time = new Date().toLocaleString('az-AZ', { timeZone: 'Asia/Baku' });
+  const cardNum = process.env.WA_CARD_NUMBER || '0000 0000 0000 0000';
   const msg =
-`🎫 ABOM — Bilet Sorğunuz Alındı
+`Salam! 👋
+Hörmətli ${reg.name},
+ 
+"${exam?.title || '—'}" online imtahanına qeydiyyatınız uğurla qeydə alındı ✅.
 
-Salam, ${reg.name}! 👋
+Qeydiyyatınızı tamamlamaq üçün ödəniş mərhələsini tamamlayın. 
 
-📚 İmtahan: ${exam?.title || '—'}
-🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
-💰 Məbləğ: ${price} AZN
+Ödəniş gözlənilir: ${price} ₼
 
-💳 Ödəniş məlumatları:
-${payInfo}
+Zəhmət olmasa, ödənişi aşağıda qeyd olunan kart nömrəsinə göndərdikdən sonra ödəniş çekinin şəklini bura göndərəsiniz.
 
-⚠️ Ödənişi etdikdən sonra çek şəklini bu nömrəyə göndərin. Admin ödənişi yoxladıqdan sonra imtahanınız aktivləşdiriləcək.
+Kart məlumatları:
+${cardNum}
 
-📌 Sorğu ID: ${reg.id}
-🕐 ${time}
-
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
+Ödəniş çekini bizə göndərdikdən sonra övladınız üçün imtahan aktivləşdiriləcək.
+İmtahanı yazıb bitirdikdən sonra Sertifikatınızı dərhal yükləyə bilərsiniz.`;
   await sendWhatsApp(waPhone, msg);
 }
 
@@ -103,22 +100,36 @@ async function waActivated(reg, exam) {
   if (!waPhone) return;
   const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
   if (!user) return;
-  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
+  const pass = user.plain_password || '—';
+
+  // Format exam date range if available
+  let dateLine = '';
+  if (exam?.start_date || exam?.end_date) {
+    const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
+    const s = exam.start_date ? fmt(exam.start_date) : '';
+    const e = exam.end_date   ? fmt(exam.end_date)   : '';
+    if (s && e) dateLine = `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
+    else if (s) dateLine = `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
+  }
+
   const msg =
-`✅ İmtahanınız Aktivləşdirildi!
+`Ödənişiniz təsdiqləndi və övladınız üçün imtahan aktivləşdirildi. ✅
 
-Salam, ${reg.name}! 🎉
+${reg.name} siz ${exam?.title || '—'} imtahanından uğurla qeydiyyatınız tamamlandı. 
 
-📚 İmtahan: ${exam?.title || '—'}
-🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
+👉 İstifadəçi adı: ${user.username}
+👉 Şifrə: ${pass}
 
-Platforma daxil olmaq üçün:
-🔗 ${link}
-👤 İstifadəçi adı: ${user.username}
-🔑 Şifrə: ${user.plain_password || '(şifrənizi dəyişibsiniz — "Şifrəmi unutdum" istifadə edin)'}
+İmtahana giriş linki: ${link}/login?u=${encodeURIComponent(user.username)}&p=${encodeURIComponent(pass)}
 
-İmtahana uğurlar! 💪
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
+📘 İmtahana başlamaq üçün:
+1. Linkə daxil olun
+2. Şagird hesabına daxil olun
+3. "Aktiv İmtahanlar" düyməsinə klikləyin
+4. İmtahanı seçib başlayın
+${dateLine}
+Uğurlar! 🍀`;
   await sendWhatsApp(waPhone, msg);
 }
 

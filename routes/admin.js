@@ -149,4 +149,34 @@ router.put('/users/:id', adminMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/users/:id/resend-password — send current plain_password via WhatsApp
+router.post('/users/:id/resend-password', adminMiddleware, async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
+  if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+  if (!user.plain_password) return res.status(400).json({ success: false, message: 'Bu istifadəçi üçün şifrə məlumatı yoxdur.' });
+  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+  await sendWhatsApp(user.whatsapp || user.phone,
+`🔑 ABOM — Şifrə Xatırlatması
+
+Salam, ${user.name}!
+
+Hesab məlumatlarınız:
+👤 İstifadəçi adı: ${user.username}
+🔑 Şifrə: ${user.plain_password}
+
+🔗 ${link}
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+  res.json({ success: true, message: 'Şifrə WhatsApp-a göndərildi.' });
+});
+
+// PUT /api/admin/users/:id/toggle-disable — disable or enable user
+router.put('/users/:id/toggle-disable', adminMiddleware, (req, res) => {
+  const user = db.prepare('SELECT id, is_disabled FROM users WHERE id=?').get(req.params.id);
+  if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+  const newState = user.is_disabled ? 0 : 1;
+  db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(newState, req.params.id);
+  res.json({ success: true, is_disabled: newState });
+});
+
 module.exports = router;

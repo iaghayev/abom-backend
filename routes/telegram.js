@@ -78,23 +78,36 @@ router.post('/webhook', async (req, res) => {
     // WhatsApp to student
     const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
     if (user) {
-      const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
+      const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
+      const pass = user.plain_password || '—';
       const waPhone = reg.whatsapp || reg.phone;
+
+      let dateLine = '';
+      if (exam?.start_date || exam?.end_date) {
+        const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
+        const s = exam.start_date ? fmt(exam.start_date) : '';
+        const e = exam.end_date   ? fmt(exam.end_date)   : '';
+        if (s && e) dateLine = `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
+        else if (s) dateLine = `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
+      }
+
       await sendWhatsApp(waPhone,
-`✅ İmtahanınız Aktivləşdirildi!
+`Ödənişiniz təsdiqləndi və övladınız üçün imtahan aktivləşdirildi. ✅
 
-Salam, ${reg.name}! 🎉
+${reg.name} siz ${exam?.title || '—'} imtahanından uğurla qeydiyyatınız tamamlandı. 
 
-📚 İmtahan: ${exam?.title || '—'}
-🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
+👉 İstifadəçi adı: ${user.username}
+👉 Şifrə: ${pass}
 
-Platforma daxil olmaq üçün:
-🔗 ${link}
-👤 İstifadəçi adı: ${user.username}
-🔑 Şifrə: ${user.plain_password || '(şifrənizi dəyişibsiniz — "Şifrəmi unutdum" istifadə edin)'}
+İmtahana giriş linki: ${link}/login?u=${encodeURIComponent(user.username)}&p=${encodeURIComponent(pass)}
 
-İmtahana uğurlar! 💪
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+📘 İmtahana başlamaq üçün:
+1. Linkə daxil olun
+2. Şagird hesabına daxil olun
+3. "Aktiv İmtahanlar" düyməsinə klikləyin
+4. İmtahanı seçib başlayın
+${dateLine}
+Uğurlar! 🍀`);
     }
 
     // Answer callback + edit original TG message
