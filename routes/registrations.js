@@ -3,6 +3,7 @@ const router  = express.Router();
 const { v4: uuidv4 } = require('../config/uuid');
 const db = require('../database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { sendTemplate, sendWhatsApp } = require('../config/whatsapp');
 
 const uid = () => 'reg_' + uuidv4().slice(0,8);
 
@@ -22,77 +23,31 @@ async function notifyNewRegistration(reg, exam) {
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '✅ Aktiv et', callback_data: `activate:${reg.id}` }
-        ]]
-      }
+      chat_id: chatId, text, parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: [[{ text: '✅ Aktiv et', callback_data: `activate:${reg.id}` }]] }
     })
   });
 }
-// Called after manual activation — edit TG message to show done
-async function notifyActivation(reg, exam) {
-  // Telegram-da artıq "Aktiv et" düyməsi ilə idarə olunur
-  // Bu funksiya boş buraxılır (köhnə mesajları pozmamaq üçün)
-}
+async function notifyActivation() {} // handled via Telegram inline button
 
-// ── WhatsApp helpers (UltraMsg) ──────────────────────────
-// Railway env vars:
-//   ULTRAMSG_INSTANCE — instance ID from ultramsg.com
-//   ULTRAMSG_TOKEN    — token from ultramsg.com
-//   WA_PAYMENT_INFO   — ödəniş rekvizitləri (optional)
-//   PLATFORM_URL      — platform linki (optional)
-
-function normalizeWaPhone(phone) {
-  let p = (phone || '').replace(/\D/g, '');
-  if (p.startsWith('0')) p = '994' + p.slice(1);
-  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
-  return p; // e.g. 994501234567
-}
-
-async function sendWhatsApp(toPhone, message) {
-  const token    = process.env.ULTRAMSG_TOKEN;
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  if (!token || !instance) return; // not configured — skip silently
-  const to = normalizeWaPhone(toPhone);
-  if (!to) return;
-  try {
-    const res = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token, to, body: message, priority: 10 })
-    });
-    const data = await res.json();
-    if (!res.ok) console.error('UltraMsg error:', JSON.stringify(data));
-  } catch(e) { console.error('WhatsApp send error:', e.message); }
+function examDateLine(exam) {
+  if (!exam?.start_date && !exam?.end_date) return '';
+  const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
+  const s = exam.start_date ? fmt(exam.start_date) : '';
+  const e = exam.end_date   ? fmt(exam.end_date)   : '';
+  if (s && e) return `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
+  if (s)      return `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
+  return '';
 }
 
 async function waNewTicket(reg, exam) {
   const waPhone = reg.whatsapp || reg.phone;
   if (!waPhone) return;
-  const price   = exam?.price || 0;
-  const cardNum = process.env.WA_CARD_NUMBER || '0000 0000 0000 0000';
-  const msg =
-`Salam! 👋
-Hörmətli ${reg.name},
- 
-"${exam?.title || '—'}" online imtahanına qeydiyyatınız uğurla qeydə alındı ✅.
-
-Qeydiyyatınızı tamamlamaq üçün ödəniş mərhələsini tamamlayın. 
-
-Ödəniş gözlənilir: ${price} ₼
-
-Zəhmət olmasa, ödənişi aşağıda qeyd olunan kart nömrəsinə göndərdikdən sonra ödəniş çekinin şəklini bura göndərəsiniz.
-
-Kart məlumatları:
-${cardNum}
-
-Ödəniş çekini bizə göndərdikdən sonra övladınız üçün imtahan aktivləşdiriləcək.
-İmtahanı yazıb bitirdikdən sonra Sertifikatınızı dərhal yükləyə bilərsiniz.`;
-  await sendWhatsApp(waPhone, msg);
+  await sendTemplate(waPhone, 'ticket', {
+    name:       reg.name,
+    exam_title: exam?.title || '—',
+    price:      exam?.price || 0,
+  });
 }
 
 async function waActivated(reg, exam) {
@@ -100,37 +55,16 @@ async function waActivated(reg, exam) {
   if (!waPhone) return;
   const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
   if (!user) return;
-  const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
   const pass = user.plain_password || '—';
-
-  // Format exam date range if available
-  let dateLine = '';
-  if (exam?.start_date || exam?.end_date) {
-    const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
-    const s = exam.start_date ? fmt(exam.start_date) : '';
-    const e = exam.end_date   ? fmt(exam.end_date)   : '';
-    if (s && e) dateLine = `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
-    else if (s) dateLine = `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
-  }
-
-  const msg =
-`Ödənişiniz təsdiqləndi və övladınız üçün imtahan aktivləşdirildi. ✅
-
-${reg.name} siz ${exam?.title || '—'} imtahanından uğurla qeydiyyatınız tamamlandı. 
-
-👉 İstifadəçi adı: ${user.username}
-👉 Şifrə: ${pass}
-
-İmtahana giriş linki: ${link}/login?u=${encodeURIComponent(user.username)}&p=${encodeURIComponent(pass)}
-
-📘 İmtahana başlamaq üçün:
-1. Linkə daxil olun
-2. Şagird hesabına daxil olun
-3. "Aktiv İmtahanlar" düyməsinə klikləyin
-4. İmtahanı seçib başlayın
-${dateLine}
-Uğurlar! 🍀`;
-  await sendWhatsApp(waPhone, msg);
+  await sendTemplate(waPhone, 'activate', {
+    name:         reg.name,
+    exam_title:   exam?.title || '—',
+    username:     user.username,
+    password:     pass,
+    username_enc: encodeURIComponent(user.username),
+    password_enc: encodeURIComponent(pass),
+    date_line:    examDateLine(exam),
+  });
 }
 
 // ── GET student's own registrations ──────────────────────

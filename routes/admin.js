@@ -4,44 +4,18 @@ const bcrypt = require('bcryptjs');
 const db = require('../database');
 const { adminMiddleware } = require('../middleware/auth');
 const tg = require('../config/telegram');
+const { sendTemplate } = require('../config/whatsapp');
 
-// ── WhatsApp helper (shared with registrations) ───────────
-function normalizeWaPhone(phone) {
-  let p = (phone || '').replace(/\D/g, '');
-  if (p.startsWith('0')) p = '994' + p.slice(1);
-  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
-  return p;
-}
-async function sendWhatsApp(toPhone, message) {
-  const token   = process.env.ULTRAMSG_TOKEN;
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  if (!token || !instance) return;
-  const to = normalizeWaPhone(toPhone);
-  if (!to) return;
-  try {
-    await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token, to, body: message, priority: 10 })
-    });
-  } catch(e) { console.error('WhatsApp send error:', e.message); }
-}
 async function waPasswordChanged(user, newPassword) {
   const waPhone = user.whatsapp || user.phone;
   if (!waPhone) return;
-  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
-  const msg =
-`🔑 ABOM — Şifrəniz Yeniləndi
-
-Salam, ${user.name}!
-
-Hesab məlumatlarınız:
-🔗 ${link}
-👤 İstifadəçi adı: ${user.username || user.phone}
-🔑 Yeni şifrə: ${newPassword}
-
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
-  await sendWhatsApp(waPhone, msg);
+  await sendTemplate(waPhone, 'password_changed', {
+    name:         user.name,
+    username:     user.username || user.phone,
+    password:     newPassword,
+    username_enc: encodeURIComponent(user.username || user.phone),
+    password_enc: encodeURIComponent(newPassword),
+  });
 }
 
 // GET /api/admin/stats — dashboard stats
@@ -154,19 +128,14 @@ router.post('/users/:id/resend-password', adminMiddleware, async (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
   if (!user.plain_password) return res.status(400).json({ success: false, message: 'Bu istifadəçi üçün şifrə məlumatı yoxdur.' });
-  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
-  await sendWhatsApp(user.whatsapp || user.phone,
-`🔑 ABOM — Şifrə Xatırlatması
-
-Salam, ${user.name}!
-
-Hesab məlumatlarınız:
-👤 İstifadəçi adı: ${user.username}
-🔑 Şifrə: ${user.plain_password}
-
-🔗 ${link}
-
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+  const { sendTemplate } = require('../config/whatsapp');
+  await sendTemplate(user.whatsapp || user.phone, 'resend_password', {
+    name:         user.name,
+    username:     user.username,
+    password:     user.plain_password,
+    username_enc: encodeURIComponent(user.username),
+    password_enc: encodeURIComponent(user.plain_password),
+  });
   res.json({ success: true, message: 'Şifrə WhatsApp-a göndərildi.' });
 });
 
@@ -177,6 +146,22 @@ router.put('/users/:id/toggle-disable', adminMiddleware, (req, res) => {
   const newState = user.is_disabled ? 0 : 1;
   db.prepare('UPDATE users SET is_disabled=? WHERE id=?').run(newState, req.params.id);
   res.json({ success: true, is_disabled: newState });
+});
+
+// GET /api/admin/wa-templates
+router.get('/wa-templates', adminMiddleware, (req, res) => {
+  const rows = db.prepare('SELECT key, label, template FROM wa_templates ORDER BY key').all();
+  res.json({ success: true, data: rows });
+});
+
+// PUT /api/admin/wa-templates/:key
+router.put('/wa-templates/:key', adminMiddleware, (req, res) => {
+  const { template } = req.body;
+  if (!template) return res.status(400).json({ success: false, message: 'Şablon boş ola bilməz.' });
+  const row = db.prepare('SELECT key FROM wa_templates WHERE key=?').get(req.params.key);
+  if (!row) return res.status(404).json({ success: false, message: 'Şablon tapılmadı.' });
+  db.prepare('UPDATE wa_templates SET template=? WHERE key=?').run(template, req.params.key);
+  res.json({ success: true });
 });
 
 module.exports = router;

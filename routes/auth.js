@@ -5,32 +5,12 @@ const jwt = require('jsonwebtoken');
 const db = require('../database');
 const { generateUsername, generateParentCode } = require('../database');
 const { authMiddleware } = require('../middleware/auth');
+const { sendTemplate } = require('../config/whatsapp');
 
 function genToken(id) {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 }
 function uid() { return 'u_' + Date.now() + Math.random().toString(36).slice(2,7); }
-
-function normalizeWaPhone(phone) {
-  let p = (phone || '').replace(/\D/g, '');
-  if (p.startsWith('0')) p = '994' + p.slice(1);
-  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
-  return p;
-}
-async function sendWhatsApp(toPhone, message) {
-  const token    = process.env.ULTRAMSG_TOKEN;
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  if (!token || !instance) return;
-  const to = normalizeWaPhone(toPhone);
-  if (!to) return;
-  try {
-    await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token, to, body: message, priority: 10 })
-    });
-  } catch(e) { console.error('WhatsApp send error:', e.message); }
-}
 
 // POST /api/auth/register
 router.post('/register', (req, res) => {
@@ -60,16 +40,13 @@ router.post('/register', (req, res) => {
   const user = db.prepare('SELECT id,username,name,phone,class,section,role,parent_code FROM users WHERE id=?').get(id);
 
   // Send credentials via WhatsApp immediately after registration
-  const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
-  sendWhatsApp(cleanPhone,
-`😊 *ABOM - Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi* - Aramıza xoş gəldiniz!.
-
-${name.trim()} haqqında məlumatlara aşağıdakı link vasitəsi ilə baxa bilərsiniz.
- 
-👉 *İstifadəçi adı:* ${username}
-👉 *Şifrə:* ${password}
-
-İdarə panelinə giriş linki: ${link}/login?u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`).catch(()=>{});
+  sendTemplate(cleanPhone, 'register', {
+    name:         name.trim(),
+    username,
+    password,
+    username_enc: encodeURIComponent(username),
+    password_enc: encodeURIComponent(password),
+  }).catch(()=>{});
 
   res.status(201).json({ success: true, token: genToken(id), user });
 });
@@ -215,19 +192,13 @@ router.post('/forgot-password', async (req, res) => {
   if (!passwordToSend) return res.status(400).json({ success: false, message: 'Şifrə məlumatı tapılmadı. Adminlə əlaqə saxlayın.' });
 
   const waPhone = user.whatsapp || user.phone;
-  const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
-  await sendWhatsApp(waPhone,
-`🔑 ABOM — Şifrə Xatırlatması
-
-Salam, ${user.name}!
-
-Hesab məlumatlarınız:
-👤 İstifadəçi adı: ${user.username}
-🔑 Şifrə: ${passwordToSend}
-
-🔗 ${link}
-
-ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+  await sendTemplate(waPhone, 'forgot_password', {
+    name:         user.name,
+    username:     user.username,
+    password:     passwordToSend,
+    username_enc: encodeURIComponent(user.username),
+    password_enc: encodeURIComponent(passwordToSend),
+  });
 
   res.json({ success: true, message: `Şifrəniz @${user.username} hesabına bağlı WhatsApp nömrəsinə göndərildi.` });
 });

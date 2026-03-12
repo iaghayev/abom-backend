@@ -1415,6 +1415,7 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
       <div class="as-sec">Sistem</div>
       <button class="as-lnk" onclick="aPanel('categories')"><span class="ico">🗂️</span>Kateqoriyalar</button>
       <button class="as-lnk" onclick="aPanel('users')"><span class="ico">👥</span>İstifadəçilər</button>
+      <button class="as-lnk" onclick="aPanel('wa-templates')"><span class="ico">💬</span>WA Şablonları</button>
       <button class="as-lnk" onclick="goTo('home')"><span class="ico">🏠</span>Ana Səhifə</button>
       <button class="as-lnk" onclick="logout()"><span class="ico">🚪</span>Çıxış</button>
     </aside>
@@ -1606,7 +1607,29 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
         </div>
       </div>
 
+      <!-- WhatsApp Şablonları -->
+      <div class="a-panel" id="ap-wa-templates">
+        <div class="a-hdr">
+          <div><div class="a-title">💬 WhatsApp Şablonları</div><div class="a-sub">İstifadəçilərə göndərilən mesajları redaktə edin</div></div>
+          <button class="btn btn-outline btn-sm" onclick="loadWaTemplates()">↻</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+          💡 Dəyişənlər: <code>{{name}}</code> ad, <code>{{username}}</code> istifadəçi adı, <code>{{password}}</code> şifrə, <code>{{exam_title}}</code> imtahan adı, <code>{{price}}</code> qiymət, <code>{{date_line}}</code> tarix sətri, <code>{{username_enc}}</code> / <code>{{password_enc}}</code> URL üçün kodlaşdırılmış
+        </div>
+        <div id="waTemplatesList"></div>
+      </div>
+
     </main>
+  </div>
+</div>
+
+<!-- WA Template Preview Modal -->
+<div class="overlay" id="waTplPreviewModal">
+  <div class="modal modal-sm">
+    <button class="m-close" onclick="closeModal('waTplPreviewModal')">✕</button>
+    <div class="m-title">👁 Mesaj Önizləməsi</div>
+    <div style="background:#dcf8c6;border-radius:12px 12px 3px 12px;padding:14px 16px;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;margin:16px 0;max-height:400px;overflow-y:auto;font-family:inherit" id="waTplPreviewBody"></div>
+    <div style="font-size:11px;color:var(--muted);text-align:center">Nümunə məlumatlarla göstərilir</div>
   </div>
 </div>
 
@@ -3781,17 +3804,18 @@ function aPanel(p){
   // Sync mobile bottom nav
   document.querySelectorAll('.amn-btn').forEach(x=>x.classList.remove('active'));
   document.querySelector(`.amn-btn[onclick*="'${p}'"]`)?.classList.add('active');
-  if(p==='dashboard')  loadAdminDashboard();
-  if(p==='regs')       loadRegs();
-  if(p==='results')    loadAdminResults();
-  if(p==='icazeler')   loadIcazeler();
-  if(p==='revenues')   loadRevenues();
-  if(p==='categories') loadCategories();
-  if(p==='users')      loadAdminUsers();
-  if(p==='exams')      loadAdminExams();
-  if(p==='questions')  loadQExamSelect();
-  if(p==='videos')     loadAdminVideos();
-  if(p==='certs')      loadCertExamSelect();
+  if(p==='dashboard')    loadAdminDashboard();
+  if(p==='regs')         loadRegs();
+  if(p==='results')      loadAdminResults();
+  if(p==='icazeler')     loadIcazeler();
+  if(p==='revenues')     loadRevenues();
+  if(p==='categories')   loadCategories();
+  if(p==='users')        loadAdminUsers();
+  if(p==='exams')        loadAdminExams();
+  if(p==='questions')    loadQExamSelect();
+  if(p==='videos')       loadAdminVideos();
+  if(p==='certs')        loadCertExamSelect();
+  if(p==='wa-templates') loadWaTemplates();
 }
 
 async function loadAdminDashboard(){
@@ -5813,7 +5837,63 @@ async function deleteUser(id){
   loadAdminUsers();
 }
 
-// ═══ RESULT EDIT ═══
+// ═══ WHATSAPP ŞABLONLARI ═══
+let _waTemplates = [];
+async function loadWaTemplates(){
+  const r = await GET('/admin/wa-templates');
+  if(!r.success) return;
+  _waTemplates = r.data;
+  renderWaTemplates();
+}
+function renderWaTemplates(){
+  const labels = {
+    register:'😊 Qeydiyyat mesajı',
+    ticket:'🎫 Bilet alındı mesajı',
+    activate:'✅ İmtahan aktivləşdi mesajı',
+    forgot_password:'🔑 Şifrə xatırlatma mesajı',
+    resend_password:'📩 Şifrəni yenidən göndər',
+    password_changed:'🔐 Şifrə dəyişdirildi mesajı',
+  };
+  const wrap = document.getElementById('waTemplatesList');
+  if(!wrap) return;
+  wrap.innerHTML = _waTemplates.map(t => `
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px">${labels[t.key]||t.label}</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="previewWaTemplate('${t.key}')">👁 Önizlə</button>
+          <button class="btn btn-primary btn-sm" onclick="saveWaTemplate('${t.key}')">💾 Saxla</button>
+        </div>
+      </div>
+      <textarea id="waTpl_${t.key}" class="inp" style="width:100%;min-height:180px;font-family:monospace;font-size:12px;line-height:1.6;resize:vertical;white-space:pre">${escHtml(t.template)}</textarea>
+    </div>
+  `).join('');
+}
+async function saveWaTemplate(key){
+  const el = document.getElementById('waTpl_'+key);
+  if(!el) return;
+  const r = await PUT('/admin/wa-templates/'+key, { template: el.value });
+  toast(r.success ? '✅ Şablon saxlandı!' : r.message, r.success ? 'ok' : 'err');
+  if(r.success) _waTemplates = _waTemplates.map(t => t.key===key ? {...t, template: el.value} : t);
+}
+function previewWaTemplate(key){
+  const tpl = _waTemplates.find(t=>t.key===key);
+  if(!tpl) return;
+  const preview = tpl.template
+    .replace(/\{\{name\}\}/g, 'Mədinə Əliyeva')
+    .replace(/\{\{username\}\}/g, 'medine.eliyeva')
+    .replace(/\{\{password\}\}/g, '2296894')
+    .replace(/\{\{username_enc\}\}/g, 'medine.eliyeva')
+    .replace(/\{\{password_enc\}\}/g, '2296894')
+    .replace(/\{\{exam_title\}\}/g, 'DahiMatik Riyaziyyat Yarışması')
+    .replace(/\{\{price\}\}/g, '5')
+    .replace(/\{\{date_line\}\}/g, '\n📅 İmtahan 01 Noy - 07 Noy tarixləri arasında aktiv olacaq. ⏰');
+  document.getElementById('waTplPreviewBody').textContent = preview;
+  openModal('waTplPreviewModal');
+}
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+
 async function openResultEdit(r){
   document.getElementById('reEditId').value=r.id;
   document.getElementById('reEditStudent').value=r.user_name||'—';
@@ -6129,15 +6209,18 @@ async function init(){
     const params = new URLSearchParams(window.location.search);
     const u = params.get('u'), p = params.get('p');
     if(u && p){
+      window.history.replaceState({}, '', window.location.pathname);
       openModal('authModal');
-      setTimeout(()=>{
-        const uEl=document.getElementById('loginUsername');
-        const pEl=document.getElementById('loginPass');
-        if(uEl) uEl.value=u;
-        if(pEl) pEl.value=p;
-        // Clean URL without reload
-        window.history.replaceState({}, '', window.location.pathname);
-      }, 300);
+      // Fill immediately + retry after DOM settles
+      function fillLoginFields(){
+        const uEl = document.getElementById('loginUsername');
+        const pEl = document.getElementById('loginPass');
+        if(uEl) uEl.value = u;
+        if(pEl) pEl.value = p;
+      }
+      fillLoginFields();
+      setTimeout(fillLoginFields, 100);
+      setTimeout(fillLoginFields, 500);
     }
   }
 }

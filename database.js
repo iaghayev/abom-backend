@@ -136,7 +136,112 @@ db.exec(`
     status          TEXT DEFAULT 'confirmed',
     created_at      TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS wa_templates (
+    key       TEXT PRIMARY KEY,
+    template  TEXT NOT NULL,
+    label     TEXT NOT NULL
+  );
 `);
+
+// ── Seed default WhatsApp templates ──────────────────────────
+const seedTemplate = (key, label, template) => {
+  const exists = db.prepare('SELECT key FROM wa_templates WHERE key=?').get(key);
+  if (!exists) db.prepare('INSERT INTO wa_templates (key,label,template) VALUES (?,?,?)').run(key, label, template);
+};
+const _platformUrl = process.env.PLATFORM_URL || 'https://abom.up.railway.app';
+const _cardNum     = process.env.WA_CARD_NUMBER || '0000 0000 0000 0000';
+
+seedTemplate('register',
+  'Qeydiyyat mesajı',
+`😊 *ABOM - Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi* - Aramıza xoş gəldiniz!.
+
+{{name}} haqqında məlumatlara aşağıdakı link vasitəsi ilə baxa bilərsiniz.
+ 
+👉 *İstifadəçi adı:* {{username}}
+👉 *Şifrə:* {{password}}
+
+İdarə panelinə giriş linki: ${_platformUrl}/login?u={{username_enc}}&p={{password_enc}}`);
+
+seedTemplate('ticket',
+  'Bilet alındı mesajı',
+`Salam! 👋
+Hörmətli {{name}},
+ 
+"{{exam_title}}" online imtahanına qeydiyyatınız uğurla qeydə alındı ✅.
+
+Qeydiyyatınızı tamamlamaq üçün ödəniş mərhələsini tamamlayın. 
+
+Ödəniş gözlənilir: {{price}} ₼
+
+Zəhmət olmasa, ödənişi aşağıda qeyd olunan kart nömrəsinə göndərdikdən sonra ödəniş çekinin şəklini bura göndərəsiniz.
+
+Kart məlumatları:
+${_cardNum}
+
+Ödəniş çekini bizə göndərdikdən sonra övladınız üçün imtahan aktivləşdiriləcək.
+İmtahanı yazıb bitirdikdən sonra Sertifikatınızı dərhal yükləyə bilərsiniz.`);
+
+seedTemplate('activate',
+  'İmtahan aktivləşdi mesajı',
+`Ödənişiniz təsdiqləndi və övladınız üçün imtahan aktivləşdirildi. ✅
+
+{{name}} siz {{exam_title}} imtahanından uğurla qeydiyyatınız tamamlandı. 
+
+👉 İstifadəçi adı: {{username}}
+👉 Şifrə: {{password}}
+
+İmtahana giriş linki: ${_platformUrl}/login?u={{username_enc}}&p={{password_enc}}
+
+📘 İmtahana başlamaq üçün:
+1. Linkə daxil olun
+2. Şagird hesabına daxil olun
+3. "Aktiv İmtahanlar" düyməsinə klikləyin
+4. İmtahanı seçib başlayın
+{{date_line}}
+Uğurlar! 🍀`);
+
+seedTemplate('forgot_password',
+  'Şifrə xatırlatma mesajı',
+`🔑 ABOM — Şifrə Xatırlatması
+
+Salam, {{name}}!
+
+Hesab məlumatlarınız:
+👉 İstifadəçi adı: {{username}}
+👉 Şifrə: {{password}}
+
+🔗 ${_platformUrl}/login?u={{username_enc}}&p={{password_enc}}
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+
+seedTemplate('resend_password',
+  'Şifrəni yenidən göndər mesajı',
+`🔑 ABOM — Şifrə Xatırlatması
+
+Salam, {{name}}!
+
+Hesab məlumatlarınız:
+👉 İstifadəçi adı: {{username}}
+👉 Şifrə: {{password}}
+
+🔗 ${_platformUrl}/login?u={{username_enc}}&p={{password_enc}}
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
+
+seedTemplate('password_changed',
+  'Şifrə dəyişdirildi mesajı',
+`🔑 ABOM — Şifrəniz Yeniləndi
+
+Salam, {{name}}!
+
+Hesab məlumatlarınız:
+👉 İstifadəçi adı: {{username}}
+👉 Yeni şifrə: {{password}}
+
+🔗 ${_platformUrl}/login?u={{username_enc}}&p={{password_enc}}
+
+ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
 
 // ── Migration: add missing columns to existing DBs ──────────
 const tryAddCol = (tbl, col, def) => {

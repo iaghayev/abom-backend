@@ -1,10 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const db      = require('../database');
-
-// POST /api/telegram/webhook — Telegram bot callback handler
-// Set webhook once:
-//   curl "https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://abom-backend-production.up.railway.app/api/telegram/webhook"
+const { sendTemplate } = require('../config/whatsapp');
 
 async function tgApi(method, body) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -15,25 +12,14 @@ async function tgApi(method, body) {
   });
 }
 
-function normalizeWaPhone(phone) {
-  let p = (phone || '').replace(/\D/g, '');
-  if (p.startsWith('0')) p = '994' + p.slice(1);
-  if (!p.startsWith('994') && p.length === 9) p = '994' + p;
-  return p;
-}
-async function sendWhatsApp(toPhone, message) {
-  const token    = process.env.ULTRAMSG_TOKEN;
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  if (!token || !instance) return;
-  const to = normalizeWaPhone(toPhone);
-  if (!to) return;
-  try {
-    await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token, to, body: message, priority: 10 })
-    });
-  } catch(e) { console.error('WhatsApp error:', e.message); }
+function examDateLine(exam) {
+  if (!exam?.start_date && !exam?.end_date) return '';
+  const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
+  const s = exam.start_date ? fmt(exam.start_date) : '';
+  const e = exam.end_date   ? fmt(exam.end_date)   : '';
+  if (s && e) return `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
+  if (s)      return `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
+  return '';
 }
 
 router.post('/webhook', async (req, res) => {
@@ -78,36 +64,17 @@ router.post('/webhook', async (req, res) => {
     // WhatsApp to student
     const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
     if (user) {
-      const link = process.env.PLATFORM_URL || 'https://abom.edusoft.az';
       const pass = user.plain_password || '—';
       const waPhone = reg.whatsapp || reg.phone;
-
-      let dateLine = '';
-      if (exam?.start_date || exam?.end_date) {
-        const fmt = d => { try { return new Date(d).toLocaleDateString('az-AZ',{day:'2-digit',month:'short',timeZone:'Asia/Baku'}); } catch{ return d; } };
-        const s = exam.start_date ? fmt(exam.start_date) : '';
-        const e = exam.end_date   ? fmt(exam.end_date)   : '';
-        if (s && e) dateLine = `\n📅 İmtahan ${s} - ${e} tarixləri arasında aktiv olacaq. Bu müddət ərzində istədiyiniz vaxt imtahana başlaya bilərsiniz. ⏰`;
-        else if (s) dateLine = `\n📅 İmtahan ${s} tarixindən aktivdir. ⏰`;
-      }
-
-      await sendWhatsApp(waPhone,
-`Ödənişiniz təsdiqləndi və övladınız üçün imtahan aktivləşdirildi. ✅
-
-${reg.name} siz ${exam?.title || '—'} imtahanından uğurla qeydiyyatınız tamamlandı. 
-
-👉 İstifadəçi adı: ${user.username}
-👉 Şifrə: ${pass}
-
-İmtahana giriş linki: ${link}/login?u=${encodeURIComponent(user.username)}&p=${encodeURIComponent(pass)}
-
-📘 İmtahana başlamaq üçün:
-1. Linkə daxil olun
-2. Şagird hesabına daxil olun
-3. "Aktiv İmtahanlar" düyməsinə klikləyin
-4. İmtahanı seçib başlayın
-${dateLine}
-Uğurlar! 🍀`);
+      await sendTemplate(waPhone, 'activate', {
+        name:         reg.name,
+        exam_title:   exam?.title || '—',
+        username:     user.username,
+        password:     pass,
+        username_enc: encodeURIComponent(user.username),
+        password_enc: encodeURIComponent(pass),
+        date_line:    examDateLine(exam),
+      });
     }
 
     // Answer callback + edit original TG message
