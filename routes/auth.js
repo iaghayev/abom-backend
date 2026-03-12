@@ -186,22 +186,37 @@ router.post('/parent-register', (req, res) => {
   res.status(201).json({ success: true, token, message: `Qeydiyyat uğurlu. ${child.name} uşağınız əlavə edildi.` });
 });
 
-// POST /api/auth/forgot-password — generate new password, send via WhatsApp
+// POST /api/auth/forgot-password
+// Step 1: phone only → returns user list if multiple, or resets directly if single
+// Step 2: phone + username → resets specific user
 router.post('/forgot-password', async (req, res) => {
-  const { phone } = req.body;
+  const { phone, username } = req.body;
   if (!phone) return res.status(400).json({ success: false, message: 'Telefon nömrəsi tələb olunur.' });
   const cleanPhone = phone.replace(/\D/g, '');
   const last9 = cleanPhone.slice(-9);
-  const user = db.prepare("SELECT * FROM users WHERE (phone=? OR phone LIKE ?) AND role='student' LIMIT 1")
-    .get(cleanPhone, '%' + last9);
-  if (!user) return res.status(404).json({ success: false, message: 'Bu nömrə ilə istifadəçi tapılmadı.' });
+  const users = db.prepare("SELECT * FROM users WHERE (phone=? OR phone LIKE ?) AND role='student'")
+    .all(cleanPhone, '%' + last9);
+  if (!users.length) return res.status(404).json({ success: false, message: 'Bu nömrə ilə hesab tapılmadı.' });
 
-  // Generate 8-char random password (letters + digits)
+  // If multiple users and no username selected yet — return list
+  if (users.length > 1 && !username) {
+    return res.json({
+      success: true,
+      multipleUsers: true,
+      accounts: users.map(u => ({ username: u.username, name: u.name }))
+    });
+  }
+
+  // Pick the right user
+  const user = username
+    ? users.find(u => u.username === username.trim().replace(/^@/, ''))
+    : users[0];
+  if (!user) return res.status(404).json({ success: false, message: 'İstifadəçi tapılmadı.' });
+
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   const newPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   db.prepare('UPDATE users SET password=?, plain_password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), newPassword, user.id);
 
-  // Send via WhatsApp
   const waPhone = user.whatsapp || user.phone;
   const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
   await sendWhatsApp(waPhone,
@@ -209,18 +224,15 @@ router.post('/forgot-password', async (req, res) => {
 
 Salam, ${user.name}!
 
-Yeni şifrəniz aşağıdadır:
-
-👤 İstifadəçi adı: ${user.username || user.phone}
+Yeni şifrəniz:
+👤 İstifadəçi adı: ${user.username}
 🔑 Yeni şifrə: ${newPassword}
 
 🔗 ${link}
 
-Daxil olduqdan sonra şifrənizi dəyişdirməyinizi tövsiyə edirik.
-
 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`);
 
-  res.json({ success: true, message: 'Yeni şifrə WhatsApp nömrənizə göndərildi.' });
+  res.json({ success: true, message: `Yeni şifrə @${user.username} hesabına bağlı WhatsApp nömrəsinə göndərildi.` });
 });
 
 module.exports = router;

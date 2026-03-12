@@ -2693,7 +2693,7 @@ function openForgotPassword(){
       <div style="text-align:center;margin-bottom:18px">
         <div style="font-size:32px;margin-bottom:8px">🔑</div>
         <div style="font-size:16px;font-weight:700;color:var(--navy)">Şifrəni Bərpa Et</div>
-        <div style="font-size:13px;color:var(--muted);margin-top:4px">Telefon nömrənizi daxil edin, yeni şifrə WhatsApp-a göndəriləcək</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">Telefon nömrənizi daxil edin — yeni şifrə WhatsApp-a göndəriləcək</div>
       </div>
       <div class="msg" id="fpMsg"></div>
       <div class="field"><label>Telefon nömrəsi</label>
@@ -2706,36 +2706,64 @@ function openForgotPassword(){
             </button>
             <div class="country-drop" id="fpPhoneDrop" style="display:none"></div>
           </div>
-          <input class="phone-inp" id="fpPhone" type="tel" placeholder="(50) 111 11 11" oninput="formatPhoneInput('fpPhone')">
+          <input class="phone-inp" id="fpPhone" type="tel" placeholder="(50) 111 11 11"
+            oninput="formatPhoneInput('fpPhone')" onkeydown="if(event.key==='Enter')doForgotPassword()">
         </div>
       </div>
-      <button class="form-btn" id="fpBtn" onclick="doForgotPassword()">Yeni Şifrə Göndər</button>
+      <div id="fpUserSelectWrap" style="display:none;margin-bottom:12px">
+        <div class="msg info" style="display:flex;margin-bottom:8px">👥 Bu nömrə ilə bir neçə hesab var. Hansı hesab üçün sıfırlayaq?</div>
+        <div id="fpUserList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <button class="form-btn" id="fpBtn" onclick="doForgotPassword()">Göndər</button>
       <button onclick="closeForgotPassword()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px">← Girişə qayıt</button>`;
     document.getElementById('loginPane').parentNode.insertBefore(fp, document.getElementById('loginPane').nextSibling);
     initCountryDrop('fpPhone');
   }
+  document.getElementById('fpMsg').style.display='none';
+  document.getElementById('fpUserSelectWrap').style.display='none';
+  document.getElementById('fpUserList').innerHTML='';
+  document.getElementById('fpBtn').textContent='Göndər';
   fp.style.display='block';
+  setTimeout(()=>{ const el=document.getElementById('fpPhone'); if(el) el.focus(); },100);
 }
 function closeForgotPassword(){
   const fp=document.getElementById('forgotPane');
   if(fp) fp.style.display='none';
   document.getElementById('loginPane').style.display='block';
 }
-async function doForgotPassword(){
+async function doForgotPassword(selectedUsername){
   const phone = getFullPhone('fpPhone');
-  if(!phone){ toast('Telefon nömrəsini daxil edin.','err'); return; }
+  if(!phone){ showMsg('fpMsg','Telefon nömrəsini daxil edin.','err'); return; }
   const btn=document.getElementById('fpBtn');
-  btn.disabled=true; btn.textContent='Göndərilir...';
-  const r = await POST('/auth/forgot-password', { phone });
-  btn.disabled=false; btn.textContent='Yeni Şifrə Göndər';
-  const msg=document.getElementById('fpMsg');
+  btn.disabled=true; btn.textContent='Yüklənir...';
+  const body = selectedUsername ? { phone, username: selectedUsername } : { phone };
+  const r = await POST('/auth/forgot-password', body);
+  btn.disabled=false; btn.textContent='Göndər';
+  if(r.multipleUsers){
+    document.getElementById('fpUserSelectWrap').style.display='block';
+    const list=document.getElementById('fpUserList');
+    list.innerHTML='';
+    r.accounts.forEach(acc=>{
+      const card=document.createElement('button');
+      card.type='button';
+      card.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:left;width:100%;transition:.15s';
+      card.innerHTML=`<span style="font-size:20px">👤</span><div><div style="font-weight:600;font-size:13px">${acc.name}</div><div style="font-size:12px;color:var(--muted)">@${acc.username}</div></div>`;
+      card.onmouseenter=()=>card.style.borderColor='var(--blue)';
+      card.onmouseleave=()=>{ if(!card.dataset.sel) card.style.borderColor='var(--border)'; };
+      card.onclick=()=>{
+        list.querySelectorAll('button').forEach(b=>{ b.style.borderColor='var(--border)'; b.style.background='#fff'; delete b.dataset.sel; });
+        card.style.borderColor='var(--blue)'; card.style.background='#eef5ff'; card.dataset.sel='1';
+        doForgotPassword(acc.username);
+      };
+      list.appendChild(card);
+    });
+    return;
+  }
   if(r.success){
-    msg.className='msg ok'; msg.style.display='flex';
-    msg.textContent='✅ '+r.message;
-    setTimeout(()=>{ closeForgotPassword(); msg.style.display='none'; }, 3500);
+    showMsg('fpMsg','✅ '+r.message,'ok');
+    setTimeout(()=>closeForgotPassword(), 3500);
   } else {
-    msg.className='msg err'; msg.style.display='flex';
-    msg.textContent='⚠️ '+(r.message||'Xəta baş verdi.');
+    showMsg('fpMsg', r.message||'Xəta baş verdi.','err');
   }
 }
 
