@@ -1409,18 +1409,12 @@ button,input,select,textarea{font-family:'Outfit',sans-serif;-webkit-appearance:
           <option value="mix">Kompleks</option>
         </select>
       </div>
-      <div class="field"><label>Sinif</label>
-        <select class="inp" id="examFClass">
-          <option value="">— Ümumi —</option>
-        </select>
-      </div>
-      <div class="field"><label>Bölmə</label>
-        <select class="inp" id="examFSection">
-          <option value="">— Ümumi —</option>
-        </select>
-      </div>
       <div class="field"><label>Müddət (dəq)</label><input class="inp" id="examFDur" type="number" value="60" min="5" max="300"></div>
       <div class="field"><label>Qiymət (AZN)</label><input class="inp" id="examFPrice" type="number" value="8" min="0"></div>
+      <div class="field" id="examFTotalQWrap" style="display:none">
+        <label>Satış kartında sual sayı <span style="font-size:10px;color:var(--muted);font-weight:400">— qrup imtahan üçün</span></label>
+        <input class="inp" id="examFTotalQ" type="number" value="0" min="0" placeholder="məs. 25">
+      </div>
     </div>
 
     <!-- Date range -->
@@ -2421,7 +2415,7 @@ function examCardHtml(e){
     <div class="exam-meta">
       <span class="tag tag-blue">${t(e.category)}</span>
       <span class="tag tag-gray">⏱ ${e.duration} ${t('min')}</span>
-      <span class="tag tag-gray">❓ ${e.question_count||0} ${t('q')}</span>
+      <span class="tag tag-gray">❓ ${e.total_questions||e.question_count||0} ${t('q')}</span>
       ${dateBadge}
     </div>
     <div class="exam-footer">
@@ -4188,17 +4182,18 @@ async function editExam(e){
   document.getElementById('examFDur').value    = e.duration;
   document.getElementById('examFPrice').value  = e.price;
   document.getElementById('examFActive').value = e.is_active ? '1' : '0';
+  // Show total_questions field only for root exams (no parent)
+  const isRoot = !e.parent_exam_id || e.parent_exam_id === '';
+  const tqWrap = document.getElementById('examFTotalQWrap');
+  tqWrap.style.display = isRoot ? '' : 'none';
+  document.getElementById('examFTotalQ').value = e.total_questions||0;
   // Dates
   const unlimited = e.is_unlimited !== 0 && e.is_unlimited !== false;
   document.getElementById('examFUnlimited').checked = unlimited;
   document.getElementById('examFStart').value = e.start_date||'';
   document.getElementById('examFEnd').value   = e.end_date||'';
   toggleExamDates();
-  await Promise.all([
-    loadParentExamSelect(e.parent_exam_id||''),
-    loadCatSelect('examFClass',   'class',   e.class||'',   '— Ümumi —'),
-    loadCatSelect('examFSection', 'section', e.section||'', '— Ümumi —'),
-  ]);
+  await loadParentExamSelect(e.parent_exam_id||'');
   openModal('addExamModal');
 }
 
@@ -4206,19 +4201,20 @@ async function saveExam(){
   const id = document.getElementById('examFormId').value;
   const unlimited = document.getElementById('examFUnlimited').checked;
   const body = {
-    title:         document.getElementById('examFTitle').value.trim(),
-    description:   document.getElementById('examFDesc').value,
-    category:      document.getElementById('examFCat').value,
-    subject:       document.getElementById('examFSubj').value,
-    class:         document.getElementById('examFClass').value,
-    section:       document.getElementById('examFSection').value,
-    duration:      parseInt(document.getElementById('examFDur').value)||60,
-    price:         parseFloat(document.getElementById('examFPrice').value)||0,
-    is_active:     parseInt(document.getElementById('examFActive').value),
-    is_unlimited:  unlimited ? 1 : 0,
-    start_date:    unlimited ? '' : (document.getElementById('examFStart').value||''),
-    end_date:      unlimited ? '' : (document.getElementById('examFEnd').value||''),
-    parent_exam_id: document.getElementById('examFParent').value||'',
+    title:           document.getElementById('examFTitle').value.trim(),
+    description:     document.getElementById('examFDesc').value,
+    category:        document.getElementById('examFCat').value,
+    subject:         document.getElementById('examFSubj').value,
+    class:           '',
+    section:         '',
+    duration:        parseInt(document.getElementById('examFDur').value)||60,
+    price:           parseFloat(document.getElementById('examFPrice').value)||0,
+    is_active:       parseInt(document.getElementById('examFActive').value),
+    is_unlimited:    unlimited ? 1 : 0,
+    start_date:      unlimited ? '' : (document.getElementById('examFStart').value||''),
+    end_date:        unlimited ? '' : (document.getElementById('examFEnd').value||''),
+    parent_exam_id:  document.getElementById('examFParent').value||'',
+    total_questions: parseInt(document.getElementById('examFTotalQ').value)||0,
   };
   if(!body.title){ toast('Başlıq tələb olunur','err'); return; }
   const r = id ? await PUT('/exams/'+id, body) : await POST('/exams', body);

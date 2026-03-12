@@ -169,17 +169,18 @@ router.patch('/:id/toggle-active', adminMiddleware, (req, res) => {
 // ── PUT /:id ──────────────────────────────────────────────
 router.put('/:id', adminMiddleware, (req, res) => {
   const { title, description, category, subject, class: cls, section,
-    duration, price, is_active, start_date, end_date, is_unlimited, parent_exam_id } = req.body;
+    duration, price, is_active, start_date, end_date, is_unlimited, parent_exam_id, total_questions } = req.body;
   if (!db.prepare('SELECT id FROM exams WHERE id=?').get(req.params.id))
     return res.status(404).json({ success:false, message:'İmtahan tapılmadı.' });
   const unlimited = (is_unlimited===false||is_unlimited===0||is_unlimited==='0') ? 0 : 1;
   db.prepare(`UPDATE exams SET
     title=?,description=?,category=?,subject=?,class=?,section=?,
-    duration=?,price=?,is_active=?,start_date=?,end_date=?,is_unlimited=?,parent_exam_id=?
+    duration=?,price=?,is_active=?,start_date=?,end_date=?,is_unlimited=?,parent_exam_id=?,total_questions=?
     WHERE id=?`)
     .run(title, description||'', category, subject, cls||'', section||'',
          duration||60, price||0, is_active??1,
-         start_date||'', end_date||'', unlimited, parent_exam_id||'', req.params.id);
+         start_date||'', end_date||'', unlimited, parent_exam_id||'',
+         parseInt(total_questions)||0, req.params.id);
   res.json({ success:true, data: db.prepare('SELECT * FROM exams WHERE id=?').get(req.params.id) });
 });
 

@@ -156,6 +156,7 @@ tryAddCol('exams', 'end_date',      "TEXT DEFAULT ''");
 tryAddCol('exams', 'is_unlimited',  "INTEGER DEFAULT 1");
 tryAddCol('exams', 'parent_exam_id',"TEXT DEFAULT ''");
 tryAddCol('exams', 'section',       "TEXT DEFAULT ''");;
+tryAddCol('exams', 'total_questions', "INTEGER DEFAULT 0");
 // Seed default categories if empty
 if (!db.prepare("SELECT COUNT(*) as c FROM categories").get().c) {
   const insC = db.prepare("INSERT OR IGNORE INTO categories (id,type,name,created_at) VALUES (?,?,?,?)");
