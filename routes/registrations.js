@@ -6,24 +6,37 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 const uid = () => 'reg_' + uuidv4().slice(0,8);
 
-// Telegram notification helpers
+// ── Telegram: Bilet sorğusu — "Aktiv et" düyməsi ilə ────────
 async function notifyNewRegistration(reg, exam) {
   const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chatId } = process.env;
   if (!token || !chatId) return;
-  const msg = `🎫 YENİ BİLET SORĞUSUⁿ\n👤 ${reg.name}\n📱 ${reg.phone}\n📚 ${exam?.title||'—'}\n🏫 ${reg.class||'?'} sinif ${reg.section||''}`;
+  const text =
+`🎫 *YENİ BİLET SORĞUSU*
+
+👤 Ad: ${reg.name}
+📱 Nömrə: ${reg.phone}
+📚 İmtahan: ${exam?.title || '—'}
+🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
+💰 Məbləğ: ${exam?.price || 0} AZN
+🆔 Sorğu ID: \`${reg.id}\``;
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ chat_id: chatId, text: msg })
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '✅ Aktiv et', callback_data: `activate:${reg.id}` }
+        ]]
+      }
+    })
   });
 }
+// Called after manual activation — edit TG message to show done
 async function notifyActivation(reg, exam) {
-  const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chatId } = process.env;
-  if (!token || !chatId) return;
-  const msg = `✅ AKTİVLƏŞDİRİLDİ\n👤 ${reg.name}\n📚 ${exam?.title||'—'}\n💰 ${exam?.price||0} AZN`;
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ chat_id: chatId, text: msg })
-  });
+  // Telegram-da artıq "Aktiv et" düyməsi ilə idarə olunur
+  // Bu funksiya boş buraxılır (köhnə mesajları pozmamaq üçün)
 }
 
 // ── WhatsApp helpers (UltraMsg) ──────────────────────────
@@ -88,7 +101,8 @@ ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
 async function waActivated(reg, exam) {
   const waPhone = reg.whatsapp || reg.phone;
   if (!waPhone) return;
-  const user = db.prepare('SELECT username, phone FROM users WHERE id=?').get(reg.user_id);
+  const user = db.prepare('SELECT username, plain_password FROM users WHERE id=?').get(reg.user_id);
+  if (!user) return;
   const link = process.env.PLATFORM_URL || 'https://abom-backend-production.up.railway.app';
   const msg =
 `✅ İmtahanınız Aktivləşdirildi!
@@ -98,9 +112,10 @@ Salam, ${reg.name}! 🎉
 📚 İmtahan: ${exam?.title || '—'}
 🏫 Sinif: ${reg.class || '?'}${reg.section ? ' · ' + reg.section : ''}
 
-Qeydiyyat zamanı seçdiyiniz şifrə ilə platforma daxil olun:
+Platforma daxil olmaq üçün:
 🔗 ${link}
-👤 İstifadəçi adı: ${user?.username || reg.phone}
+👤 İstifadəçi adı: ${user.username}
+🔑 Şifrə: ${user.plain_password || '(şifrənizi dəyişibsiniz — "Şifrəmi unutdum" istifadə edin)'}
 
 İmtahana uğurlar! 💪
 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;

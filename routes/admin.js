@@ -35,13 +35,10 @@ async function waPasswordChanged(user, newPassword) {
 
 Salam, ${user.name}!
 
-Admin tərəfindən hesab məlumatlarınız yeniləndi.
-
-🔗 Platform: ${link}
+Hesab məlumatlarınız:
+🔗 ${link}
 👤 İstifadəçi adı: ${user.username || user.phone}
 🔑 Yeni şifrə: ${newPassword}
-
-Zəhmət olmasa daxil olduqdan sonra şifrənizi dəyişdirin.
 
 ABOM — Azərbaycan Beynəlxalq Olimpiadalar Mərkəzi`;
   await sendWhatsApp(waPhone, msg);
@@ -134,6 +131,8 @@ router.put('/users/:id', adminMiddleware, async (req, res) => {
   if (changingPassword) {
     updates.push('password=?');
     params.push(bcrypt.hashSync(newPassword, 10));
+    updates.push('plain_password=?');
+    params.push(newPassword);
   }
   if (!updates.length) return res.json({ success: true });
   params.push(req.params.id);

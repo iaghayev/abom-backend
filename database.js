@@ -13,16 +13,17 @@ db.pragma('foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
-    id           TEXT PRIMARY KEY,
-    username     TEXT UNIQUE NOT NULL,
-    name         TEXT NOT NULL,
-    phone        TEXT NOT NULL,
-    password     TEXT NOT NULL,
-    class        TEXT DEFAULT '',
-    section      TEXT DEFAULT '',
-    role         TEXT DEFAULT 'student',
-    parent_code  TEXT DEFAULT '',
-    created_at   TEXT NOT NULL
+    id             TEXT PRIMARY KEY,
+    username       TEXT UNIQUE NOT NULL,
+    name           TEXT NOT NULL,
+    phone          TEXT NOT NULL,
+    password       TEXT NOT NULL,
+    plain_password TEXT DEFAULT '',
+    class          TEXT DEFAULT '',
+    section        TEXT DEFAULT '',
+    role           TEXT DEFAULT 'student',
+    parent_code    TEXT DEFAULT '',
+    created_at     TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS parents (
@@ -157,6 +158,7 @@ tryAddCol('exams', 'is_unlimited',  "INTEGER DEFAULT 1");
 tryAddCol('exams', 'parent_exam_id',"TEXT DEFAULT ''");
 tryAddCol('exams', 'section',       "TEXT DEFAULT ''");;
 tryAddCol('exams', 'total_questions', "INTEGER DEFAULT 0");
+tryAddCol('users', 'plain_password', "TEXT DEFAULT ''");
 // Seed default categories if empty
 if (!db.prepare("SELECT COUNT(*) as c FROM categories").get().c) {
   const insC = db.prepare("INSERT OR IGNORE INTO categories (id,type,name,created_at) VALUES (?,?,?,?)");
@@ -170,13 +172,18 @@ if (!db.prepare("SELECT COUNT(*) as c FROM categories").get().c) {
 function generateUsername(name) {
   const map = {'ə':'e','ü':'u','ö':'o','ı':'i','ş':'sh','ç':'ch','ğ':'g',
                'Ə':'e','Ü':'u','Ö':'o','İ':'i','Ş':'sh','Ç':'ch','Ğ':'g'};
-  let base = name.toLowerCase()
-    .split('').map(c => map[c] || c).join('')
-    .replace(/[^a-z0-9\s_]/g, '').trim().replace(/\s+/g, '_');
+  const parts = name.toLowerCase().trim().split(/\s+/);
+  const convert = s => s.split('').map(c => map[c] || c).join('').replace(/[^a-z0-9]/g, '');
+  let base;
+  if (parts.length >= 2) {
+    base = convert(parts[0]) + '.' + convert(parts.slice(1).join(''));
+  } else {
+    base = convert(parts[0]);
+  }
   let username = base;
   let counter = 1;
   while (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) {
-    username = base + '_' + counter++;
+    username = base + counter++;
   }
   return username;
 }

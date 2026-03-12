@@ -55,8 +55,8 @@ router.post('/register', (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const id = uid();
   const now = new Date().toISOString();
-  db.prepare('INSERT INTO users (id,username,name,phone,password,class,section,role,parent_code,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)')
-    .run(id, username, name.trim(), cleanPhone, hash, cls||'', section||'', 'student', parentCode, now);
+  db.prepare('INSERT INTO users (id,username,name,phone,password,plain_password,class,section,role,parent_code,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .run(id, username, name.trim(), cleanPhone, hash, password, cls||'', section||'', 'student', parentCode, now);
   const user = db.prepare('SELECT id,username,name,phone,class,section,role,parent_code FROM users WHERE id=?').get(id);
 
   // Send credentials via WhatsApp immediately after registration
@@ -138,7 +138,7 @@ router.put('/change-password', authMiddleware, (req, res) => {
   const user = db.prepare('SELECT password FROM users WHERE id=?').get(req.user.id);
   if (!bcrypt.compareSync(currentPassword, user.password))
     return res.status(401).json({ success: false, message: 'Köhnə şifrə yanlışdır.' });
-  db.prepare('UPDATE users SET password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), req.user.id);
+  db.prepare('UPDATE users SET password=?, plain_password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), newPassword, req.user.id);
   res.json({ success: true, message: 'Şifrə dəyişdirildi.' });
 });
 
@@ -199,7 +199,7 @@ router.post('/forgot-password', async (req, res) => {
   // Generate 8-char random password (letters + digits)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   const newPassword = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  db.prepare('UPDATE users SET password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), user.id);
+  db.prepare('UPDATE users SET password=?, plain_password=? WHERE id=?').run(bcrypt.hashSync(newPassword, 10), newPassword, user.id);
 
   // Send via WhatsApp
   const waPhone = user.whatsapp || user.phone;
